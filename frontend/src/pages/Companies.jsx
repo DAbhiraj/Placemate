@@ -250,7 +250,7 @@ const Companies = () => {
                         </button>
                         <button
                           onClick={() => handleApply(company.id)}
-                          disabled={!eligible || daysLeft <= 0}
+                          disabled={!eligible || daysLeft < 0}
                           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                             eligible && daysLeft > 0
                               ? "bg-blue-600 hover:bg-blue-700 text-white"
@@ -259,7 +259,7 @@ const Companies = () => {
                         >
                           {!eligible
                             ? "Not Eligible"
-                            : daysLeft <= 0
+                            : daysLeft < 0
                             ? "Deadline Passed"
                             : "Apply Now"}
                         </button>

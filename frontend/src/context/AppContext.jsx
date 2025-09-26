@@ -27,7 +27,7 @@ export const AppProvider = ({ children }) => {
         "Information Technology"
       ],
       minCGPA: 8.0,
-      deadline: "2025-02-15",
+      deadline: "2025-09-26",
       jobType: "Full-time",
       description:
         "Software Engineer role focusing on scalable systems and innovative solutions.",

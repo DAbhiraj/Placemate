@@ -1,3 +1,4 @@
+
 import dotenv from "dotenv";
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 import express from "express";
@@ -10,7 +11,7 @@ const app = express();
 
 
 app.use(cors({
- origin: "http://localhost:3000", // your React frontend URL
+ origin: ["http://localhost:3000","https://placemate-seven.vercel.app/"], // your React frontend URL
  methods: ["GET", "POST", "PUT", "DELETE"],
 }));
 

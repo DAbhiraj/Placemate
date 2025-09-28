@@ -17,7 +17,7 @@ export const AppProvider = ({ children }) => {
   const [companies] = useState([
     {
       id: "1",
-      name: "Google",
+      name: "Amazon",
       logo: "🔍",
       package: "₹45-55 LPA",
       location: "Bangalore, Hyderabad",

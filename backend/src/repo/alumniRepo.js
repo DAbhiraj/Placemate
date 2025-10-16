@@ -5,6 +5,7 @@ const AlumniRepo = {
     const result = await query("SELECT * FROM alumni_stories ORDER BY id ASC");
     return result.rows;
   },
+  
 
   async create(alumni) {
     const { name, batch, branch, company, package: pkg, image, currentRole, story, tips } = alumni;

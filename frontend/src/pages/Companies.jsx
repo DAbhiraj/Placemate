@@ -152,7 +152,7 @@ const Companies = () => {
           </div>
         ) : (
           filteredCompanies.map(company => {
-            const daysLeft = calculateDaysUntilDeadline(company.deadline)
+            const daysLeft = calculateDaysUntilDeadline(company.deadline) 
             const eligible = isEligible(company)
 
             return (

@@ -11,7 +11,7 @@ const app = express();
 
 
 app.use(cors({
- origin: ["http://localhost:3000","https://placemate-seven.vercel.app/"], // your React frontend URL
+ origin: ["http://localhost:5173","https://placemate-seven.vercel.app/"], // your React frontend URL
  methods: ["GET", "POST", "PUT", "DELETE"],
 }));
 

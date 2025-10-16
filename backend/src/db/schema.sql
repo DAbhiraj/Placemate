@@ -1,19 +1,25 @@
--- create tables
+-- Step 1: Create ENUM type for roles
+CREATE TYPE user_role AS ENUM ('Admin', 'Student');
+
+-- Step 2: Create users table with role column
 CREATE TABLE users (
   id VARCHAR PRIMARY KEY,
   name VARCHAR NOT NULL,
   branch VARCHAR NOT NULL,
   cgpa NUMERIC(3,2) NOT NULL,
-  email VARCHAR UNIQUE
+  email VARCHAR UNIQUE NOT NULL,
+  password VARCHAR NOT NULL,
+  role user_role NOT NULL DEFAULT 'Student'  -- Admin or Student
 );
 
+-- Step 3: Create companies table
 CREATE TABLE companies (
   id VARCHAR PRIMARY KEY,
   name VARCHAR NOT NULL,
   logo VARCHAR,
   package TEXT,
   location TEXT,
-  eligible_branches TEXT[],      -- array of branch names
+  eligible_branches TEXT[],
   min_cgpa NUMERIC(3,2),
   deadline DATE,
   job_type VARCHAR,
@@ -22,6 +28,7 @@ CREATE TABLE companies (
   applied_count INTEGER DEFAULT 0
 );
 
+-- Step 4: Create applications table
 CREATE TABLE applications (
   id VARCHAR PRIMARY KEY,
   student_id VARCHAR REFERENCES users(id) ON DELETE CASCADE,
@@ -31,24 +38,24 @@ CREATE TABLE applications (
   last_update DATE
 );
 
--- seed one user and one company (your sample)
-INSERT INTO users (id, name, branch, cgpa, email) VALUES
-('u1', 'Abhiraj', 'Computer Science', 8.5, 'abhiraj@example.com')
+-- Step 5: Seed one Admin user and one company
+INSERT INTO users (id, name, branch, cgpa, email, password, role)
+VALUES ('u1', 'Abhiraj', 'Computer Science', 8.5, 'abhiraj@example.com', '$2a$10$hashedpasswordhere', 'Admin')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO companies (id, name, logo, package, location, eligible_branches, min_cgpa, deadline, job_type, description, requirements, applied_count)
 VALUES (
- '1',
- 'Google',
- '🔍',
- '₹45-55 LPA',
- 'Bangalore, Hyderabad',
- ARRAY['Computer Science','Electronics','Information Technology'],
- 8.0,
- '2025-02-15',
- 'Full-time',
- 'Software Engineer role focusing on scalable systems and innovative solutions.',
- ARRAY['Strong programming skills','8.0+ CGPA','Problem-solving abilities'],
- 156
+  '1',
+  'Google',
+  '🔍',
+  '₹45-55 LPA',
+  'Bangalore, Hyderabad',
+  ARRAY['Computer Science','Electronics','Information Technology'],
+  8.0,
+  '2025-02-15',
+  'Full-time',
+  'Software Engineer role focusing on scalable systems and innovative solutions.',
+  ARRAY['Strong programming skills','8.0+ CGPA','Problem-solving abilities'],
+  156
 )
 ON CONFLICT DO NOTHING;

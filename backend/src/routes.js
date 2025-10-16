@@ -1,4 +1,6 @@
+// src/routes.js
 import express from "express";
+import { register, login } from "./controllers/authcontroller.js";
 import CompanyController from "./controllers/companyController.js";
 import AlumniController from "./controllers/alumniController.js";
 import applicationController from "./controllers/applicationController.js";

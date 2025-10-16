@@ -1,29 +1,92 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Search,
   Filter,
   MapPin,
   Calendar,
   Users,
-  ExternalLink
-} from "lucide-react"
-import { useApp } from "../context/AppContext"
-import { calculateDaysUntilDeadline } from "../utils/helpers"
+  ExternalLink,
+} from "lucide-react";
+import { calculateDaysUntilDeadline } from "../utils/helpers";
 
-const Companies = () => {
-  const { companies, currentUser, addApplication } = useApp()
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterBranch, setFilterBranch] = useState("")
-  const [filterPackage, setFilterPackage] = useState("")
-  const [sortBy, setSortBy] = useState("deadline")
+const Companies = ({ currentUser }) => {
+  const [companies, setCompanies] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterBranch, setFilterBranch] = useState("");
+  const [filterPackage, setFilterPackage] = useState("");
+  const [sortBy, setSortBy] = useState("deadline");
+  const [loading, setLoading] = useState(true);
 
+
+  // Fetch companies from backend
+  const fetchCompanies = async () => {
+  try {
+    setLoading(true); // start loading
+    const res = await axios.get("http://localhost:4000/api/companies");
+    const normalized = res.data.map((company) => ({
+      ...company,
+      eligibleBranches: company.eligible_branches,
+      minCGPA: parseFloat(company.min_cgpa),
+      appliedCount: company.applied_count,
+    }));
+    setCompanies(normalized);
+  } catch (err) {
+    console.error("Failed to fetch companies:", err);
+  } finally {
+    setLoading(false); // stop loading
+  }
+};
+
+
+  useEffect(() => {
+    fetchCompanies();
+  }, []);
+
+  // Apply to a company
+  const handleApply = async (companyId) => {
+    if (!currentUser) return;
+
+    const newApplication = {
+      studentId: currentUser.id,
+      companyId,
+      status: "applied",
+      appliedDate: new Date().toISOString().split("T")[0],
+      lastUpdate: new Date().toISOString().split("T")[0],
+    };
+
+    try {
+      await axios.post(
+        "http://localhost:5000/api/applications",
+        newApplication
+      ); // your backend endpoint
+      alert("Application submitted successfully!");
+      fetchCompanies(); // refresh companies to update applied count
+    } catch (err) {
+      console.error("Failed to submit application:", err);
+      alert("Failed to submit application");
+    }
+  };
+
+  // Check if current user is eligible
+  const isEligible = (company) => {
+    if (!currentUser) return false;
+    return (
+      company.eligibleBranches.includes(currentUser.branch) &&
+      currentUser.cgpa >= company.minCGPA
+    );
+  };
+
+  // Filter and sort companies
   const filteredCompanies = companies
-    .filter(company => {
+    .filter((company) => {
       const matchesSearch =
         company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        company.location.toLowerCase().includes(searchTerm.toLowerCase())
+        company.location.toLowerCase().includes(searchTerm.toLowerCase());
+
       const matchesBranch =
-        !filterBranch || company.eligibleBranches.includes(filterBranch)
+        !filterBranch || company.eligibleBranches.includes(filterBranch);
+
       const matchesPackage =
         !filterPackage ||
         (filterPackage === "high" &&
@@ -33,58 +96,36 @@ const Companies = () => {
           parseInt(company.package.split("-")[0].replace(/[^\d]/g, "")) >= 20 &&
           parseInt(company.package.split("-")[0].replace(/[^\d]/g, "")) < 40) ||
         (filterPackage === "entry" &&
-          parseInt(company.package.split("-")[0].replace(/[^\d]/g, "")) < 20)
+          parseInt(company.package.split("-")[0].replace(/[^\d]/g, "")) < 20);
 
-      return matchesSearch && matchesBranch && matchesPackage
+      return matchesSearch && matchesBranch && matchesPackage;
     })
     .sort((a, b) => {
       switch (sortBy) {
         case "deadline":
-          return new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
+          return (
+            new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
+          );
         case "package":
           return (
             parseInt(b.package.split("-")[0].replace(/[^\d]/g, "")) -
             parseInt(a.package.split("-")[0].replace(/[^\d]/g, ""))
-          )
+          );
         case "name":
-          return a.name.localeCompare(b.name)
+          return a.name.localeCompare(b.name);
         default:
-          return 0
+          return 0;
       }
-    })
-
-  const handleApply = companyId => {
-    if (!currentUser) return
-
-    const newApplication = {
-      id: Date.now().toString(),
-      studentId: currentUser.id,
-      companyId,
-      status: "applied",
-      appliedDate: new Date().toISOString().split("T")[0],
-      lastUpdate: new Date().toISOString().split("T")[0]
-    }
-
-    addApplication(newApplication)
-    alert("Application submitted successfully!")
-  }
-
-  const isEligible = company => {
-    if (!currentUser) return false
-    return (
-      company.eligibleBranches.includes(currentUser.branch) &&
-      currentUser.cgpa >= company.minCGPA
-    )
-  }
+    });
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-xl shadow-sm border p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-sm border p-6">
+        <h1 className="text-2xl font-bold text-white mb-2">
           Company Opportunities
         </h1>
-        <p className="text-gray-600">
+        <p className="text-white">
           Discover and apply to top companies recruiting from NIT Warangal
         </p>
       </div>
@@ -98,14 +139,14 @@ const Companies = () => {
               type="text"
               placeholder="Search companies or locations..."
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
           <select
             value={filterBranch}
-            onChange={e => setFilterBranch(e.target.value)}
+            onChange={(e) => setFilterBranch(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">All Branches</option>
@@ -119,7 +160,7 @@ const Companies = () => {
 
           <select
             value={filterPackage}
-            onChange={e => setFilterPackage(e.target.value)}
+            onChange={(e) => setFilterPackage(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">All Packages</option>
@@ -130,7 +171,7 @@ const Companies = () => {
 
           <select
             value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
+            onChange={(e) => setSortBy(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="deadline">Sort by Deadline</option>
@@ -141,8 +182,12 @@ const Companies = () => {
       </div>
 
       {/* Company Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filteredCompanies.length === 0 ? (
+     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {loading ? (
+          <div className="lg:col-span-2 text-center py-12">
+            <p className="text-gray-500">Loading companies...</p>
+          </div>
+        ) : filteredCompanies.length === 0 ? (
           <div className="lg:col-span-2 text-center py-12">
             <Filter className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -151,9 +196,9 @@ const Companies = () => {
             <p className="text-gray-500">Try adjusting your search criteria</p>
           </div>
         ) : (
-          filteredCompanies.map(company => {
-            const daysLeft = calculateDaysUntilDeadline(company.deadline) 
-            const eligible = isEligible(company)
+          filteredCompanies.map((company) => {
+            const daysLeft = calculateDaysUntilDeadline(company.deadline);
+            const eligible = isEligible(company);
 
             return (
               <div
@@ -163,7 +208,16 @@ const Companies = () => {
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className="text-3xl">{company.logo}</div>
+                      {company.logo.startsWith("http") ? (
+                        <img
+                          src={company.logo}
+                          alt={company.name}
+                          className="w-10 h-10 rounded-full"
+                        />
+                      ) : (
+                        <div className="text-3xl">{company.logo}</div>
+                      )}
+
                       <div>
                         <h3 className="text-xl font-semibold text-gray-900">
                           {company.name}
@@ -268,12 +322,12 @@ const Companies = () => {
                   </div>
                 </div>
               </div>
-            )
+            );
           })
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
 export default Companies;

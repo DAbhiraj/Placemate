@@ -1,22 +1,52 @@
-import React from "react"
-import { Link } from "react-router-dom"
-import {
-  FileText,
-  CheckCircle,
-  Users,
-  Award,
-  Calendar,
-  ArrowRight
-} from "lucide-react"
-import { useApp } from "../context/AppContext"
-import StatCard from "../components/UI/StatCard"
-import StatusBadge from "../components/UI/StatusBadge"
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { FileText, CheckCircle, Users, Award, Calendar, ArrowRight } from "lucide-react";
+import StatCard from "../components/UI/StatCard";
+import StatusBadge from "../components/UI/StatusBadge";
+import axios from "axios";
 
 const Dashboard = () => {
-  const { currentUser, applications, companies } = useApp()
+  const [currentUser, setCurrentUser] = useState(null);
+  const [applications, setApplications] = useState([]);
+  const [companies, setCompanies] = useState([]);
 
-  const recentApplications = applications.slice(0, 3)
-  const upcomingDeadlines = companies.slice(0, 3)
+  useEffect(() => {
+    // Load current user from localStorage (separate items)
+    const name = localStorage.getItem("name");
+    const email = localStorage.getItem("email");
+    const branch = localStorage.getItem("branch");
+    const cgpa = localStorage.getItem("cgpa");
+    const role = localStorage.getItem("role");
+    const token = localStorage.getItem("token");
+    const u_id = localStorage.getItem("id");
+
+    if (u_id && name && email && branch && cgpa && role) {
+      setCurrentUser({ u_id,name, email, branch, cgpa, role, token });
+    }
+
+    const fetchData = async () => {
+      try {
+        if (email) {
+          
+          const appRes = await axios.get(`http://localhost:4000/api/applications/userId/${u_id}`);
+          setApplications(appRes.data);
+        }
+
+        // // Fetch companies (example: first 10)
+        // const companyRes = await axios.get(`/api/companies`, {
+        //   headers: { Authorization: `Bearer ${token}` },
+        // });
+        // setCompanies(companyRes.data);
+      } catch (err) {
+        console.error("Failed to fetch dashboard data:", err);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const recentApplications = applications.slice(0, 3);
+  const upcomingDeadlines = companies.slice(0, 3);
 
   return (
     <div className="space-y-6">
@@ -26,8 +56,7 @@ const Dashboard = () => {
           Welcome back, {currentUser?.name}!
         </h1>
         <p className="text-blue-100">
-          Track your placement journey and stay updated with the latest
-          opportunities.
+          Track your placement journey and stay updated with the latest opportunities.
         </p>
       </div>
 
@@ -43,9 +72,7 @@ const Dashboard = () => {
 
         <StatCard
           title="Shortlisted"
-          value={
-            applications.filter(app => app.status === "shortlisted").length
-          }
+          value={applications.filter(app => app.status === "shortlisted").length}
           subtitle="33% success rate"
           icon={CheckCircle}
           gradient="bg-gradient-to-r from-green-500 to-green-600"
@@ -53,21 +80,19 @@ const Dashboard = () => {
 
         <StatCard
           title="Interviews"
-          value={
-            applications.filter(app => app.status === "interviewed").length
-          }
+          value={applications.filter(app => app.status === "interviewed").length}
           subtitle="2 upcoming"
           icon={Users}
           gradient="bg-gradient-to-r from-purple-500 to-purple-600"
         />
 
-        <StatCard
-          title="Resume Score"
-          value={`${currentUser?.resumeScore}/100`}
-          subtitle="Excellent"
-          icon={Award}
-          gradient="bg-gradient-to-r from-orange-500 to-orange-600"
-        />
+          <StatCard
+            title="Resume Score"
+            value={`${currentUser?.cgpa}/10`}  
+            subtitle="Excellent"
+            icon={Award}
+            gradient="bg-gradient-to-r from-orange-500 to-orange-600"
+          />
       </div>
 
       {/* Recent Activity */}
@@ -75,9 +100,7 @@ const Dashboard = () => {
         {/* Recent Applications */}
         <div className="bg-white rounded-xl shadow-sm border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Recent Applications
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900">Recent Applications</h3>
             <Link
               to="/applications"
               className="text-blue-600 text-sm font-medium hover:text-blue-700 flex items-center"
@@ -99,9 +122,7 @@ const Dashboard = () => {
               </div>
             ) : (
               recentApplications.map(application => {
-                const company = companies.find(
-                  c => c.id === application.companyId
-                )
+                const company = companies.find(c => c.id === application.companyId);
                 return (
                   <div
                     key={application.id}
@@ -110,9 +131,7 @@ const Dashboard = () => {
                     <div className="flex items-center space-x-3">
                       <div className="text-2xl">{company?.logo}</div>
                       <div>
-                        <p className="font-medium text-gray-900">
-                          {company?.name}
-                        </p>
+                        <p className="font-medium text-gray-900">{company?.name}</p>
                         <p className="text-sm text-gray-500">
                           Applied on {application.appliedDate}
                         </p>
@@ -120,7 +139,7 @@ const Dashboard = () => {
                     </div>
                     <StatusBadge status={application.status} />
                   </div>
-                )
+                );
               })
             )}
           </div>
@@ -129,9 +148,7 @@ const Dashboard = () => {
         {/* Upcoming Deadlines */}
         <div className="bg-white rounded-xl shadow-sm border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Upcoming Deadlines
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900">Upcoming Deadlines</h3>
             <Calendar className="h-5 w-5 text-gray-400" />
           </div>
           <div className="space-y-4">
@@ -148,9 +165,7 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-red-600">
-                    {company.deadline}
-                  </p>
+                  <p className="text-sm font-medium text-red-600">{company.deadline}</p>
                   <p className="text-xs text-gray-500">Deadline</p>
                 </div>
               </div>
@@ -161,9 +176,7 @@ const Dashboard = () => {
 
       {/* Quick Actions */}
       <div className="bg-white rounded-xl shadow-sm border p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Quick Actions
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link
             to="/companies"
@@ -199,16 +212,14 @@ const Dashboard = () => {
               <h4 className="font-medium text-gray-900 group-hover:text-blue-600">
                 Alumni Stories
               </h4>
-              <p className="text-sm text-gray-500">
-                Learn from success stories
-              </p>
+              <p className="text-sm text-gray-500">Learn from success stories</p>
             </div>
             <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
           </Link>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 export default Dashboard;

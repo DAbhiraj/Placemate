@@ -1,14 +1,38 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { GraduationCap, Bell, User, ChevronDown } from "lucide-react"
-import { useApp } from "../../context/AppContext"
 import { getNotificationTypeColor } from "../../utils/helpers"
 
 const Navbar = () => {
   const location = useLocation()
-  const { currentUser, userRole, setUserRole, notifications } = useApp()
+
+  const [currentUser, setCurrentUser] = useState(null)
+  const [userRole, setUserRole] = useState("student")
   const [showNotifications, setShowNotifications] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
+
+  // Example notifications (replace with real ones)
+  const [notifications, setNotifications] = useState([])
+
+  // Fetch user info from localStorage on mount
+  useEffect(() => {
+    const user = localStorage.getItem("name")
+    const email = localStorage.getItem("email")
+    const branch = localStorage.getItem("branch")
+    const cgpa = localStorage.getItem("cgpa")
+    const role = localStorage.getItem("role")
+
+    if (user && email && branch && cgpa && role) {
+      setCurrentUser({
+        name: user,
+        email,
+        branch,
+        cgpa,
+        role
+      })
+      setUserRole(role.toLowerCase()) // for nav logic
+    }
+  }, [])
 
   const unreadNotifications = notifications.filter(n => !n.read).length
 
@@ -16,14 +40,25 @@ const Navbar = () => {
     return location.pathname === path
   }
 
-  const navItems = [
-    { path: "/", label: "Dashboard" },
-    { path: "/companies", label: "Companies" },
-    { path: "/applications", label: "My Applications" },
-    { path: "/profile", label: "Profile" },
-    { path: "/alumni", label: "Alumni Stories" },
-    ...(userRole === "admin" ? [{ path: "/admin", label: "Admin Panel" }] : [])
-  ]
+const role = localStorage.getItem("role"); // get role from localStorage
+
+const navItems = role === "admin"
+  ? [
+      { path: "/admin", label: "Admin Panel" }
+    ]
+  : [
+      { path: "/", label: "Dashboard" },
+      { path: "/companies", label: "Companies" },
+      { path: "/jobs", label: "Jobs" },
+      { path: "/applications", label: "My Applications" },
+      { path: "/alumni", label: "Alumni Stories" },
+    ];
+
+
+  const handleSignOut = () => {
+    localStorage.clear()
+    window.location.href = "/login" // redirect to login page
+  }
 
   return (
     <nav className="bg-white shadow-lg border-b sticky top-0 z-50">
@@ -149,11 +184,8 @@ const Navbar = () => {
                       <p className="text-sm font-medium text-gray-900">
                         {currentUser?.name}
                       </p>
-                      <p className="text-xs text-gray-500">
-                        {currentUser?.email}
-                      </p>
                     </div>
-                    <button
+                    {/* <button
                       onClick={() => {
                         setUserRole(
                           userRole === "student" ? "admin" : "student"
@@ -163,7 +195,7 @@ const Navbar = () => {
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
                       Switch to {userRole === "student" ? "Admin" : "Student"}
-                    </button>
+                    </button> */}
                     <Link
                       to="/profile"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -171,7 +203,10 @@ const Navbar = () => {
                     >
                       Profile Settings
                     </Link>
-                    <button className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                    <button
+                      onClick={handleSignOut}
+                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                    >
                       Sign Out
                     </button>
                   </div>

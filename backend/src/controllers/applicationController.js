@@ -1,10 +1,10 @@
 import { applicationService } from "../services/applicationService.js";
-import { applicationRepository } from "../repo/applicationRepo.js";
+
 
 const applicationController = {
    async getFormData (req, res) {
     try {
-      const studentId = 1;
+      const studentId = req.user.id;
       const { jobId } = req.params;
       const data = await applicationService.getPrefilledForm(studentId, jobId);
       res.json(data);

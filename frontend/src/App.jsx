@@ -7,6 +7,8 @@ import Applications from './pages/Applications';
 import Profile from './pages/Profile';
 import Alumni from './pages/Alumini';
 import Admin from './pages/Admin';
+import LoginPage from './pages/Login';
+import JobsPage from './pages/JobPage';
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
             <Route path="profile" element={<Profile />} />
             <Route path="alumni" element={<Alumni />} />
             <Route path="admin" element={<Admin />} />
+            <Route path="login" element={<LoginPage />} />
+            <Route path="jobs" element={<JobsPage />} />
           </Route>
         </Routes>
       </Router>

@@ -1,6 +1,6 @@
 // src/routes.js
 import express from "express";
-import { register, login } from "./controllers/authcontroller.js";
+import AuthController from "./controllers/authcontroller.js";
 import CompanyController from "./controllers/companyController.js";
 import AlumniController from "./controllers/alumniController.js";
 import applicationController from "./controllers/applicationController.js";
@@ -13,6 +13,9 @@ router.use((req, res, next) => {
   req.user = { id: 1 }; // student
   next();
 });
+
+router.post("/register", AuthController.register);
+router.post("/login", AuthController.login);
 
 // applications
 router.get("/applications/userId/:id",applicationController.getApplicationByUser);

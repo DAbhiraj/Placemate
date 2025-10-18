@@ -9,7 +9,15 @@ CREATE TABLE users (
   cgpa NUMERIC(3,2) NOT NULL,
   email VARCHAR UNIQUE NOT NULL,
   password VARCHAR NOT NULL,
-  role user_role NOT NULL DEFAULT 'Student'  -- Admin or Student
+  role user_role NOT NULL DEFAULT 'Student',  -- Admin or Student
+  phone VARCHAR,
+  skills TEXT[],
+  resume_url VARCHAR,
+  resume_filename VARCHAR,
+  resume_upload_date TIMESTAMP,
+  ats_score INTEGER,
+  ats_score_date TIMESTAMP,
+  ats_feedback TEXT
 );
 
 -- Step 3: Create companies table

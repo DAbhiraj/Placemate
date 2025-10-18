@@ -16,8 +16,8 @@ const applicationController = {
 
    async submitForm (req, res) {
     try {
-      const studentId = req.user.id;
-      const { jobId } = req.params;
+      
+      const { jobId, studentId } = req.params;
       const { answers, resumeUrl } = req.body;
       const result = await applicationService.submitOrUpdateApplication(studentId, jobId, answers, resumeUrl);
       res.json(result);
@@ -51,11 +51,11 @@ const applicationController = {
 
   getApplicationByUser: async(req,res) =>{
     try{
-     const userId = req.params.id;
+     const {userId} = req.params;
      console.log("user id is "+userId);
      const applications = await applicationService.getApplicationByUser(userId);
-     console.log("applications in controller r");
-     console.log(applications);
+     console.log("applications in controller");
+     //console.log(applications);
      res.status(200).json(applications);
     }catch(err){
       console.error(err);

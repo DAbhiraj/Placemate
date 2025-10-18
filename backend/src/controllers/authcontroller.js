@@ -31,7 +31,8 @@ const AuthController = {
     const id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString();
 
     // Default role to Student unless explicitly Admin
-    const userRole = role === "Admin" ? "Admin" : "Student";
+    console.log(role);
+    const userRole = role === "ADMIN" ? "Admin" : "Student";
 
     // Insert into DB
     await query(

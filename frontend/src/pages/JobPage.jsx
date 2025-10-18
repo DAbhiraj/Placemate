@@ -14,20 +14,64 @@ export default function JobsPage() {
   const [selectedJob, setSelectedJob] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [appliedJobs, setAppliedJobs] = useState(new Set())
 
   useEffect(() => {
     fetchJobs()
   }, [])
 
+  useEffect(() => {
+    if (jobs.length > 0) {
+      fetchUserApplications()
+    }
+  }, [jobs])
+
   const fetchJobs = async () => {
     try {
       const token = localStorage.getItem("token")
-      const data = await axios.get("http://localhost:4000/api/jobs");
-      setJobs(data)
+      const response = await axios.get("http://localhost:4000/api/jobs")
+      const raw = response?.data
+      const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.jobs) ? raw.jobs : [])
+      const normalized = list.map(j => ({
+        id: j.id,
+        title: j.title ?? j.role ?? "",
+        company: j.company ?? j.company_name ?? "",
+        location: j.location ?? "",
+        salary: j.salary ?? "",
+        postedDate: j.postedDate ?? j.created_at ?? j.createdAt ?? new Date().toISOString(),
+        description: j.description ?? "",
+      }))
+      setJobs(normalized)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load jobs")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchUserApplications = async () => {
+    try {
+      const userId = localStorage.getItem("id")
+      if (!userId) return
+
+      const response = await axios.get(`http://localhost:4000/api/applications/userId/${userId}`)
+      const applications = response.data || []
+
+      // Create a set of applied job IDs based on company_name and role matching
+      const appliedJobIds = new Set()
+      applications.forEach(app => {
+        // Find matching job by company and role
+        const matchingJob = jobs.find(job =>
+          job.company === app.company_name && job.title === app.role
+        )
+        if (matchingJob) {
+          appliedJobIds.add(matchingJob.id)
+        }
+      })
+
+      setAppliedJobs(appliedJobIds)
+    } catch (err) {
+      console.error("Failed to fetch user applications:", err)
     }
   }
 
@@ -37,10 +81,13 @@ export default function JobsPage() {
 
   const handleCloseForm = () => {
     setSelectedJob(null)
+    // Refresh applied jobs list after closing form (in case application was submitted)
+    fetchUserApplications()
   }
 
   if (selectedJob) {
-    return <ApplicationForm job={selectedJob} onClose={handleCloseForm} />
+    const isApplied = appliedJobs.has(selectedJob.id)
+    return <ApplicationForm job={selectedJob} isApplied={isApplied} onClose={handleCloseForm} />
   }
 
   if (loading) {
@@ -125,10 +172,13 @@ export default function JobsPage() {
 
                 <button
                   onClick={() => handleApplyClick(job)}
-                  className="w-full bg-slate-900 text-white py-3 rounded-lg font-semibold hover:bg-slate-800 transition flex items-center justify-center gap-2"
+                  className={`w-full py-3 cursor-pointer rounded-lg font-semibold transition flex items-center justify-center gap-2 ${appliedJobs.has(job.id)
+                    ? "bg-green-600 text-white"
+                    : "bg-slate-900 text-white hover:bg-slate-800"
+                    }`}
                 >
-                  <span>Apply Now</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>{appliedJobs.has(job.id) ? "Applied" : "Apply Now"}</span>
+                  {!appliedJobs.has(job.id) && <ArrowRight className="w-4 h-4" />}
                 </button>
               </div>
             ))}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import {
   LogIn,
   User,
@@ -20,6 +20,10 @@ export default function LoginPage() {
   const [role, setRole] = useState("Student");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(()=>{
+    console.log(role)
+  },[role]);
 
   const handleLogin = async (e) => {
     e.preventDefault();

@@ -58,7 +58,9 @@ export const applicationRepository = {
     SELECT 
     j.company_name,
     j.role,
-    j.description
+    j.description,
+    a.updated_at,
+    a.status
     FROM 
     applications a
     JOIN 

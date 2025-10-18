@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"
 import { X, Upload, Send, ArrowLeft } from "lucide-react"
+import axios from "axios";
 
-export default function ApplicationForm({ job, onClose }) {
+export default function ApplicationForm({ job, isApplied = false, onClose }) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -13,6 +14,7 @@ export default function ApplicationForm({ job, onClose }) {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState("")
+  const [hasExistingApp, setHasExistingApp] = useState(!!isApplied)
 
   useEffect(() => {
     const name = localStorage.getItem("name") || ""
@@ -29,28 +31,46 @@ export default function ApplicationForm({ job, onClose }) {
     }))
   }, [])
 
+  useEffect(() => {
+    // Fetch prefilled form and any existing application for this job
+    const fetchPrefill = async () => {
+      try {
+        const { data } = await axios.get(`http://localhost:4000/api/applications/${job.id}`)
+        const profile = data?.profile || {}
+        const existing = data?.existingApp || null
+
+        // Prefill from profile if present
+        setFormData(prev => ({
+          ...prev,
+          name: profile.name ?? prev.name,
+          email: profile.personal_email ?? prev.email,
+          branch: profile.branch ?? prev.branch,
+          cgpa: profile.cgpa ?? prev.cgpa,
+          answers: existing?.answers ?? prev.answers,
+          resumeUrl: existing?.resume_url ?? prev.resumeUrl,
+        }))
+
+        if (existing) {
+          setHasExistingApp(true)
+        }
+      } catch (e) {
+        // Non-blocking: ignore errors and let user fill manually
+      }
+    }
+    fetchPrefill()
+  }, [job.id])
+
   const handleSubmit = async e => {
     e.preventDefault()
     setLoading(true)
     setError("")
-
+    const studentId = localStorage.getItem("id")
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`/api/jobs/${job.id}/apply`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          answers: formData.answers,
-          resumeUrl: formData.resumeUrl
-        })
+      const response = await axios.post(`http://localhost:4000/api/applications/${job.id}/apply/${studentId}`, {
+        answers: formData.answers,
+        resumeUrl: formData.resumeUrl
       })
-
-      if (!response.ok) {
-        throw new Error("Failed to submit application")
-      }
 
       setSuccess(true)
       setTimeout(() => {
@@ -109,7 +129,7 @@ export default function ApplicationForm({ job, onClose }) {
             <div className="flex items-start justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-white mb-2">
-                  Apply for {job.title}
+                  {hasExistingApp ? "Update your application for" : "Apply for"} {job.title}
                 </h1>
                 <p className="text-slate-300">
                   {job.company} • {job.location}
@@ -124,6 +144,14 @@ export default function ApplicationForm({ job, onClose }) {
             </div>
           </div>
 
+          {hasExistingApp && (
+            <div className="px-8 pt-6">
+              <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg ">
+                You have already applied to this job. You can update and resubmit.
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="p-8 space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               <div>
@@ -133,8 +161,10 @@ export default function ApplicationForm({ job, onClose }) {
                 <input
                   type="text"
                   value={formData.name}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50 text-slate-900 cursor-not-allowed"
-                  disabled
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50 text-slate-900"
+                  onChange={e =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                 />
               </div>
 
@@ -145,8 +175,10 @@ export default function ApplicationForm({ job, onClose }) {
                 <input
                   type="email"
                   value={formData.email}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50 text-slate-900 cursor-not-allowed"
-                  disabled
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50 text-slate-900"
+                  onChange={e =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                 />
               </div>
 
@@ -157,8 +189,10 @@ export default function ApplicationForm({ job, onClose }) {
                 <input
                   type="text"
                   value={formData.branch}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50 text-slate-900 cursor-not-allowed"
-                  disabled
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50 text-slate-900"
+                  onChange={e =>
+                    setFormData({ ...formData, branch: e.target.value })
+                  }
                 />
               </div>
 
@@ -169,8 +203,10 @@ export default function ApplicationForm({ job, onClose }) {
                 <input
                   type="text"
                   value={formData.cgpa}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50 text-slate-900 cursor-not-allowed"
-                  disabled
+                  onChange={e =>
+                    setFormData({ ...formData, cgpa: e.target.value })
+                  }
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50 text-slate-900"
                 />
               </div>
             </div>
@@ -194,46 +230,6 @@ export default function ApplicationForm({ job, onClose }) {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Why do you want to work here?
-              </label>
-              <textarea
-                value={formData.answers["motivation"] || ""}
-                onChange={e => handleAnswerChange("motivation", e.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition resize-none"
-                rows={4}
-                placeholder="Tell us why you're interested in this position..."
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                What are your key strengths?
-              </label>
-              <textarea
-                value={formData.answers["strengths"] || ""}
-                onChange={e => handleAnswerChange("strengths", e.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition resize-none"
-                rows={4}
-                placeholder="Describe your key strengths..."
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Additional Information
-              </label>
-              <textarea
-                value={formData.answers["additional"] || ""}
-                onChange={e => handleAnswerChange("additional", e.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition resize-none"
-                rows={3}
-                placeholder="Any additional information you'd like to share..."
-              />
-            </div>
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
@@ -259,7 +255,7 @@ export default function ApplicationForm({ job, onClose }) {
                 ) : (
                   <>
                     <Send className="w-5 h-5" />
-                    <span>Submit Application</span>
+                    <span>{hasExistingApp ? "Update Application" : "Submit Application"}</span>
                   </>
                 )}
               </button>

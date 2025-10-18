@@ -15,20 +15,23 @@ function App() {
     <AppProvider>
       <Router>
         <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="companies" element={<Companies />} />
-            <Route path="applications" element={<Applications />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="alumni" element={<Alumni />} />
-            <Route path="admin" element={<Admin />} />
-            <Route path="login" element={<LoginPage />} />
-            <Route path="jobs" element={<JobsPage />} />
+          {/* Public route (no navbar) */}
+          <Route path="/" element={<LoginPage />} />
+
+          {/* Protected routes (with navbar via Layout) */}
+          <Route element={<Layout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/companies" element={<Companies />} />
+            <Route path="/applications" element={<Applications />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/alumni" element={<Alumni />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/jobs" element={<JobsPage />} />
           </Route>
         </Routes>
       </Router>
     </AppProvider>
   );
 }
-//Testing git
+
 export default App;

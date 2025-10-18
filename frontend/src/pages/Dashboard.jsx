@@ -4,6 +4,7 @@ import { FileText, CheckCircle, Users, Award, Calendar, ArrowRight } from "lucid
 import StatCard from "../components/UI/StatCard";
 import StatusBadge from "../components/UI/StatusBadge";
 import axios from "axios";
+import { formatDateTime } from "../utils/helpers";
 
 const Dashboard = () => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -21,15 +22,24 @@ const Dashboard = () => {
     const u_id = localStorage.getItem("id");
 
     if (u_id && name && email && branch && cgpa && role) {
-      setCurrentUser({ u_id,name, email, branch, cgpa, role, token });
+      setCurrentUser({ u_id, name, email, branch, cgpa, role, token });
     }
 
     const fetchData = async () => {
       try {
         if (email) {
-          
+
           const appRes = await axios.get(`http://localhost:4000/api/applications/userId/${u_id}`);
-          setApplications(appRes.data);
+          const raw = Array.isArray(appRes.data) ? appRes.data : [];
+          const normalized = raw.map((a, idx) => ({
+            id: idx + 1,
+            company_name: a.company_name ?? "",
+            role: a.role ?? "",
+            status: a.status ?? "applied",
+            appliedDate: a.created_at || a.applied_at || a.updated_at,
+            lastUpdate: a.updated_at || a.created_at,
+          }));
+          setApplications(normalized);
         }
 
         // // Fetch companies (example: first 10)
@@ -65,7 +75,6 @@ const Dashboard = () => {
         <StatCard
           title="Total Applications"
           value={applications.length}
-          subtitle="+3 this week"
           icon={FileText}
           gradient="bg-gradient-to-r from-blue-500 to-blue-600"
         />
@@ -73,7 +82,6 @@ const Dashboard = () => {
         <StatCard
           title="Shortlisted"
           value={applications.filter(app => app.status === "shortlisted").length}
-          subtitle="33% success rate"
           icon={CheckCircle}
           gradient="bg-gradient-to-r from-green-500 to-green-600"
         />
@@ -81,18 +89,16 @@ const Dashboard = () => {
         <StatCard
           title="Interviews"
           value={applications.filter(app => app.status === "interviewed").length}
-          subtitle="2 upcoming"
           icon={Users}
           gradient="bg-gradient-to-r from-purple-500 to-purple-600"
         />
 
-          <StatCard
-            title="Resume Score"
-            value={`${currentUser?.cgpa}/10`}  
-            subtitle="Excellent"
-            icon={Award}
-            gradient="bg-gradient-to-r from-orange-500 to-orange-600"
-          />
+        <StatCard
+          title="Resume Score"
+          value={`${currentUser?.cgpa}/10`}
+          icon={Award}
+          gradient="bg-gradient-to-r from-orange-500 to-orange-600"
+        />
       </div>
 
       {/* Recent Activity */}
@@ -122,18 +128,16 @@ const Dashboard = () => {
               </div>
             ) : (
               recentApplications.map(application => {
-                const company = companies.find(c => c.id === application.companyId);
                 return (
                   <div
                     key={application.id}
                     className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                   >
                     <div className="flex items-center space-x-3">
-                      <div className="text-2xl">{company?.logo}</div>
                       <div>
-                        <p className="font-medium text-gray-900">{company?.name}</p>
+                        <p className="font-medium text-gray-900">{application.company_name}</p>
                         <p className="text-sm text-gray-500">
-                          Applied on {application.appliedDate}
+                          Applied on {formatDateTime(application.updated_at)}
                         </p>
                       </div>
                     </div>

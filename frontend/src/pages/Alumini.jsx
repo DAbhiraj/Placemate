@@ -1,4 +1,4 @@
-import  { useState,useEffect } from "react"
+import { useState, useEffect } from "react"
 import { Search, Filter, ExternalLink, Calendar, Award } from "lucide-react"
 import axios from "axios";
 
@@ -72,7 +72,22 @@ const Alumni = () => {
           <div className="text-sm text-gray-500">Top Companies</div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
-          <div className="text-2xl font-bold text-purple-600">₹49L</div>
+          <div className="text-2xl font-bold text-purple-600">
+            {
+              (
+                filteredStories.length > 0
+                  ? filteredStories.reduce((sum, story) => {
+                    // Sanitize and parse the package value
+                    const pkg = parseFloat(story.package.replace(/[^0-9.]/g, '')) || 0;
+                    //console.log(`Processing ${story.name}: ${story.package} -> ${pkg}`); // Debug log
+                    return sum + pkg;
+                  }, 0) / filteredStories.length
+                  : 0
+              ).toFixed(2) // Format to two decimal places
+            }
+          </div>
+
+
           <div className="text-sm text-gray-500">Avg Package</div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border p-4 text-center">

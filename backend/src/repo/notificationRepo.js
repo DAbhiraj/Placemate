@@ -1,18 +1,19 @@
 import { pool } from "../db/db.js";
 
 export const notificationRepository = {
-  create: async (userId, message, type) => {
+  create: async (userId, title, message, type) => {
     const res = await pool.query(
-      `INSERT INTO notifications (user_id, message, type)
-       VALUES ($1, $2, $3) RETURNING *`,
-      [userId, message, type]
+      `INSERT INTO notifications (id, title, message, type)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [userId, title, message, type]
     );
     return res.rows[0];
   },
 
   findByUserId: async (userId) => {
+    //console.log(userId+" in notification repo");
     const res = await pool.query(
-      `SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC`,
+      `SELECT * FROM notifications WHERE id = $1 ORDER BY created_at DESC`,
       [userId]
     );
     return res.rows;

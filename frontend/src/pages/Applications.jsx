@@ -1,30 +1,56 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Search, Filter, Eye, Download, Calendar } from "lucide-react"
 import { useApp } from "../context/AppContext"
 import StatusBadge from "../components/UI/StatusBadge"
-import { formatDate } from "../utils/helpers"
+import { formatDate, formatDateTime } from "../utils/helpers"
+import axios from "axios"
 
 const Applications = () => {
-  const { applications, companies } = useApp()
+  const { companies } = useApp()
+  const [applications, setApplications] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("")
 
+  useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        const userId = localStorage.getItem("id")
+        if (!userId) return
+        const { data } = await axios.get(`http://localhost:4000/api/applications/userId/${userId}`)
+        // Data shape from backend: [{ company_name, role, description, ... }]
+        // Normalize to include minimal fields this page needs
+        const normalized = Array.isArray(data) ? data.map((a, idx) => ({
+          id: idx + 1,
+          company_name: a.company_name ?? "",
+          role: a.role ?? "",
+          description: a.description ?? "",
+          status: a.status ?? "", // backend doesn't provide statuses per app yet
+          appliedDate: a.updated_at,
+          lastUpdate: a.updated_at,
+        })) : []
+        setApplications(normalized)
+      } catch (e) {
+        setApplications([])
+      }
+    }
+    fetchApplications()
+  }, [])
+
   const filteredApplications = applications.filter(application => {
-    const company = companies.find(c => c.id === application.companyId)
-    const matchesSearch =
-      company?.name.toLowerCase().includes(searchTerm.toLowerCase()) || false
+    const companyName = application.company_name?.toLowerCase?.() || ""
+    const matchesSearch = companyName.includes(searchTerm.toLowerCase())
     const matchesStatus = !filterStatus || application.status === filterStatus
     return matchesSearch && matchesStatus
   })
+
+  //console.log(filteredApplications);
 
   const getStatusStats = () => {
     const stats = {
       total: applications.length,
       applied: applications.filter(app => app.status === "applied").length,
-      shortlisted: applications.filter(app => app.status === "shortlisted")
-        .length,
-      interviewed: applications.filter(app => app.status === "interviewed")
-        .length,
+      shortlisted: applications.filter(app => app.status === "shortlisted").length,
+      interviewed: applications.filter(app => app.status === "interviewed").length,
       selected: applications.filter(app => app.status === "selected").length,
       rejected: applications.filter(app => app.status === "rejected").length
     }
@@ -134,9 +160,6 @@ const Applications = () => {
                     Company
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Package
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Applied Date
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -145,16 +168,11 @@ const Applications = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Last Update
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
+
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredApplications.map(application => {
-                  const company = companies.find(
-                    c => c.id === application.companyId
-                  )
                   return (
                     <tr
                       key={application.id}
@@ -162,45 +180,27 @@ const Applications = () => {
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="text-2xl mr-3">{company?.logo}</div>
                           <div>
                             <div className="text-sm font-medium text-gray-900">
-                              {company?.name}
+                              {application.company_name}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {company?.location}
+                              {application.role}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-green-600">
-                          {company?.package}
-                        </span>
-                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <div className="flex items-center">
                           <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                          {formatDate(application.appliedDate)}
+                          {formatDateTime(application.appliedDate)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <StatusBadge status={application.status} />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(application.lastUpdate)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center space-x-2">
-                          <button className="text-blue-600 hover:text-blue-900 flex items-center">
-                            <Eye className="w-4 h-4 mr-1" />
-                            View
-                          </button>
-                          <button className="text-gray-600 hover:text-gray-900 flex items-center">
-                            <Download className="w-4 h-4 mr-1" />
-                            Download
-                          </button>
-                        </div>
+                        {formatDateTime(application.lastUpdate)}
                       </td>
                     </tr>
                   )

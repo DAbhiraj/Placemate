@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { X, Upload, Send, ArrowLeft } from "lucide-react"
-import axios from "axios";
+import axios from "axios"
 
 export default function ApplicationForm({ job, isApplied = false, onClose }) {
   const [formData, setFormData] = useState({
@@ -9,7 +9,7 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
     branch: "",
     cgpa: "",
     answers: {},
-    resumeUrl: ""
+    resumeUrl: "",
   })
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -22,25 +22,25 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
     const branch = localStorage.getItem("branch") || ""
     const cgpa = localStorage.getItem("cgpa") || ""
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       name,
       email,
       branch,
-      cgpa
+      cgpa,
     }))
   }, [])
 
   useEffect(() => {
-    // Fetch prefilled form and any existing application for this job
     const fetchPrefill = async () => {
       try {
-        const { data } = await axios.get(`http://localhost:4000/api/applications/${job.id}`)
+        const { data } = await axios.get(
+          `http://localhost:4000/api/applications/${job.id}`
+        )
         const profile = data?.profile || {}
         const existing = data?.existingApp || null
 
-        // Prefill from profile if present
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           name: profile.name ?? prev.name,
           email: profile.personal_email ?? prev.email,
@@ -50,27 +50,33 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
           resumeUrl: existing?.resume_url ?? prev.resumeUrl,
         }))
 
-        if (existing) {
-          setHasExistingApp(true)
-        }
+        if (existing) setHasExistingApp(true)
       } catch (e) {
-        // Non-blocking: ignore errors and let user fill manually
+        // ignore errors; user can fill manually
       }
     }
     fetchPrefill()
   }, [job.id])
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setError("")
     const studentId = localStorage.getItem("id")
     try {
       const token = localStorage.getItem("token")
-      const response = await axios.post(`http://localhost:4000/api/applications/${job.id}/apply/${studentId}`, {
-        answers: formData.answers,
-        resumeUrl: formData.resumeUrl
-      })
+      await axios.post(
+        `http://localhost:4000/api/applications/${job.id}/apply/${studentId}`,
+        {
+          answers: formData.answers,
+          resumeUrl: formData.resumeUrl,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
 
       setSuccess(true)
       setTimeout(() => {
@@ -86,12 +92,12 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
   }
 
   const handleAnswerChange = (question, answer) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       answers: {
         ...prev.answers,
-        [question]: answer
-      }
+        [question]: answer,
+      },
     }))
   }
 
@@ -113,6 +119,11 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
     )
   }
 
+  // 🏙️ Handle location (supports string or array)
+  const locationDisplay = Array.isArray(job.location)
+    ? job.location.join(", ")
+    : job.location || "Location not specified"
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-3xl mx-auto px-4 py-8">
@@ -129,11 +140,26 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
             <div className="flex items-start justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-white mb-2">
-                  {hasExistingApp ? "Update your application for" : "Apply for"} {job.title}
+                  {hasExistingApp
+                    ? "Update your application for"
+                    : "Apply for"}{" "}
+                  {job.title}
                 </h1>
                 <p className="text-slate-300">
-                  {job.company} • {job.location}
+                  {job.company} • {locationDisplay}
                 </p>
+                {/* 📝 Show job description if present */}
+                {job.description && (
+                  <>
+                  <p className="mt-3 text-white text-sm leading-relaxed max-w-2xl font-bold">
+                    Description
+                  </p>
+                  <p className="mt-3 text-slate-400 text-sm leading-relaxed max-w-2xl">
+                    {job.description}
+                  </p>
+                  </>
+
+                )}
               </div>
               <button
                 onClick={onClose}
@@ -146,7 +172,7 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
 
           {hasExistingApp && (
             <div className="px-8 pt-6">
-              <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg ">
+              <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
                 You have already applied to this job. You can update and resubmit.
               </div>
             </div>
@@ -162,7 +188,7 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
                   type="text"
                   value={formData.name}
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50 text-slate-900"
-                  onChange={e =>
+                  onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
                 />
@@ -176,7 +202,7 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
                   type="email"
                   value={formData.email}
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50 text-slate-900"
-                  onChange={e =>
+                  onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
                 />
@@ -190,7 +216,7 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
                   type="text"
                   value={formData.branch}
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50 text-slate-900"
-                  onChange={e =>
+                  onChange={(e) =>
                     setFormData({ ...formData, branch: e.target.value })
                   }
                 />
@@ -203,7 +229,7 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
                 <input
                   type="text"
                   value={formData.cgpa}
-                  onChange={e =>
+                  onChange={(e) =>
                     setFormData({ ...formData, cgpa: e.target.value })
                   }
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50 text-slate-900"
@@ -220,7 +246,7 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
                 <input
                   type="url"
                   value={formData.resumeUrl}
-                  onChange={e =>
+                  onChange={(e) =>
                     setFormData({ ...formData, resumeUrl: e.target.value })
                   }
                   className="w-full pl-11 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition"
@@ -229,7 +255,6 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
                 />
               </div>
             </div>
-
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
@@ -255,7 +280,9 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
                 ) : (
                   <>
                     <Send className="w-5 h-5" />
-                    <span>{hasExistingApp ? "Update Application" : "Submit Application"}</span>
+                    <span>
+                      {hasExistingApp ? "Update Application" : "Submit Application"}
+                    </span>
                   </>
                 )}
               </button>

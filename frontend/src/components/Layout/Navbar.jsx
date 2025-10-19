@@ -87,7 +87,7 @@ const Navbar = () => {
     ]
     : [
       { path: "/dashboard", label: "Dashboard" },
-      { path: "/companies", label: "Companies" },
+      { path: "/upcoming", label: "Upcoming Deadlines" },
       { path: "/jobs", label: "Jobs" },
       { path: "/applications", label: "My Applications" },
       { path: "/alumni", label: "Alumni Stories" },

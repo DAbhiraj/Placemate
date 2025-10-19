@@ -23,6 +23,8 @@ import StatusBadge from "../components/UI/StatusBadge"
 import NotificationForm from "../components/UI/NotificationForm"
 import axios from "axios"
 
+const API_URL = "http://localhost:4000/api";
+
 const Admin = () => {
   const { students, companies, applications } = useApp()
   const [activeTab, setActiveTab] = useState("overview")
@@ -77,7 +79,7 @@ const Admin = () => {
   const fetchBackendData = async () => {
     try {
       const [statsRes, companiesRes, jobsRes, studentsRes] = await Promise.all([
-        axios.get("http://localhost:4000/api/admin/dashboard/stats"),
+        axios.get(`${API_URL}/admin/dashboard/stats`),
         axios.get("http://localhost:4000/api/admin/companies"),
         axios.get("http://localhost:4000/api/admin/jobs"),
         axios.get("http://localhost:4000/api/admin/students")

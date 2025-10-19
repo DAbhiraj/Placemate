@@ -28,7 +28,7 @@ export default function JobsPage() {
 
   const fetchJobs = async () => {
     try {
-      const token = localStorage.getItem("token")
+     
       const response = await axios.get("http://localhost:4000/api/jobs")
       const raw = response?.data
       const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.jobs) ? raw.jobs : [])

@@ -27,6 +27,7 @@ router.post("/register", AuthController.register);
 router.post("/login", AuthController.login);
 
 // applications
+router.get("/upcoming-deadlines/:userId",applicationController.getUpcomingDeadline);
 router.get("/applications/userId/:userId", applicationController.getApplicationByUser);
 router.get("/applications/excel/:jobId/export", applicationController.exportExcel);
 router.get("/applications/:jobId", applicationController.getFormData);

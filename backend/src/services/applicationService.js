@@ -37,29 +37,31 @@ export const applicationService = {
     return application;
   },
 
-  exportToExcel: async (jobId) => {
-    console.log("in services");
-    const data = await applicationRepository.getAllApplicationsForJob(jobId);
-
+  generateCompanyReport: async (companyName) => {
+    const applications = await getApplicationsByCompany(companyName);
+    if (applications.length === 0) return null;
+  
     const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet("Applications");
-
-    sheet.columns = [
-      { header: "Name", key: "name", width: 25 },
-      { header: "Roll No", key: "roll_no", width: 15 },
-      { header: "CGPA", key: "cgpa", width: 10 },
-      { header: "Branch", key: "branch", width: 20 },
-      { header: "Email", key: "personal_email", width: 25 },
-      { header: "Answers", key: "answers", width: 50 },
-      { header: "Resume URL", key: "resume_url", width: 30 },
+    const worksheet = workbook.addWorksheet('Applications');
+  
+    worksheet.columns = [
+      { header: 'Application ID', key: 'appl_id', width: 15 },
+      { header: 'Applicant Name', key: 'applicant_name', width: 20 },
+      { header: 'Email', key: 'applicant_email', width: 25 },
+      { header: 'Company Name', key: 'company_name', width: 20 },
+      { header: 'Role', key: 'role', width: 20 },
+      { header: 'Location', key: 'location', width: 20 },
+      { header: 'Package Range', key: 'package_range', width: 15 },
+      { header: 'Status', key: 'application_status', width: 15 },
+      { header: 'Resume URL', key: 'resume_url', width: 30 },
+      { header: 'Applied At', key: 'created_at', width: 20 },
     ];
-
-    data.forEach((row) => sheet.addRow(row));
-
-    // Return buffer for download
+  
+    applications.forEach(app => worksheet.addRow(app));
+  
     const buffer = await workbook.xlsx.writeBuffer();
     return buffer;
-},
+  },
 
  async getApplicationByUser(userId){
   const data = await applicationRepository.findApplicationByUser(userId);

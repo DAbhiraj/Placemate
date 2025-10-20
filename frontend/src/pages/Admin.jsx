@@ -441,7 +441,6 @@ const Admin = () => {
 
   const tabs = [
     { id: "overview", label: "Overview", icon: TrendingUp },
-    { id: "students", label: "Students", icon: Users },
     { id: "companies", label: "Companies", icon: Building2 },
     { id: "reports", label: "Reports", icon: FileText }
   ]

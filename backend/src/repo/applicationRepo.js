@@ -35,20 +35,27 @@ export const applicationRepository = {
     return result.rows[0];
   },
 
-   getAllApplicationsForJob: async (jobId) => {
-    console.log("in repo");
-    const result = await pool.query(
-      `SELECT s.name, s.roll_no, s.cgpa, s.branch, s.personal_email, a.answers, a.resume_url
-       FROM applications a
-       JOIN users s ON a.id = s.id
-       WHERE a.job_id = $1`,
-      [jobId]
-    );
-    // Only return plain rows with answers as string
-    return result.rows.map(row => ({
-      ...row,
-      answers: JSON.stringify(row.answers)  // Excel-friendly
-    }));
+  getApplicationsByCompany: async (companyName) => {
+    const query = `
+      SELECT 
+        a.appl_id,
+        u.name AS applicant_name,
+        u.email AS applicant_email,
+        j.company_name,
+        j.role,
+        j.location,
+        j.package_range,
+        a.status AS application_status,
+        a.resume_url,
+        a.created_at
+      FROM applications a
+      JOIN users u ON a.id = u.id
+      JOIN jobs j ON a.job_id = j.id
+      WHERE LOWER(j.company_name) = LOWER($1)
+      ORDER BY a.created_at DESC;
+    `;
+    const { rows } = await pool.query(query, [companyName]);
+    return rows;
   },
 
 

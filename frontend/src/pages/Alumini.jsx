@@ -2,6 +2,8 @@ import { useState, useEffect } from "react"
 import { Search, Filter, ExternalLink, Calendar, Award } from "lucide-react"
 import axios from "axios";
 
+const API_URL = import.meta.env.VITE_API_URL ;
+
 const Alumni = () => {
   const [alumniStories, setAlumniStories] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -13,7 +15,7 @@ const Alumni = () => {
   useEffect(() => {
     const fetchAlumni = async () => {
       try {
-        const response = await axios.get("http://localhost:4000/api/alumni");
+        const response = await axios.get(`${API_URL}/alumni`);
         setAlumniStories(response.data);
       } catch (error) {
         console.error("Error fetching alumni:", error);

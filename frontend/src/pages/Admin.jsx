@@ -23,7 +23,8 @@ import StatusBadge from "../components/UI/StatusBadge"
 import NotificationForm from "../components/UI/NotificationForm"
 import axios from "axios"
 
-const API_URL = "http://localhost:4000/api";
+// Use Vite env var for backend API base URL, fallback to localhost for dev
+const API_URL = import.meta.env.VITE_API_URL ;
 
 const Admin = () => {
   const { students, companies, applications } = useApp()
@@ -80,9 +81,9 @@ const Admin = () => {
     try {
       const [statsRes, companiesRes, jobsRes, studentsRes] = await Promise.all([
         axios.get(`${API_URL}/admin/dashboard/stats`),
-        axios.get("http://localhost:4000/api/admin/companies"),
-        axios.get("http://localhost:4000/api/admin/jobs"),
-        axios.get("http://localhost:4000/api/admin/students")
+        axios.get(`${API_URL}/admin/companies`),
+        axios.get(`${API_URL}/admin/jobs`),
+        axios.get(`${API_URL}/admin/students`)
       ])
 
       setBackendStats(statsRes.data)
@@ -98,7 +99,7 @@ const Admin = () => {
   const handleCompanySubmit = async (e) => {
     e.preventDefault()
     try {
-      await axios.post("http://localhost:4000/api/admin/companies", companyForm)
+  await axios.post(`${API_URL}/admin/companies`, companyForm)
       setShowCompanyForm(false)
       setCompanyForm({
         name: "", logo: "", package_range: "", location: "", eligible_branches: [],
@@ -114,7 +115,7 @@ const Admin = () => {
   const handleJobSubmit = async (e) => {
     e.preventDefault()
     try {
-      await axios.post("http://localhost:4000/api/admin/jobs", jobForm)
+  await axios.post(`${API_URL}/admin/jobs`, jobForm)
       setShowJobForm(false)
       setJobForm({
         company_name: "",
@@ -143,7 +144,7 @@ const Admin = () => {
       formData.append('customMessage', notificationData.customMessage || '')
       formData.append('excelFile', notificationData.excelFile)
 
-      await axios.post("http://localhost:4000/api/admin/send-notification", formData, {
+      await axios.post(`${API_URL}/admin/send-notification`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

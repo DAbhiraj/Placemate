@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
+const API_URL = import.meta.env.VITE_API_URL ;
+
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -32,7 +34,7 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-      const response = await axios.post("http://localhost:4000/api/login", { email, password });
+      const response = await axios.post(`${API_URL}/login`, { email, password });
 
       const data = response.data;
       console.log(data);
@@ -63,7 +65,7 @@ export default function LoginPage() {
   setLoading(true);
 
   try {
-    const response = await axios.post("http://localhost:4000/api/register", {
+    const response = await axios.post(`${API_URL}/register`, {
       name,
       email,
       password,

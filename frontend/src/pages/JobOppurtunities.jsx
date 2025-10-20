@@ -12,6 +12,9 @@ import {
 } from "lucide-react";
 import ApplicationForm from "./ApplicationForm"; // Assuming this is in the same folder
 
+
+const API_URL = import.meta.env.VITE_API_URL ;
+
 // Helper function to parse salary strings (e.g., "$80,000 - $100,000")
 const parseSalary = (salaryStr) => {
     if (!salaryStr) return 0;
@@ -40,7 +43,7 @@ const JobOpportunities = () => {
         try {
             setLoading(true);
             setError("");
-            const response = await axios.get("http://localhost:4000/api/jobs");
+            const response = await axios.get(`${API_URL}/jobs`);
             const raw = response?.data;
             const list = Array.isArray(raw)
                 ? raw
@@ -73,7 +76,7 @@ const JobOpportunities = () => {
             if (!userId || jobs.length === 0) return;
 
             const response = await axios.get(
-                `http://localhost:4000/api/applications/userId/${userId}`
+                `${API_URL}/applications/userId/${userId}`
             );
             const applications = response.data || [];
 

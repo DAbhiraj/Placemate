@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { calculateDaysUntilDeadline } from "../utils/helpers";
 
+const API_URL = import.meta.env.VITE_API_URL ;
+
 const Companies = ({ currentUser }) => {
   const [companies, setCompanies] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,7 +25,7 @@ const Companies = ({ currentUser }) => {
   const fetchCompanies = async () => {
   try {
     setLoading(true); // start loading
-    const res = await axios.get("http://localhost:4000/api/companies");
+    const res = await axios.get(`${API_URL}/companies`);
     const normalized = res.data.map((company) => ({
       ...company,
       eligibleBranches: company.eligible_branches,
@@ -57,7 +59,7 @@ const Companies = ({ currentUser }) => {
 
     try {
       await axios.post(
-        "http://localhost:5000/api/applications",
+        `${API_URL}/applications`,
         newApplication
       ); // your backend endpoint
       alert("Application submitted successfully!");

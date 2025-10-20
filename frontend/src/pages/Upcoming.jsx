@@ -4,6 +4,8 @@ import axios from "axios";
 import StatusBadge from "../components/UI/StatusBadge";
 import { formatDateTime } from "../utils/helpers";
 
+const API_URL = import.meta.env.VITE_API_URL ;
+
 const UpcomingDeadlines = () => {
   const [upcoming, setUpcoming] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -18,7 +20,7 @@ const UpcomingDeadlines = () => {
 
       try {
         const res = await axios.get(
-          `http://localhost:4000/api/upcoming-deadlines/${userId}`,
+          `${API_URL}/upcoming-deadlines/${userId}`,
           { params: { branch, cgpa } }
         );
 

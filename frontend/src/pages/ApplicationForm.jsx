@@ -2,6 +2,8 @@ import { useState, useEffect } from "react"
 import { X, Upload, Send, ArrowLeft } from "lucide-react"
 import axios from "axios"
 
+const API_URL = import.meta.env.VITE_API_URL ;
+
 export default function ApplicationForm({ job, isApplied = false, onClose }) {
   const [formData, setFormData] = useState({
     name: "",
@@ -35,7 +37,7 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
     const fetchPrefill = async () => {
       try {
         const { data } = await axios.get(
-          `http://localhost:4000/api/applications/${job.id}`
+          `${API_URL}/applications/${job.id}`
         )
         const profile = data?.profile || {}
         const existing = data?.existingApp || null
@@ -66,7 +68,7 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
     try {
       const token = localStorage.getItem("token")
       await axios.post(
-        `http://localhost:4000/api/applications/${job.id}/apply/${studentId}`,
+        `${API_URL}/applications/${job.id}/apply/${studentId}`,
         {
           answers: formData.answers,
           resumeUrl: formData.resumeUrl,

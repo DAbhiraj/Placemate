@@ -9,6 +9,8 @@ import {
 import ApplicationForm from "./ApplicationForm"
 import axios from "axios";
 
+const API_URL = import.meta.env.VITE_API_URL ;
+
 export default function JobsPage() {
   const [jobs, setJobs] = useState([])
   const [selectedJob, setSelectedJob] = useState(null)
@@ -29,7 +31,7 @@ export default function JobsPage() {
   const fetchJobs = async () => {
     try {
      
-      const response = await axios.get("http://localhost:4000/api/jobs")
+      const response = await axios.get(`${API_URL}/jobs`)
       const raw = response?.data
       const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.jobs) ? raw.jobs : [])
       const normalized = list.map(j => ({
@@ -54,7 +56,7 @@ export default function JobsPage() {
       const userId = localStorage.getItem("id")
       if (!userId) return
 
-      const response = await axios.get(`http://localhost:4000/api/applications/userId/${userId}`)
+      const response = await axios.get(`${API_URL}/applications/userId/${userId}`)
       const applications = response.data || []
 
       // Create a set of applied job IDs based on company_name and role matching

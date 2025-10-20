@@ -4,6 +4,8 @@ import { GraduationCap, Bell, User, ChevronDown } from "lucide-react"
 import { getNotificationTypeColor } from "../../utils/helpers"
 import axios from "axios"
 
+const API_URL = import.meta.env.VITE_API_URL ;
+
 const Navbar = () => {
   const location = useLocation()
 
@@ -48,7 +50,7 @@ const Navbar = () => {
     try {
       setLoadingNotifications(true)
       console.log("response in navbar1");
-      const response = await axios.get(`http://localhost:4000/api/notifications/${userId}`)
+      const response = await axios.get(`${API_URL}/notifications/${userId}`)
       console.log("response in navbar2");
       console.log(response.data);
       setNotifications(response.data)
@@ -62,7 +64,7 @@ const Navbar = () => {
   // Mark notification as read
   const markAsRead = async (notificationId) => {
     try {
-      await axios.put(`http://localhost:4000/api/notifications/${notificationId}/read`)
+      await axios.put(`${API_URL}/notifications/${notificationId}/read`)
       setNotifications(prev =>
         prev.map(notif =>
           notif.id === notificationId ? { ...notif, is_read: true } : notif

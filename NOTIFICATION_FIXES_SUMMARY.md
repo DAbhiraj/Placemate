@@ -2,6 +2,7 @@
 
 ## Issues Fixed
 
+
 ### 1. ✅ Notification Format
 **Problem**: Notifications were not showing in the required format `${company_name}, ${type of update}`
 

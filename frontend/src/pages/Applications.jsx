@@ -5,6 +5,8 @@ import StatusBadge from "../components/UI/StatusBadge"
 import { formatDate, formatDateTime } from "../utils/helpers"
 import axios from "axios"
 
+const API_URL = import.meta.env.VITE_API_URL ;
+
 const Applications = () => {
   const { companies } = useApp()
   const [applications, setApplications] = useState([])
@@ -16,7 +18,7 @@ const Applications = () => {
       try {
         const userId = localStorage.getItem("id")
         if (!userId) return
-        const { data } = await axios.get(`http://localhost:4000/api/applications/userId/${userId}`)
+        const { data } = await axios.get(`${API_URL}/applications/userId/${userId}`)
         // Data shape from backend: [{ company_name, role, description, ... }]
         // Normalize to include minimal fields this page needs
         const normalized = Array.isArray(data) ? data.map((a, idx) => ({

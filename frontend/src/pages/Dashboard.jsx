@@ -13,6 +13,8 @@ import StatusBadge from "../components/UI/StatusBadge";
 import axios from "axios";
 import { formatDateTime } from "../utils/helpers";
 
+const API_URL = import.meta.env.VITE_API_URL ;
+
 // ✅ Helper function to check eligibility
 const isEligible = (job, user) => {
   if (!user || !job) return false;
@@ -58,7 +60,7 @@ const Dashboard = () => {
         // ✅ Fetch Applications
 
         const appRes = await axios.get(
-          `http://localhost:4000/api/applications/userId/${currentUser.u_id}`
+          `${API_URL}/applications/userId/${currentUser.u_id}`
         );
         const normalizedApps = (appRes.data || []).map((a) => ({
           appl_id: a.appl_id,
@@ -73,7 +75,7 @@ const Dashboard = () => {
         setApplications(normalizedApps);
 
         // ✅ Fetch All Jobs
-        const jobRes = await axios.get(`http://localhost:4000/api/jobs`);
+        const jobRes = await axios.get(`${API_URL}/jobs`);
         const normalizedJobs = (jobRes.data || []).map((job) => ({
           ...job,
           eligible_branches: job.eligible_branches || [],
@@ -86,11 +88,11 @@ const Dashboard = () => {
 
         // ✅ Fetch Upcoming Deadlines (via backend route)
         console.log("in dashboard for checking upcoming");
-        console.log(`http://localhost:4000/api/upcoming-deadlines/${currentUser.u_id}`);
+        console.log(`${API_URL}/upcoming-deadlines/${currentUser.u_id}`);
         console.log(currentUser.branch);
         console.log(currentUser.cgpa);
         const upcomingRes = await axios.get(
-          `http://localhost:4000/api/upcoming-deadlines/${currentUser.u_id}`,
+          `${API_URL}/upcoming-deadlines/${currentUser.u_id}`,
           { params: { branch: currentUser.branch, cgpa: currentUser.cgpa } }
         );
         setUpcoming(upcomingRes.data);

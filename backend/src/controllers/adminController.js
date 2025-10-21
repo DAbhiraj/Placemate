@@ -3,8 +3,19 @@ import { notificationService } from "../services/notificationService.js";
 import multer from "multer";
 import * as XLSX from "xlsx";
 import fs from "fs";
+import { statsService } from "../services/statsService.js";
 
 export const adminController = {
+    // Dashboard Stats
+    async getDashboardStats(req, res) {
+        try {
+            const stats = await adminService.getDashboardStats();
+            res.json(stats);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ message: "Failed to fetch dashboard stats" });
+        }
+    },
     // Company Management
     async createCompany(req, res) {
         try {

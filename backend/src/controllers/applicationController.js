@@ -26,7 +26,6 @@ const applicationController = {
       res.status(500).json({ message: "Failed to submit form" });
     }
   },
-
   downloadCompanyReport: async (req, res) => {
     try {
       const { companyName } = req.query;
@@ -34,7 +33,7 @@ const applicationController = {
         return res.status(400).json({ message: 'Company name is required' });
       }
   
-      const buffer = await generateCompanyReport(companyName);
+      const buffer = await applicationService.generateCompanyReport(companyName);
       if (!buffer) {
         return res.status(404).json({ message: 'No applications found for this company' });
       }

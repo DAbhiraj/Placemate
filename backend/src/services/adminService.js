@@ -1,7 +1,24 @@
 import { adminRepository } from "../repo/adminRepo.js";
 import { notificationService } from "./notificationService.js";
+import { statsService } from "./statsService.js";
 
 export const adminService = {
+    // Dashboard Stats
+    async getDashboardStats() {
+        const totalStudents = await adminRepository.getTotalStudents();
+        const totalCompanies = await adminRepository.getTotalCompanies();
+        const totalApplications = await adminRepository.getTotalApplications();
+        const totalPlacements = await adminRepository.getTotalPlacements();
+        const avgPackage = await adminRepository.getAveragePackage();
+        
+        return {
+            totalStudents,
+            totalCompanies,
+            totalApplications,
+            totalPlacements,
+            avgPackage
+        };
+    },
     // Company Management
     async createCompany(companyData) {
         const { name, logo, package_range, location, eligible_branches, min_cgpa, deadline, job_type, description, requirements } = companyData;

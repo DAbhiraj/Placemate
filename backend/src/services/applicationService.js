@@ -38,7 +38,7 @@ export const applicationService = {
   },
 
   generateCompanyReport: async (companyName) => {
-    const applications = await getApplicationsByCompany(companyName);
+    const applications = await applicationRepository.getApplicationsByCompany(companyName);
     if (applications.length === 0) return null;
   
     const workbook = new ExcelJS.Workbook();

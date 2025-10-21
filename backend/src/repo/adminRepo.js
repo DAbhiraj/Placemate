@@ -1,6 +1,35 @@
 import { pool } from "../db/db.js";
 
 export const adminRepository = {
+    // Dashboard Stats
+    async getTotalStudents() {
+        const result = await pool.query("SELECT COUNT(*) FROM students");
+        return parseInt(result.rows[0].count);
+    },
+
+    async getTotalCompanies() {
+        const result = await pool.query("SELECT COUNT(*) FROM companies");
+        return parseInt(result.rows[0].count);
+    },
+
+    async getTotalApplications() {
+        const result = await pool.query("SELECT COUNT(*) FROM applications");
+        return parseInt(result.rows[0].count);
+    },
+
+    async getTotalPlacements() {
+        const result = await pool.query("SELECT COUNT(*) FROM applications WHERE status = 'selected'");
+        return parseInt(result.rows[0].count);
+    },
+
+    async getAveragePackage() {
+        const result = await pool.query(`
+            SELECT AVG(CAST(REGEXP_REPLACE(package, '[^0-9.]', '', 'g') AS NUMERIC)) as avg_package 
+            FROM companies
+        `);
+        const avgPackage = result.rows[0].avg_package || 0;
+        return `₹${(avgPackage).toFixed(1)}L`;
+    },
     // Company Management
     async createCompany(name, logo, package_range, location, eligible_branches, min_cgpa, deadline, job_type, description, requirements) {
         const result = await pool.query(

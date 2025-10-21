@@ -23,6 +23,56 @@ const upload = multer({
 
 export class ProfileController {
   /**
+   * First-time onboarding: save student details and resume
+   */
+  static async onboarding(req, res) {
+    try {
+      const userId = req.user.id;
+      const {
+        first_name,
+        last_name,
+        personal_email,
+        college_email,
+        branch,
+        cgpa,
+        phone
+      } = req.body;
+
+      const updates = {
+        first_name,
+        last_name,
+        personal_email,
+        college_email,
+        branch,
+        cgpa,
+        phone,
+        name: `${first_name || ""} ${last_name || ""}`.trim(),
+        profile_completed: true
+      };
+
+      // Save resume if provided (multer single file)
+      if (req.file) {
+        const result = await ProfileService.uploadResume(userId, req.file);
+        // uploadResume already updates resume + ATS in DB
+      }
+
+      const updated = await ProfileService.updateProfile(userId, updates);
+
+      res.status(200).json({
+        success: true,
+        message: "Onboarding completed",
+        data: updated
+      });
+    } catch (error) {
+      console.error("Error in ProfileController.onboarding:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to complete onboarding",
+        error: error.message
+      });
+    }
+  }
+  /**
    * Get user profile
    */
   static async getProfile(req, res) {

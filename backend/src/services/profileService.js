@@ -112,12 +112,52 @@ export class ProfileService {
    */
   static async calculateATSScore(filepath) {
     try {
-      // For now, we'll use a mock implementation
-      // In production, you would integrate with a real ATS scoring API like:
-      // - Resume.io API
-      // - ResumeParser API
-      // - Custom ML model
-      
+      const apiUrl = process.env.ATS_API_URL;
+      const apiKey = process.env.ATS_API_KEY;
+
+      if (apiUrl && apiKey) {
+        // Call external ATS API
+        // Read file buffer
+        const fileBuffer = fs.readFileSync(filepath);
+
+        // Prefer native fetch if available (Node 18+), otherwise dynamic import
+        const doFetch = typeof fetch === "function" ? fetch : (await import("node-fetch")).default;
+
+        const formDataBoundary = `----placemate-ats-boundary-${Date.now()}`;
+        const CRLF = "\r\n";
+        // Minimal manual multipart body to avoid extra deps
+        const preamble = `--${formDataBoundary}${CRLF}Content-Disposition: form-data; name="file"; filename="resume.pdf"${CRLF}Content-Type: application/pdf${CRLF}${CRLF}`;
+        const epilogue = `${CRLF}--${formDataBoundary}--${CRLF}`;
+        const body = Buffer.concat([
+          Buffer.from(preamble, "utf8"),
+          fileBuffer,
+          Buffer.from(epilogue, "utf8"),
+        ]);
+
+        const resp = await doFetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": `multipart/form-data; boundary=${formDataBoundary}`,
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body
+        });
+
+        if (!resp.ok) {
+          throw new Error(`ATS API error: ${resp.status}`);
+        }
+
+        const json = await resp.json();
+        // Expecting { score: number, feedback: string }
+        if (typeof json.score === "number") {
+          return {
+            score: Math.max(0, Math.min(100, Math.round(json.score))),
+            feedback: json.feedback || ""
+          };
+        }
+      }
+
+      // Fallback to mock
       const mockScore = this.generateMockATSScore();
       return mockScore;
     } catch (error) {

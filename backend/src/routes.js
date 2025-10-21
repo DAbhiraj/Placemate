@@ -1,6 +1,6 @@
 // src/routes.js
 import express from "express";
-import { register, login } from "./controllers/authcontroller.js";
+import { register, login, googleLogin } from "./controllers/authcontroller.js";
 import CompanyController from "./controllers/companyController.js";
 import AlumniController from "./controllers/alumniController.js";
 import { ProfileController, uploadMiddleware } from "./controllers/profileController.js";
@@ -31,6 +31,7 @@ const authenticateToken = (req, res, next) => {
 // --- Auth Routes ---
 router.post("/auth/register", register);
 router.post("/auth/login", login);
+router.post("/auth/google", googleLogin);
 
 // applications
 router.get("/applications/userId/:id",applicationController.getApplicationByUser);
@@ -60,5 +61,6 @@ router.post("/profile/resume", authenticateToken, uploadMiddleware, ProfileContr
 router.get("/profile/resume", authenticateToken, ProfileController.getResume);
 router.delete("/profile/resume", authenticateToken, ProfileController.deleteResume);
 router.get("/profile/ats-score", authenticateToken, ProfileController.getATSScore);
+router.post("/profile/onboarding", authenticateToken, uploadMiddleware, ProfileController.onboarding);
 
 export default router;

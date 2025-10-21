@@ -8,7 +8,9 @@ const API_URL = import.meta.env.VITE_API_URL ;
 
 const Navbar = () => {
   const location = useLocation()
-  const { currentUser, userRole, setUserRole, notifications, handleSignOut } = useApp()
+  //const { currentUser, userRole, setUserRole } = useApp()
+  const [currentUser, setCurrentUser] = useState(null)
+  const [userRole, setUserRole] = useState("student")
   const [showNotifications, setShowNotifications] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [notifications, setNotifications] = useState([])
@@ -48,6 +50,7 @@ const Navbar = () => {
     try {
       setLoadingNotifications(true)
       console.log("response in navbar1");
+      console.log(`${API_URL}/notifications/${userId}`);
       const response = await axios.get(`${API_URL}/notifications/${userId}`)
       console.log("response in navbar2");
       console.log(response.data);

@@ -99,7 +99,7 @@ export class ProfileController {
    */
   static async updateProfile(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.params.profileId;
       const updateData = req.body;
       
       const updatedProfile = await ProfileService.updateProfile(userId, updateData);

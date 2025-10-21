@@ -13,6 +13,8 @@ export const useApp = () => {
 export const AppProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null)
   const [userRole, setUserRole] = useState("student")
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [companies] = useState([
     {
@@ -120,36 +122,64 @@ export const AppProvider = ({ children }) => {
     }
   ])
 
+  // Check authentication on app load
   useEffect(() => {
-    setCurrentUser(students[0])
-    setNotifications([
-      {
-        id: "1",
-        title: "Google Interview Scheduled",
-        message:
-          "Your technical interview is scheduled for Jan 25, 2025 at 2:00 PM",
-        type: "interview",
-        date: "2025-01-23",
-        read: false
-      },
-      {
-        id: "2",
-        title: "Microsoft Application Deadline",
-        message: "Application deadline is approaching - Feb 20, 2025",
-        type: "deadline",
-        date: "2025-01-22",
-        read: false
-      },
-      {
-        id: "3",
-        title: "Profile Score Updated",
-        message: "Your resume score has been updated to 85/100",
-        type: "general",
-        date: "2025-01-21",
-        read: true
-      }
-    ])
-  }, [students])
+    const token = localStorage.getItem('token');
+    if (token) {
+      // Verify token and get user data
+      fetch('http://localhost:5000/api/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setCurrentUser(data.data);
+          setIsAuthenticated(true);
+          setShowOnboarding(!data.data.profile_completed);
+        } else {
+          localStorage.removeItem('token');
+        }
+      })
+      .catch(() => {
+        localStorage.removeItem('token');
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setNotifications([
+        {
+          id: "1",
+          title: "Google Interview Scheduled",
+          message:
+            "Your technical interview is scheduled for Jan 25, 2025 at 2:00 PM",
+          type: "interview",
+          date: "2025-01-23",
+          read: false
+        },
+        {
+          id: "2",
+          title: "Microsoft Application Deadline",
+          message: "Application deadline is approaching - Feb 20, 2025",
+          type: "deadline",
+          date: "2025-01-22",
+          read: false
+        },
+        {
+          id: "3",
+          title: "Profile Score Updated",
+          message: "Your resume score has been updated to 85/100",
+          type: "general",
+          date: "2025-01-21",
+          read: true
+        }
+      ]);
+    }
+  }, [isAuthenticated])
 
   const markNotificationAsRead = id => {
     setNotifications(prev =>
@@ -177,19 +207,44 @@ export const AppProvider = ({ children }) => {
     )
   }
 
+  const handleGoogleSignIn = (user) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    setShowOnboarding(!user.profile_completed);
+  };
+
+  const handleOnboardingComplete = (userData) => {
+    setCurrentUser(prev => ({ ...prev, ...userData, profile_completed: true }));
+    setShowOnboarding(false);
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    setShowOnboarding(false);
+  };
+
   const value = {
     currentUser,
     userRole,
+    isAuthenticated,
+    showOnboarding,
     notifications,
     companies,
     applications,
     students,
     setCurrentUser,
     setUserRole,
+    setIsAuthenticated,
+    setShowOnboarding,
     setNotifications,
     markNotificationAsRead,
     addApplication,
-    updateApplicationStatus
+    updateApplicationStatus,
+    handleGoogleSignIn,
+    handleOnboardingComplete,
+    handleSignOut
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>

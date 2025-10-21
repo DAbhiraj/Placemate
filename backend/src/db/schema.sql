@@ -4,12 +4,26 @@ CREATE TYPE user_role AS ENUM ('Admin', 'Student');
 -- Step 2: Create users table with role column
 CREATE TABLE users (
   id VARCHAR PRIMARY KEY,
-  name VARCHAR NOT NULL,
-  branch VARCHAR NOT NULL,
-  cgpa NUMERIC(3,2) NOT NULL,
+  name VARCHAR,
+  branch VARCHAR,
+  cgpa NUMERIC(3,2),
   email VARCHAR UNIQUE NOT NULL,
-  password VARCHAR NOT NULL,
-  role user_role NOT NULL DEFAULT 'Student'  -- Admin or Student
+  password VARCHAR, -- nullable for Google users
+  role user_role NOT NULL DEFAULT 'Student',  -- Admin or Student
+  phone VARCHAR,
+  personal_email VARCHAR,
+  college_email VARCHAR,
+  first_name VARCHAR,
+  last_name VARCHAR,
+  google_id VARCHAR UNIQUE,
+  profile_completed BOOLEAN NOT NULL DEFAULT false,
+  skills TEXT[],
+  resume_url VARCHAR,
+  resume_filename VARCHAR,
+  resume_upload_date TIMESTAMP,
+  ats_score INTEGER,
+  ats_score_date TIMESTAMP,
+  ats_feedback TEXT
 );
 
 -- Step 3: Create companies table

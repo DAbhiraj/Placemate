@@ -2,13 +2,20 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import dotenv from "dotenv";
+import { OAuth2Client } from "google-auth-library";
 import { query } from "../db/db.js";
 
 dotenv.config();
 
-const AuthController = {
-  // ✅ Register user
-  async register(req, res) {
+const googleClient = process.env.GOOGLE_CLIENT_ID
+  ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+  : null;
+
+/**
+ * Register a new user
+ * Default role: Student
+ */
+export const register = async (req, res) => {
   try {
     const { name, email, password, branch, cgpa, role } = req.body;
 
@@ -120,4 +127,65 @@ const AuthController = {
   },
 };
 
-export default AuthController;
+/**
+ * Google Sign-In: verify ID token, upsert user as Student, issue JWT
+ */
+export const googleLogin = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    if (!googleClient) {
+      return res.status(500).json({ message: "Google client not configured" });
+    }
+    if (!idToken) {
+      return res.status(400).json({ message: "Missing idToken" });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    const payload = ticket.getPayload();
+    const googleId = payload.sub;
+    const email = payload.email;
+    const firstName = payload.given_name || null;
+    const lastName = payload.family_name || null;
+    const fullName = payload.name || `${firstName || ""} ${lastName || ""}`.trim();
+
+    // Check if user exists
+    const existing = await query("SELECT * FROM users WHERE google_id = $1 OR email = $2", [googleId, email]);
+    let user = existing.rows[0];
+
+    if (!user) {
+      const id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString();
+      const insert = await query(
+        `INSERT INTO users (id, email, role, google_id, first_name, last_name, name, profile_completed)
+         VALUES ($1, $2, 'Student', $3, $4, $5, $6, false)
+         RETURNING *`,
+        [id, email, googleId, firstName, lastName, fullName]
+      );
+      user = insert.rows[0];
+    }
+
+    const token = jwt.sign(
+      { email: user.email, id: user.id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || "1h" }
+    );
+
+    return res.status(200).json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        role: user.role,
+        profile_completed: user.profile_completed
+      }
+    });
+  } catch (error) {
+    console.error("❌ Error in googleLogin:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};

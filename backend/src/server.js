@@ -4,6 +4,7 @@ import path from "path";
 import express from "express";
 import cors from "cors";
 import router from "./routes.js";
+import fs from "fs";
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
@@ -17,6 +18,13 @@ app.use(cors({
 
 app.use(express.json());
 // app.use(express.urlencoded({ extended: true }));
+
+// Static hosting for uploaded resumes
+const uploadsDir = path.resolve(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use("/uploads", express.static(uploadsDir));
 
 // Routes
 app.use("/api", router);

@@ -8,9 +8,7 @@ const API_URL = import.meta.env.VITE_API_URL ;
 
 const Navbar = () => {
   const location = useLocation()
-
-  const [currentUser, setCurrentUser] = useState(null)
-  const [userRole, setUserRole] = useState("student")
+  const { currentUser, userRole, setUserRole, notifications, handleSignOut } = useApp()
   const [showNotifications, setShowNotifications] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [notifications, setNotifications] = useState([])
@@ -252,8 +250,11 @@ const Navbar = () => {
                     >
                       Profile Settings
                     </Link>
-                    <button
-                      onClick={handleSignOut}
+                    <button 
+                      onClick={() => {
+                        handleSignOut();
+                        setShowUserMenu(false);
+                      }}
                       className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                     >
                       Sign Out

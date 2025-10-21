@@ -1,18 +1,23 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AppProvider } from './context/AppContext';
+import { AppProvider, useApp } from './context/AppContext';
 import Layout from './components/Layout/Layout';
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Applications from './pages/Applications';
 import Profile from './pages/Profile';
 import Alumni from './pages/Alumini';
 import Admin from './pages/Admin';
-import LoginPage from './pages/Login';
-import JobOpportunities from './pages/JobOppurtunities';
-import UpcomingDeadlines from './pages/Upcoming';
+import OnboardingModal from './components/Auth/OnboardingModal';
 
-function App() {
+function AppContent() {
+  const { isAuthenticated, showOnboarding, handleOnboardingComplete } = useApp();
+
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
   return (
-    <AppProvider>
+    <>
       <Router>
         <Routes>
           {/* Public route (no navbar) */}
@@ -32,6 +37,22 @@ function App() {
           </Route>
         </Routes>
       </Router>
+      
+      {showOnboarding && (
+        <OnboardingModal
+          isOpen={showOnboarding}
+          onClose={() => {}} // Prevent closing until completed
+          onComplete={handleOnboardingComplete}
+        />
+      )}
+    </>
+  );
+}
+
+function App() {
+  return (
+    <AppProvider>
+      <AppContent />
     </AppProvider>
   );
 }

@@ -8,7 +8,7 @@ const API_URL = import.meta.env.VITE_API_URL ;
 
 const Navbar = () => {
   const location = useLocation()
-  const { currentUser, userRole, setUserRole, notifications, handleSignOut } = useApp()
+  const { currentUser, userRole, setUserRole } = useApp()
   const [showNotifications, setShowNotifications] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [notifications, setNotifications] = useState([])

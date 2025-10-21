@@ -39,20 +39,54 @@ CREATE TABLE companies (
   job_type VARCHAR,
   description TEXT,
   requirements TEXT[],
-  applied_count INTEGER DEFAULT 0
+  applied_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Step 4: Create applications table
+-- Step 4: Create jobs table (updated with new fields)
+CREATE TABLE jobs (
+  id SERIAL PRIMARY KEY,
+  company_name VARCHAR NOT NULL,
+  role VARCHAR NOT NULL,
+  description TEXT,
+  custom_questions JSONB,
+  application_deadline DATE,
+  online_assessment_date DATE,
+  interview_dates DATE[],
+  min_cgpa NUMERIC(3,2),
+  eligible_branches TEXT[],
+  package_range VARCHAR,
+  location VARCHAR,
+  status VARCHAR DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Step 5: Create applications table (updated)
 CREATE TABLE applications (
   id VARCHAR PRIMARY KEY,
-  student_id VARCHAR REFERENCES users(id) ON DELETE CASCADE,
-  company_id VARCHAR REFERENCES companies(id) ON DELETE CASCADE,
-  status VARCHAR NOT NULL,
-  applied_date DATE,
-  last_update DATE
+  user_id VARCHAR REFERENCES users(id) ON DELETE CASCADE,
+  job_id INTEGER REFERENCES jobs(id) ON DELETE CASCADE,
+  answers JSONB,
+  resume_url TEXT,
+  status VARCHAR DEFAULT 'applied',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Step 5: Seed one Admin user and one company
+-- Step 6: Create notifications table
+CREATE TABLE notifications (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR NOT NULL,
+  message TEXT NOT NULL,
+  type VARCHAR NOT NULL,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Step 7: Seed one Admin user and sample data
 INSERT INTO users (id, name, branch, cgpa, email, password, role)
 VALUES ('u1', 'Abhiraj', 'Computer Science', 8.5, 'abhiraj@example.com', '$2a$10$hashedpasswordhere', 'Admin')
 ON CONFLICT DO NOTHING;
@@ -71,5 +105,21 @@ VALUES (
   'Software Engineer role focusing on scalable systems and innovative solutions.',
   ARRAY['Strong programming skills','8.0+ CGPA','Problem-solving abilities'],
   156
+)
+ON CONFLICT DO NOTHING;
+
+-- Sample job data
+INSERT INTO jobs (company_name, role, description, application_deadline, online_assessment_date, interview_dates, min_cgpa, eligible_branches, package_range, location)
+VALUES (
+  'Google',
+  'Software Engineer',
+  'Join our team to build scalable systems and innovative solutions.',
+  '2025-02-15',
+  '2025-02-20',
+  ARRAY['2025-02-25', '2025-02-28'],
+  8.0,
+  ARRAY['Computer Science', 'Electronics', 'Information Technology'],
+  '₹45-55 LPA',
+  'Bangalore, Hyderabad'
 )
 ON CONFLICT DO NOTHING;

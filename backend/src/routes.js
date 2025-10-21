@@ -33,11 +33,15 @@ router.post("/auth/register", register);
 router.post("/auth/login", login);
 router.post("/auth/google", googleLogin);
 
+router.post("/register", AuthController.register);
+router.post("/login", AuthController.login);
+
 // applications
-router.get("/applications/userId/:id",applicationController.getApplicationByUser);
+router.get("/upcoming-deadlines/:userId",applicationController.getUpcomingDeadline);
+router.get("/applications/userId/:userId", applicationController.getApplicationByUser);
 router.get("/applications/excel/:jobId/export", applicationController.exportExcel);
 router.get("/applications/:jobId", applicationController.getFormData);
-router.post("/applications/:jobId", applicationController.submitForm);
+router.post("/applications/:jobId/apply/:studentId", applicationController.submitForm);
 
 // jobs
 router.post("/jobs", jobController.createJob);

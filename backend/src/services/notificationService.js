@@ -1,15 +1,80 @@
 import { notificationRepository } from "../repo/notificationRepo.js";
 
 export const notificationService = {
-  notifyStudent: async (studentId, message, type) => {
-    return await notificationRepository.create(studentId, message, type);
+  notifyStudent: async (studentId, message, type, title = null) => {
+    const notificationTitle = title || getDefaultTitle(type);
+    return await notificationRepository.create(studentId, notificationTitle, message, type);
   },
 
   getUserNotifications: async (studentId) => {
+    //console.log(studentId+" in notification service");
     return await notificationRepository.findByUserId(studentId);
   },
 
   markRead: async (notifId) => {
     await notificationRepository.markAsRead(notifId);
   },
+
+  // Bulk notifications for assessment/interview updates
+  notifyBulkStudents: async (studentIds, message, type, title = null) => {
+    const notificationTitle = title || getDefaultTitle(type);
+    const promises = studentIds.map(studentId =>
+      notificationRepository.create(studentId, notificationTitle, message, type)
+    );
+    return await Promise.all(promises);
+  },
+
+  // Notify students about online assessment
+  notifyOnlineAssessment: async (studentIds, jobTitle, assessmentDate) => {
+    const message = `You have qualified for the online assessment for ${jobTitle}. Assessment date: ${assessmentDate}`;
+    return await this.notifyBulkStudents(studentIds, message, 'ONLINE_ASSESSMENT', 'Online Assessment Qualified');
+  },
+
+  // Notify students about interview
+  notifyInterview: async (studentIds, jobTitle, interviewDate) => {
+    const message = `Congratulations! You have been shortlisted for interview for ${jobTitle}. Interview date: ${interviewDate}`;
+    return await this.notifyBulkStudents(studentIds, message, 'INTERVIEW_SHORTLISTED', 'Interview Shortlisted');
+  },
+
+  // Notify students about selection
+  notifySelection: async (studentIds, jobTitle) => {
+    const message = `Congratulations! You have been selected for ${jobTitle}. Please check your email for further details.`;
+    return await this.notifyBulkStudents(studentIds, message, 'SELECTED', 'Congratulations - Selected!');
+  },
+
+  // Notify students about rejection
+  notifyRejection: async (studentIds, jobTitle) => {
+    const message = `Thank you for applying to ${jobTitle}. Unfortunately, you were not selected this time. Keep applying!`;
+    return await this.notifyBulkStudents(studentIds, message, 'REJECTED', 'Application Update');
+  }
 };
+
+// Helper function to get default titles based on notification type
+function getDefaultTitle(type) {
+  switch (type) {
+    case 'APPLICATION_SUBMITTED':
+      return 'Application Submitted';
+    case 'APPLICATION_UPDATED':
+      return 'Application Updated';
+    case 'APPLICATION_STATUS_APPLIED':
+      return 'Application Status Update';
+    case 'APPLICATION_STATUS_SHORTLISTED':
+      return 'Application Shortlisted';
+    case 'APPLICATION_STATUS_INTERVIEWED':
+      return 'Interview Scheduled';
+    case 'APPLICATION_STATUS_SELECTED':
+      return 'Congratulations - Selected!';
+    case 'APPLICATION_STATUS_REJECTED':
+      return 'Application Update';
+    case 'ONLINE_ASSESSMENT':
+      return 'Online Assessment Qualified';
+    case 'INTERVIEW_SHORTLISTED':
+      return 'Interview Shortlisted';
+    case 'SELECTED':
+      return 'Congratulations - Selected!';
+    case 'REJECTED':
+      return 'Application Update';
+    default:
+      return 'Notification';
+  }
+}

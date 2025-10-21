@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import {
   Users,
   Building2,
@@ -10,51 +10,163 @@ import {
   Search,
   Eye,
   CheckCircle,
-  XCircle
+  XCircle,
+  X,
+  Save,
+  Calendar,
+  MapPin,
+  DollarSign
 } from "lucide-react"
 import { useApp } from "../context/AppContext"
 import StatCard from "../components/UI/StatCard"
 import StatusBadge from "../components/UI/StatusBadge"
+import NotificationForm from "../components/UI/NotificationForm"
+import axios from "axios"
+
+// Use Vite env var for backend API base URL, fallback to localhost for dev
+const API_URL = import.meta.env.VITE_API_URL ;
 
 const Admin = () => {
   const { students, companies, applications } = useApp()
   const [activeTab, setActiveTab] = useState("overview")
   const [searchTerm, setSearchTerm] = useState("")
 
+  // Backend data states
+  const [backendStats, setBackendStats] = useState({
+    totalStudents: 0,
+    totalCompanies: 0,
+    totalApplications: 0,
+    totalPlacements: 0
+  })
+  const [backendCompanies, setBackendCompanies] = useState([])
+  const [backendJobs, setBackendJobs] = useState([])
+  const [backendStudents, setBackendStudents] = useState([])
+
+  // Form states
+  const [showCompanyForm, setShowCompanyForm] = useState(false)
+  const [showJobForm, setShowJobForm] = useState(false)
+  const [showNotificationForm, setShowNotificationForm] = useState(false)
+  const [companyForm, setCompanyForm] = useState({
+    name: "",
+    logo: "",
+    package_range: "",
+    location: "",
+    eligible_branches: [],
+    min_cgpa: "",
+    deadline: "",
+    job_type: "",
+    description: "",
+    requirements: []
+  })
+  const [jobForm, setJobForm] = useState({
+    company_name: "",
+    role: "",
+    description: "",
+    application_deadline: "",
+    online_assessment_date: "",
+    interview_dates: [],
+    min_cgpa: "",
+    eligible_branches: [],
+    package_range: "",
+    location: [] // keep as array
+  });
+
+
+  // Fetch data from backend
+  useEffect(() => {
+    fetchBackendData()
+  }, [])
+
+  const fetchBackendData = async () => {
+    try {
+      const [statsRes, companiesRes, jobsRes, studentsRes] = await Promise.all([
+        axios.get(`${API_URL}/admin/dashboard/stats`),
+        axios.get(`${API_URL}/admin/companies`),
+        axios.get(`${API_URL}/admin/jobs`),
+        axios.get(`${API_URL}/admin/students`)
+      ])
+
+      setBackendStats(statsRes.data)
+      setBackendCompanies(companiesRes.data)
+      setBackendJobs(jobsRes.data)
+      setBackendStudents(studentsRes.data)
+    } catch (error) {
+      console.error("Failed to fetch admin data:", error)
+    }
+  }
+
+  // Company form handlers
+  const handleCompanySubmit = async (e) => {
+    e.preventDefault()
+    try {
+  await axios.post(`${API_URL}/admin/companies`, companyForm)
+      setShowCompanyForm(false)
+      setCompanyForm({
+        name: "", logo: "", package_range: "", location: "", eligible_branches: [],
+        min_cgpa: "", deadline: "", job_type: "", description: "", requirements: []
+      })
+      fetchBackendData()
+    } catch (error) {
+      console.error("Failed to create company:", error)
+    }
+  }
+
+  // Job form handlers
+  const handleJobSubmit = async (e) => {
+    e.preventDefault()
+    try {
+  await axios.post(`${API_URL}/admin/jobs`, jobForm)
+      setShowJobForm(false)
+      setJobForm({
+        company_name: "",
+        role: "",
+        description: "",
+        application_deadline: "",
+        online_assessment_date: "",
+        interview_dates: [],
+        min_cgpa: "",
+        eligible_branches: [],
+        package_range: "",
+        location: []
+      })
+      fetchBackendData()
+    } catch (error) {
+      console.error("Failed to create job:", error)
+    }
+  }
+
+  // Notification form handlers
+  const handleSendNotification = async (notificationData) => {
+    try {
+      const formData = new FormData()
+      formData.append('statusUpdate', notificationData.statusUpdate)
+      formData.append('companyName', notificationData.companyName)
+      formData.append('customMessage', notificationData.customMessage || '')
+      formData.append('excelFile', notificationData.excelFile)
+
+      await axios.post(`${API_URL}/admin/send-notification`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+
+      // Refresh data after sending notifications
+      fetchBackendData()
+    } catch (error) {
+      console.error("Failed to send notifications:", error)
+      throw error
+    }
+  }
+
+
   const stats = {
-    totalStudents: students.length,
-    activeCompanies: companies.length,
-    totalPlacements: applications.filter(app => app.status === "selected")
-      .length,
+    totalStudents: backendStats.totalStudents || students.length,
+    activeCompanies: backendStats.totalCompanies || companies.length,
+    totalPlacements: backendStats.totalPlacements || applications.filter(app => app.status === "selected").length,
     avgPackage: "₹12.5L"
   }
 
-  const recentActivity = [
-    {
-      id: "1",
-      type: "company",
-      title: "New company registered",
-      description: "TCS submitted placement details",
-      time: "2m ago",
-      color: "bg-blue-50 text-blue-600"
-    },
-    {
-      id: "2",
-      type: "student",
-      title: "Student profile approved",
-      description: "Rahul Singh (CSE) profile verified",
-      time: "5m ago",
-      color: "bg-green-50 text-green-600"
-    },
-    {
-      id: "3",
-      type: "result",
-      title: "Placement result updated",
-      description: "Google results uploaded",
-      time: "1h ago",
-      color: "bg-purple-50 text-purple-600"
-    }
-  ]
+
 
   const filteredStudents = students.filter(
     student =>
@@ -101,19 +213,31 @@ const Admin = () => {
             Quick Actions
           </h3>
           <div className="grid grid-cols-2 gap-4">
-            <button className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => setShowCompanyForm(true)}
+              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <Plus className="h-6 w-6 text-blue-500 mb-2" />
               <span className="text-sm font-medium">Add Company</span>
             </button>
-            <button className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => setShowJobForm(true)}
+              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <FileText className="h-6 w-6 text-green-500 mb-2" />
-              <span className="text-sm font-medium">Generate Report</span>
+              <span className="text-sm font-medium">Add Job</span>
             </button>
-            <button className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => setActiveTab("students")}
+              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <Users className="h-6 w-6 text-purple-500 mb-2" />
               <span className="text-sm font-medium">Manage Students</span>
             </button>
-            <button className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => setShowNotificationForm(true)}
+              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <Mail className="h-6 w-6 text-orange-500 mb-2" />
               <span className="text-sm font-medium">Send Notification</span>
             </button>
@@ -121,58 +245,9 @@ const Admin = () => {
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-white rounded-xl shadow-sm border p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Recent Activity
-          </h3>
-          <div className="space-y-3">
-            {recentActivity.map(activity => (
-              <div
-                key={activity.id}
-                className={`flex items-center space-x-3 p-3 rounded-lg ${
-                  activity.color.split(" ")[0]
-                }`}
-              >
-                <div
-                  className={`w-2 h-2 rounded-full ${
-                    activity.color.split(" ")[1]
-                  }`}
-                ></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">
-                    {activity.title}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {activity.description}
-                  </p>
-                </div>
-                <span className="text-xs text-gray-400">{activity.time}</span>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Placement Statistics */}
-      <div className="bg-white rounded-xl shadow-sm border p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Placement Statistics
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600 mb-2">85%</div>
-            <div className="text-sm text-gray-500">Placement Rate</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-600 mb-2">₹55L</div>
-            <div className="text-sm text-gray-500">Highest Package</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-purple-600 mb-2">125</div>
-            <div className="text-sm text-gray-500">Companies Visited</div>
-          </div>
-        </div>
-      </div>
     </div>
   )
 
@@ -248,22 +323,20 @@ const Admin = () => {
                         {student.resumeScore}/100
                       </div>
                       <div
-                        className={`ml-2 w-16 h-2 rounded-full ${
-                          student.resumeScore >= 80
-                            ? "bg-green-200"
-                            : student.resumeScore >= 60
+                        className={`ml-2 w-16 h-2 rounded-full ${student.resumeScore >= 80
+                          ? "bg-green-200"
+                          : student.resumeScore >= 60
                             ? "bg-yellow-200"
                             : "bg-red-200"
-                        }`}
+                          }`}
                       >
                         <div
-                          className={`h-2 rounded-full ${
-                            student.resumeScore >= 80
-                              ? "bg-green-500"
-                              : student.resumeScore >= 60
+                          className={`h-2 rounded-full ${student.resumeScore >= 80
+                            ? "bg-green-500"
+                            : student.resumeScore >= 60
                               ? "bg-yellow-500"
                               : "bg-red-500"
-                          }`}
+                            }`}
                           style={{ width: `${student.resumeScore}%` }}
                         ></div>
                       </div>
@@ -305,7 +378,10 @@ const Admin = () => {
           <h2 className="text-xl font-semibold text-gray-900">
             Company Management
           </h2>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center">
+          <button
+            onClick={() => setShowCompanyForm(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center"
+          >
             <Plus className="w-4 h-4 mr-2" />
             Add Company
           </button>
@@ -313,7 +389,7 @@ const Admin = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {companies.map(company => (
+        {backendCompanies.map(company => (
           <div
             key={company.id}
             className="bg-white rounded-xl shadow-sm border p-6"
@@ -391,11 +467,10 @@ const Admin = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    activeTab === tab.id
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  }`}
+                  className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    }`}
                 >
                   <Icon className="w-4 h-4 mr-2" />
                   {tab.label}
@@ -422,6 +497,267 @@ const Admin = () => {
           )}
         </div>
       </div>
+
+      {/* Company Form Modal */}
+      {showCompanyForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold">Add New Company</h3>
+              <button onClick={() => setShowCompanyForm(false)}>
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCompanySubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Company Name</label>
+                  <input
+                    type="text"
+                    value={companyForm.name}
+                    onChange={(e) => setCompanyForm({ ...companyForm, name: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Logo (Emoji)</label>
+                  <input
+                    type="text"
+                    value={companyForm.logo}
+                    onChange={(e) => setCompanyForm({ ...companyForm, logo: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    placeholder="🏢"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Package Range</label>
+                  <input
+                    type="text"
+                    value={companyForm.package_range}
+                    onChange={(e) => setCompanyForm({ ...companyForm, package_range: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    placeholder="₹10-15 LPA"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Location</label>
+                  <input
+                    type="text"
+                    value={companyForm.location}
+                    onChange={(e) => setCompanyForm({ ...companyForm, location: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    placeholder="Bangalore, Mumbai"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Min CGPA</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={companyForm.min_cgpa}
+                    onChange={(e) => setCompanyForm({ ...companyForm, min_cgpa: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    placeholder="7.0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Application Deadline</label>
+                  <input
+                    type="date"
+                    value={companyForm.deadline}
+                    onChange={(e) => setCompanyForm({ ...companyForm, deadline: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Job Type</label>
+                <select
+                  value={companyForm.job_type}
+                  onChange={(e) => setCompanyForm({ ...companyForm, job_type: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                >
+                  <option value="">Select Job Type</option>
+                  <option value="Full-time">Full-time</option>
+                  <option value="Internship">Internship</option>
+                  <option value="Contract">Contract</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <textarea
+                  value={companyForm.description}
+                  onChange={(e) => setCompanyForm({ ...companyForm, description: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  rows="3"
+                  placeholder="Company description and role details..."
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCompanyForm(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Create Company
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Job Form Modal */}
+      {showJobForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold">Add New Job</h3>
+              <button onClick={() => setShowJobForm(false)}>
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleJobSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Company Name</label>
+                  <input
+                    type="text"
+                    value={jobForm.company_name}
+                    onChange={(e) => setJobForm({ ...jobForm, company_name: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Job Role</label>
+                  <input
+                    type="text"
+                    value={jobForm.role}
+                    onChange={(e) => setJobForm({ ...jobForm, role: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    placeholder="Software Engineer"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Application Deadline</label>
+                  <input
+                    type="date"
+                    value={jobForm.application_deadline}
+                    onChange={(e) => setJobForm({ ...jobForm, application_deadline: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Online Assessment Date</label>
+                  <input
+                    type="date"
+                    value={jobForm.online_assessment_date}
+                    onChange={(e) => setJobForm({ ...jobForm, online_assessment_date: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Min CGPA</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={jobForm.min_cgpa}
+                    onChange={(e) => setJobForm({ ...jobForm, min_cgpa: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    placeholder="7.0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Package Range</label>
+                  <input
+                    type="text"
+                    value={jobForm.package_range}
+                    onChange={(e) => setJobForm({ ...jobForm, package_range: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    placeholder="₹10-15 LPA"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Location</label>
+                <input
+                  type="text"
+                  placeholder="Enter locations separated by commas"
+                  value={jobForm.location.join(", ")}
+                  onChange={(e) =>
+                    setJobForm({ ...jobForm, location: e.target.value.split(",").map(l => l.trim()) })
+                  }
+                />
+
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Job Description</label>
+                <textarea
+                  value={jobForm.description}
+                  onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  rows="3"
+                  placeholder="Detailed job description..."
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowJobForm(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Create Job
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Form Modal */}
+      <NotificationForm
+        isOpen={showNotificationForm}
+        onClose={() => setShowNotificationForm(false)}
+        onSendNotification={handleSendNotification}
+      />
     </div>
   )
 }

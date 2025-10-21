@@ -1,4 +1,3 @@
-// src/controllers/authcontroller.js
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -38,71 +37,94 @@ export const register = async (req, res) => {
     // Generate unique ID
     const id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString();
 
-    // Use default role 'Student' if role not provided
-    const userRole = role === "Admin" ? "Admin" : "Student";
+    // Default role to Student unless explicitly Admin
+    console.log(role);
+    const userRole = role === "ADMIN" ? "Admin" : "Student";
 
-    // Insert user into DB
+    // Insert into DB
     await query(
       "INSERT INTO users (id, name, branch, cgpa, email, password, role) VALUES ($1, $2, $3, $4, $5, $6, $7)",
       [id, name, branch, cgpa, email, hashedPassword, userRole]
     );
 
-    console.log("✅ User registered:", email);
-    res.status(201).json({ message: "Registration successful", role: userRole });
-  } catch (error) {
-    console.error("❌ Error in register:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-/**
- * Login user
- */
-export const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    console.log("📥 In login route", req.body);
-
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
-    }
-
-    // Find user in DB
-    const result = await query("SELECT * FROM users WHERE email = $1", [email]);
-    const user = result.rows[0];
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // Validate password
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
-
     // Generate JWT token
     const token = jwt.sign(
-      { email: user.email, id: user.id, role: user.role },
+      { email, id, role: userRole },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || "1h" }
     );
 
-    res.status(200).json({
+    console.log("✅ User registered:", email);
+
+    // Send full user info (for localStorage)
+    res.status(201).json({
+      message: "Registration successful",
       token,
       user: {
-        id: user.id,
-        name: user.name,
-        branch: user.branch,
-        cgpa: user.cgpa,
-        email: user.email,
-        role: user.role
+        id,
+        name,
+        branch,
+        cgpa,
+        email,
+        role: userRole,
       },
     });
   } catch (error) {
-    console.error("❌ Error in login:", error);
+    console.error("❌ Error in register:", error);
     res.status(500).json({ message: "Server error" });
   }
+},
+
+
+  // ✅ Login user
+  async login(req, res) {
+    try {
+      const { email, password } = req.body;
+      console.log("📥 In login route", req.body);
+
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      // Check user
+      const result = await query("SELECT * FROM users WHERE email = $1", [email]);
+      const user = result.rows[0];
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Validate password
+      const valid = await bcrypt.compare(password, user.password);
+      if (!valid) {
+        return res.status(400).json({ message: "Invalid credentials" });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { email: user.email, id: user.id, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN || "1h" }
+      );
+
+      console.log("✅ User logged in:", email);
+      res.status(200).json({
+        message: "Login successful",
+        token,
+        user: {
+          id: user.id,
+          name: user.name,
+          branch: user.branch,
+          cgpa: user.cgpa,
+          email: user.email,
+          role: user.role,
+        },
+      });
+    } catch (error) {
+      console.error("❌ Error in login:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
 };
 
 /**

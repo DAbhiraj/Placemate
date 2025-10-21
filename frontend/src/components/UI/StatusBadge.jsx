@@ -3,6 +3,7 @@ import { CheckCircle, Clock, XCircle, Star, Users } from "lucide-react"
 import { getStatusColor } from "../../utils/helpers"
 
 const StatusBadge = ({ status, showIcon = true }) => {
+  const safeStatus = (status || "applied").toString()
   const getStatusIcon = status => {
     switch (status) {
       case "applied":
@@ -25,12 +26,12 @@ const StatusBadge = ({ status, showIcon = true }) => {
   return (
     <span
       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-        status
+        safeStatus
       )}`}
     >
-      {showIcon && getStatusIcon(status)}
+      {showIcon && getStatusIcon(safeStatus)}
       <span className={showIcon ? "ml-1" : ""}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {safeStatus.charAt(0).toUpperCase() + safeStatus.slice(1)}
       </span>
     </span>
   )

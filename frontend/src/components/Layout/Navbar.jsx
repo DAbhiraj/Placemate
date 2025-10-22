@@ -26,7 +26,7 @@ const Navbar = () => {
     const role = localStorage.getItem("role")
     const userId = localStorage.getItem("id")
 
-    if (user && email && branch && cgpa && role) {
+    if (user && email && role) {
       setCurrentUser({
         name: user,
         email,
@@ -82,7 +82,8 @@ const Navbar = () => {
     return location.pathname === path
   }
 
-  const role = localStorage.getItem("role"); // get role from localStorage
+  const role = (localStorage.getItem("role") || "").toLowerCase();
+
 
   const navItems = role.toLowerCase() === "admin"
     ? [

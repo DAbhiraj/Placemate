@@ -3,6 +3,9 @@ import { GraduationCap } from 'lucide-react';
 import GoogleSignIn from '../components/Auth/GoogleSignIn';
 import ProfileSetupModal from '../components/Auth/ProfileSetupModal';
 import OnboardingComponent from '../components/Auth/OnboardingModal';
+import axios from "axios";
+
+const API_URL = "http://localhost:4000/api";
 
 const Login = () => {
   const [error, setError] = useState('');
@@ -47,6 +50,10 @@ const Login = () => {
     console.log(errorMessage);
     setError(errorMessage);
   };
+
+  const handleLogin = () =>{
+    window.location.href = "/adminlogin"
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -98,6 +105,11 @@ const Login = () => {
       )}
 
       {showOnboarding && <OnboardingComponent />}
+      <div>
+        <button onClick={handleLogin}>
+          Sign in as Admin
+        </button>
+      </div>
     </div>
   );
 };

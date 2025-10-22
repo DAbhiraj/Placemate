@@ -77,7 +77,6 @@ const Profile = () => {
       const response = await fetch(`${API_BASE}/profile`, {
         method: "PUT",
         headers: {
-          "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify(updateData)
@@ -124,15 +123,13 @@ const Profile = () => {
 
     try {
       setUploading(true)
-      const token = getAuthToken()
+   
       const formData = new FormData()
       formData.append("resume", selectedFile)
+      const userId = localStorage.getItem("id");
 
-      const response = await fetch(`${API_BASE}/profile/resume`, {
+      const response = await fetch(`${API_BASE}/profile/resume?userId=${userId}`, {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        },
         body: formData
       })
 
@@ -193,9 +190,6 @@ const Profile = () => {
       const token = getAuthToken()
       const response = await fetch(`${API_BASE}/profile/resume`, {
         method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
       })
 
       if (response.ok) {

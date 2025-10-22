@@ -67,7 +67,7 @@ export async function register(req, res) {
 export async function login(req, res) {
     try {
       const { email, password } = req.body;
-      console.log("📥 In login route", req.body);
+      console.log("In login route", req.body);
 
       if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
@@ -94,8 +94,6 @@ export async function login(req, res) {
         user: {
           id: user.id,
           name: user.name,
-          branch: user.branch,
-          cgpa: user.cgpa,
           email: user.email,
           role: user.role
         }

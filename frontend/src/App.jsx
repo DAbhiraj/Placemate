@@ -11,6 +11,7 @@ import ProfileSetupModal from './components/Auth/ProfileSetupModal';
 import JobOpportunities from './pages/JobOppurtunities';
 import UpcomingDeadlines from './pages/Upcoming';
 import { AppProvider } from './context/AppContext'; // <-- Import the provid
+import AdminLogin from './pages/AdminLogin';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
       <Routes>
         {/* Public route */}
         <Route path="/" element={<Login />} />
+          <Route path="/adminlogin" element={<AdminLogin />} />
 
         {/* Routes with navbar (via Layout) */}
         <Route element={<Layout />}>

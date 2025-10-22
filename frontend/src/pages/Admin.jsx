@@ -24,7 +24,7 @@ import NotificationForm from "../components/UI/NotificationForm"
 import axios from "axios"
 
 // Use Vite env var for backend API base URL, fallback to localhost for dev
-const API_URL = import.meta.env.VITE_API_URL ;
+const API_URL = "http://localhost:4000/api";
 
 const Admin = () => {
   const { students, companies, applications } = useApp()
@@ -43,21 +43,8 @@ const Admin = () => {
   const [backendStudents, setBackendStudents] = useState([])
 
   // Form states
-  const [showCompanyForm, setShowCompanyForm] = useState(false)
   const [showJobForm, setShowJobForm] = useState(false)
   const [showNotificationForm, setShowNotificationForm] = useState(false)
-  const [companyForm, setCompanyForm] = useState({
-    name: "",
-    logo: "",
-    package_range: "",
-    location: "",
-    eligible_branches: [],
-    min_cgpa: "",
-    deadline: "",
-    job_type: "",
-    description: "",
-    requirements: []
-  })
   const [jobForm, setJobForm] = useState({
     company_name: "",
     role: "",
@@ -70,6 +57,25 @@ const Admin = () => {
     package_range: "",
     location: [] // keep as array
   });
+
+  const downloadReport = async (companyName) => {
+    try {
+      const response = await axios.get(
+        `${API_URL}/exports?companyName=${encodeURIComponent(companyName)}`,
+        { responseType: "blob" }
+      );
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `${companyName}_applications.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error("Failed to download report:", error);
+    }
+  };
 
 
   // Fetch data from backend
@@ -95,27 +101,11 @@ const Admin = () => {
     }
   }
 
-  // Company form handlers
-  const handleCompanySubmit = async (e) => {
-    e.preventDefault()
-    try {
-  await axios.post(`${API_URL}/admin/companies`, companyForm)
-      setShowCompanyForm(false)
-      setCompanyForm({
-        name: "", logo: "", package_range: "", location: "", eligible_branches: [],
-        min_cgpa: "", deadline: "", job_type: "", description: "", requirements: []
-      })
-      fetchBackendData()
-    } catch (error) {
-      console.error("Failed to create company:", error)
-    }
-  }
-
   // Job form handlers
   const handleJobSubmit = async (e) => {
     e.preventDefault()
     try {
-  await axios.post(`${API_URL}/admin/jobs`, jobForm)
+      await axios.post(`${API_URL}/admin/jobs`, jobForm)
       setShowJobForm(false)
       setJobForm({
         company_name: "",
@@ -163,7 +153,7 @@ const Admin = () => {
     totalStudents: backendStats.totalStudents || students.length,
     activeCompanies: backendStats.totalCompanies || companies.length,
     totalPlacements: backendStats.totalPlacements || applications.filter(app => app.status === "selected").length,
-    avgPackage: "₹12.5L"
+    avgPackage: backendStats.avgPackage || "₹12.5L"
   }
 
 
@@ -213,13 +203,6 @@ const Admin = () => {
             Quick Actions
           </h3>
           <div className="grid grid-cols-2 gap-4">
-            <button
-              onClick={() => setShowCompanyForm(true)}
-              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <Plus className="h-6 w-6 text-blue-500 mb-2" />
-              <span className="text-sm font-medium">Add Company</span>
-            </button>
             <button
               onClick={() => setShowJobForm(true)}
               className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -415,25 +398,37 @@ const Admin = () => {
                 {company.deadline}
               </p>
               <p>
-                <span className="font-medium">Min CGPA:</span> {company.minCGPA}
+                <span className="font-medium">Min CGPA:</span> {company.min_cgpa}
               </p>
               <p>
                 <span className="font-medium">Applications:</span>{" "}
-                {company.appliedCount}
+                {company.applied_count}
               </p>
             </div>
 
             <div className="mt-4 flex items-center space-x-2">
-              <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                Edit
-              </button>
-              <button className="text-green-600 hover:text-green-700 text-sm font-medium">
-                View Applications
-              </button>
-              <button className="text-gray-600 hover:text-gray-700 text-sm font-medium">
+              <button
+                onClick={() => downloadReport(company.name)}
+                className="bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-sm hover:bg-green-600 hover:shadow-md transition-all duration-200 ease-in-out flex items-center gap-2"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"
+                  />
+                </svg>
                 Download Report
               </button>
             </div>
+
           </div>
         ))}
       </div>
@@ -442,9 +437,8 @@ const Admin = () => {
 
   const tabs = [
     { id: "overview", label: "Overview", icon: TrendingUp },
-    { id: "students", label: "Students", icon: Users },
     { id: "companies", label: "Companies", icon: Building2 },
-    { id: "reports", label: "Reports", icon: FileText }
+    { id: "reports", label: "Stats", icon: FileText }
   ]
 
   return (
@@ -488,7 +482,7 @@ const Admin = () => {
             <div className="text-center py-12">
               <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Reports Section
+                Stats Section
               </h3>
               <p className="text-gray-500">
                 Generate and download placement reports
@@ -498,132 +492,6 @@ const Admin = () => {
         </div>
       </div>
 
-      {/* Company Form Modal */}
-      {showCompanyForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold">Add New Company</h3>
-              <button onClick={() => setShowCompanyForm(false)}>
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCompanySubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Company Name</label>
-                  <input
-                    type="text"
-                    value={companyForm.name}
-                    onChange={(e) => setCompanyForm({ ...companyForm, name: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Logo (Emoji)</label>
-                  <input
-                    type="text"
-                    value={companyForm.logo}
-                    onChange={(e) => setCompanyForm({ ...companyForm, logo: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="🏢"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Package Range</label>
-                  <input
-                    type="text"
-                    value={companyForm.package_range}
-                    onChange={(e) => setCompanyForm({ ...companyForm, package_range: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="₹10-15 LPA"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Location</label>
-                  <input
-                    type="text"
-                    value={companyForm.location}
-                    onChange={(e) => setCompanyForm({ ...companyForm, location: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="Bangalore, Mumbai"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Min CGPA</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={companyForm.min_cgpa}
-                    onChange={(e) => setCompanyForm({ ...companyForm, min_cgpa: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="7.0"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Application Deadline</label>
-                  <input
-                    type="date"
-                    value={companyForm.deadline}
-                    onChange={(e) => setCompanyForm({ ...companyForm, deadline: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Job Type</label>
-                <select
-                  value={companyForm.job_type}
-                  onChange={(e) => setCompanyForm({ ...companyForm, job_type: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                >
-                  <option value="">Select Job Type</option>
-                  <option value="Full-time">Full-time</option>
-                  <option value="Internship">Internship</option>
-                  <option value="Contract">Contract</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
-                <textarea
-                  value={companyForm.description}
-                  onChange={(e) => setCompanyForm({ ...companyForm, description: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  rows="3"
-                  placeholder="Company description and role details..."
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowCompanyForm(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  Create Company
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Job Form Modal */}
       {showJobForm && (

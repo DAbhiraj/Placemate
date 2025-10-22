@@ -41,9 +41,9 @@ router.post("/register", register);
 router.post("/login", login);
 
 // applications
+router.get('/exports', applicationController.downloadCompanyReport);
 router.get("/upcoming-deadlines/:userId",applicationController.getUpcomingDeadline);
 router.get("/applications/userId/:userId", applicationController.getApplicationByUser);
-router.get("/applications/excel/:jobId/export", applicationController.exportExcel);
 router.get("/applications/:jobId", applicationController.getFormData);
 router.post("/applications/:jobId/apply/:studentId", applicationController.submitForm);
 

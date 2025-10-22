@@ -26,26 +26,31 @@ const applicationController = {
       res.status(500).json({ message: "Failed to submit form" });
     }
   },
-
-  exportExcel: async (req, res) => {
+  downloadCompanyReport: async (req, res) => {
     try {
-      console.log("int controller");
-      const { jobId } = req.params;
-      const buffer = await applicationService.exportToExcel(jobId);
-
+      const { companyName } = req.query;
+      if (!companyName) {
+        return res.status(400).json({ message: 'Company name is required' });
+      }
+  
+      const buffer = await applicationService.generateCompanyReport(companyName);
+      if (!buffer) {
+        return res.status(404).json({ message: 'No applications found for this company' });
+      }
+  
       res.setHeader(
-        "Content-Type",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        'Content-Disposition',
+        `attachment; filename=${companyName}_applications.xlsx`
       );
       res.setHeader(
-        "Content-Disposition",
-        `attachment; filename=job_${jobId}_applications.xlsx`
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       );
-
-      res.send(buffer);  // Send Excel file
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Failed to export Excel" });
+  
+      res.send(buffer);
+    } catch (error) {
+      console.error('Error generating report:', error);
+      res.status(500).json({ message: 'Internal server error' });
     }
   },
 

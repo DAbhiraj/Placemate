@@ -22,6 +22,7 @@ import StatCard from "../components/UI/StatCard"
 import StatusBadge from "../components/UI/StatusBadge"
 import NotificationForm from "../components/UI/NotificationForm"
 import axios from "axios"
+import Stats from "./Stats"
 
 // Use Vite env var for backend API base URL, fallback to localhost for dev
 const API_URL = "http://localhost:4000/api";
@@ -55,7 +56,8 @@ const Admin = () => {
     min_cgpa: "",
     eligible_branches: [],
     package_range: "",
-    location: [] // keep as array
+    location: [],
+    company_logo: "",
   });
 
   const downloadReport = async (companyName) => {
@@ -124,6 +126,10 @@ const Admin = () => {
       console.error("Failed to create job:", error)
     }
   }
+  useEffect(() => {
+    console.log("in backend companies");
+    console.log(backendCompanies);
+  }, [backendCompanies])
 
   // Notification form handlers
   const handleSendNotification = async (notificationData) => {
@@ -361,30 +367,52 @@ const Admin = () => {
           <h2 className="text-xl font-semibold text-gray-900">
             Company Management
           </h2>
-          <button
-            onClick={() => setShowCompanyForm(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Company
-          </button>
+
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {backendCompanies.map(company => (
+        {backendCompanies.map((company, index) => (
+
           <div
-            key={company.id}
+            key={index}
             className="bg-white rounded-xl shadow-sm border p-6"
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
-                <div className="text-3xl">{company.logo}</div>
+                <img
+                  src={company.company_logo}
+                  alt={`${company.company_name} logo`}
+                  className="w-12 h-12 object-contain rounded-md bg-white border"
+                  loading="lazy"
+                />
+
+
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">
-                    {company.name}
+                    {company.company_name}
                   </h3>
-                  <p className="text-sm text-gray-500">{company.location}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {company.location.map((loc, index) => {
+                      const colors = [
+                        "bg-blue-100 text-blue-700",
+                        "bg-green-100 text-green-700",
+                        "bg-purple-100 text-purple-700",
+                        "bg-yellow-100 text-yellow-700",
+                        "bg-pink-100 text-pink-700",
+                      ];
+                      const color = colors[index % colors.length]; // rotate colors
+                      return (
+                        <span
+                          key={index}
+                          className={`text-xs font-medium px-2 py-1 rounded-full ${color}`}
+                        >
+                          {loc}
+                        </span>
+                      );
+                    })}
+                  </div>
+
                 </div>
               </div>
               <span className="bg-green-100 text-green-800 text-sm font-medium px-2.5 py-0.5 rounded-full">
@@ -393,16 +421,9 @@ const Admin = () => {
             </div>
 
             <div className="space-y-2 text-sm text-gray-600">
-              <p>
-                <span className="font-medium">Deadline:</span>{" "}
-                {company.deadline}
-              </p>
+
               <p>
                 <span className="font-medium">Min CGPA:</span> {company.min_cgpa}
-              </p>
-              <p>
-                <span className="font-medium">Applications:</span>{" "}
-                {company.applied_count}
               </p>
             </div>
 
@@ -478,17 +499,7 @@ const Admin = () => {
           {activeTab === "overview" && renderOverview()}
           {activeTab === "students" && renderStudents()}
           {activeTab === "companies" && renderCompanies()}
-          {activeTab === "reports" && (
-            <div className="text-center py-12">
-              <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Stats Section
-              </h3>
-              <p className="text-gray-500">
-                Generate and download placement reports
-              </p>
-            </div>
-          )}
+          {activeTab === "reports" && <Stats />}
         </div>
       </div>
 
@@ -516,6 +527,17 @@ const Admin = () => {
                     required
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Company Logo URL</label>
+                  <input
+                    type="url"
+                    value={jobForm.logo_url}
+                    onChange={(e) => setJobForm({ ...jobForm, logo_url: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    placeholder="https://upload.wikimedia.org/..."
+                  />
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium mb-1">Job Role</label>
                   <input
@@ -574,6 +596,28 @@ const Admin = () => {
                   />
                 </div>
               </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Eligible Branches</label>
+                <div className="space-y-1">
+                  {["Computer Science", "Electronics and Communication", "Information Technology", "Mechanical", "Electrical", "Civil"].map((branch) => (
+                    <label key={branch} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={jobForm.eligible_branches.includes(branch)}
+                        onChange={(e) => {
+                          const updated = e.target.checked
+                            ? [...jobForm.eligible_branches, branch]
+                            : jobForm.eligible_branches.filter((b) => b !== branch);
+                          setJobForm({ ...jobForm, eligible_branches: updated });
+                        }}
+                        className="rounded border-gray-300"
+                      />
+                      <span>{branch}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
 
               <div>
                 <label className="block text-sm font-medium mb-1">Location</label>

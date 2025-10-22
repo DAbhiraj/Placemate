@@ -1,5 +1,6 @@
 // src/routes.js
 import express from "express";
+import multer from "multer";
 import { register, login, googleLogin } from "./controllers/authcontroller.js";
 import CompanyController from "./controllers/companyController.js";
 import AlumniController from "./controllers/alumniController.js";
@@ -12,23 +13,17 @@ import { adminController } from "./controllers/adminController.js";
 
 const router = express.Router();
 
-// Middleware to verify JWT token
-// const authenticateToken = (req, res, next) => {
-//   const authHeader = req.headers['authorization'];
-//   const token = authHeader && authHeader.split(' ')[1];
+// Configure multer for file uploads
+const upload = multer({
+  dest: 'uploads/',
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
-//   if (!token) {
-//     return res.status(401).json({ message: 'Access token required' });
-//   }
-
-//   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-//     if (err) {
-//       return res.status(403).json({ message: 'Invalid or expired token' });
-//     }
-//     req.user = user;
-//     next();
-//   });
-// };
+// Middleware for authentication (mock)
+router.use((req, res, next) => {
+  req.user = { id: 1 }; // student
+  next();
+});
 
 // --- Auth Routes ---
 router.get("/notifications/:userId",notificationController.getUserNotifications);

@@ -1,6 +1,6 @@
 import { adminRepository } from "../repo/adminRepo.js";
 import { notificationService } from "./notificationService.js";
-import { statsService } from "./statsService.js";
+//import { statsService } from "./statsService.js";
 
 export const adminService = {
     // Dashboard Stats
@@ -10,13 +10,14 @@ export const adminService = {
         const totalApplications = await adminRepository.getTotalApplications();
         const totalPlacements = await adminRepository.getTotalPlacements();
         const avgPackage = await adminRepository.getAveragePackage();
-        
+        const placementsByBranch = await adminRepository.getPlacementsByBranch(); 
         return {
             totalStudents,
             totalCompanies,
             totalApplications,
             totalPlacements,
-            avgPackage
+            avgPackage,
+            placementsByBranch
         };
     },
     // Company Management

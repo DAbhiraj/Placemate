@@ -3,12 +3,12 @@ import { pool } from "../db/db.js";
 export const adminRepository = {
     // Dashboard Stats
     async getTotalStudents() {
-        const result = await pool.query("SELECT COUNT(*) FROM students");
+        const result = await pool.query("SELECT COUNT(*) FROM users");
         return parseInt(result.rows[0].count);
     },
 
     async getTotalCompanies() {
-        const result = await pool.query("SELECT COUNT(*) FROM companies");
+        const result = await pool.query("SELECT COUNT(DISTINCT company_name) FROM jobs");
         return parseInt(result.rows[0].count);
     },
 
@@ -42,9 +42,32 @@ export const adminRepository = {
     },
 
     async getAllCompanies() {
-        const result = await pool.query("SELECT * FROM companies ORDER BY created_at DESC");
+        const result = await pool.query(`
+            SELECT DISTINCT ON (j.company_name) 
+              j.company_name, 
+              j.company_logo, 
+              j.location, 
+              j.min_cgpa
+            FROM jobs j
+            ORDER BY j.company_name, j.created_at DESC
+          `);
+          
         return result.rows;
     },
+
+    async getPlacementsByBranch() {
+        const query = `
+          SELECT 
+              u.branch AS branch,
+              COUNT(u.id) AS placed
+          FROM users u
+          JOIN application a ON u.id = p.id
+          GROUP BY u.branch
+          ORDER BY u.branch;
+        `;
+        const result = await pool.query(query);
+        return result.rows || result[0]; // rows for pg, [0] for mysql2
+      },
 
     async updateCompany(companyId, updateData) {
         const fields = Object.keys(updateData);

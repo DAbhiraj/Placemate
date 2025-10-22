@@ -70,7 +70,7 @@ const applicationController = {
   },
 
   // GET /api/upcoming-deadlines/:userId
-  getUpcomingDeadline: async (req, res) => {
+    getUpcomingDeadline: async (req, res) => {
     const { userId } = req.params;
     let { branch, cgpa } = req.query;
     if (cgpa === undefined && req.query["amp;cgpa"]) {

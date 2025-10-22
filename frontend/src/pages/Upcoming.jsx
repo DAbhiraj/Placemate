@@ -14,7 +14,7 @@ const UpcomingDeadlines = () => {
   useEffect(() => {
     const fetchUpcoming = async () => {
       const userId = localStorage.getItem("id");
-      const branch = "CSE";
+      const branch = localStorage.getItem("branch");
       const cgpa = localStorage.getItem("cgpa") || 0;
       if (!userId) return;
 

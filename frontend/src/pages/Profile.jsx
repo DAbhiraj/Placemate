@@ -15,9 +15,22 @@ import {
   Loader2
 } from "lucide-react"
 import { useApp } from "../context/AppContext"
+import axios from "axios";
 
 const Profile = () => {
-  const { currentUser } = useApp()
+  console.log("profile ----------")
+  
+  const [currentUser, setCurrentUser] = useState({
+    branch: localStorage.getItem("branch") || "",
+    cgpa: localStorage.getItem("cgpa") || "",
+    email: localStorage.getItem("email") || "",
+    id: localStorage.getItem("id") || "",
+    name: localStorage.getItem("name") || "",
+    role: localStorage.getItem("role") || "",
+    user: localStorage.getItem("user") || "",
+    userId: localStorage.getItem("userId") || ""
+  });
+
   const [isEditing, setIsEditing] = useState(false)
   const [newSkill, setNewSkill] = useState("")
   const [skills, setSkills] = useState(currentUser?.skills || [])
@@ -29,7 +42,7 @@ const Profile = () => {
   const [atsFeedback, setAtsFeedback] = useState("")
 
   // API Base URL
-  const API_BASE = "http://localhost:5000"
+  const API_BASE = "http://localhost:4000/api"
 
   // Get auth token from localStorage
   const getAuthToken = () => {
@@ -41,20 +54,15 @@ const Profile = () => {
     try {
       setLoading(true)
       const token = getAuthToken()
-      const response = await fetch(`${API_BASE}/profile`, {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
+      const response = await axios.get(`${API_BASE}/profile`);
+      console.log("response");
+      console.log(response);
+        const data = response.data;
         setProfile(data.data)
         setSkills(data.data.skills || [])
         setAtsScore(data.data.ats_score)
         setAtsFeedback(data.data.ats_feedback || "")
-      }
+      
     } catch (error) {
       console.error("Error fetching profile:", error)
     } finally {
@@ -69,7 +77,6 @@ const Profile = () => {
       const response = await fetch(`${API_BASE}/profile`, {
         method: "PUT",
         headers: {
-          "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify(updateData)
@@ -116,15 +123,13 @@ const Profile = () => {
 
     try {
       setUploading(true)
-      const token = getAuthToken()
+   
       const formData = new FormData()
       formData.append("resume", selectedFile)
+      const userId = localStorage.getItem("id");
 
-      const response = await fetch(`${API_BASE}/profile/resume`, {
+      const response = await fetch(`${API_BASE}/profile/resume?userId=${userId}`, {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        },
         body: formData
       })
 
@@ -185,9 +190,6 @@ const Profile = () => {
       const token = getAuthToken()
       const response = await fetch(`${API_BASE}/profile/resume`, {
         method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
       })
 
       if (response.ok) {

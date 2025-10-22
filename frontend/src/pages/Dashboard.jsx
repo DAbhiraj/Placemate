@@ -40,7 +40,7 @@ const Dashboard = () => {
     const name = localStorage.getItem("name");
     const email = localStorage.getItem("email");
     //const branch = localStorage.getItem("branch");
-    const branch = "CSE";
+    const branch = localStorage.getItem("branch");
     const cgpa = localStorage.getItem("cgpa");
     const role = localStorage.getItem("role");
     const token = localStorage.getItem("token");

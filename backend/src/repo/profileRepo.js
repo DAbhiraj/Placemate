@@ -8,7 +8,7 @@ export class ProfileRepo {
   static async getProfile(userId) {
     try {
       const result = await query(
-        "SELECT id, name, branch, cgpa, email, role, phone, skills, resume_url, resume_filename, resume_upload_date, ats_score, ats_score_date, ats_feedback FROM users WHERE id = $1",
+        "SELECT id, name, branch, cgpa, email, role, skills, resume_url, resume_filename, resume_upload_date, ats_score, ats_score_date, ats_feedback FROM users WHERE id = $1",
         [userId]
       );
       return result.rows[0];
@@ -23,73 +23,44 @@ export class ProfileRepo {
    */
   static async updateProfile(userId, updateData) {
     try {
-      const {
-        name,
-        phone,
-        skills,
-        resume_url,
-        resume_filename,
-        resume_upload_date,
-        ats_score,
-        ats_score_date,
-        ats_feedback
-      } = updateData;
-
+      const { branch, cgpa } = updateData;
+  
+      // Build dynamic SQL for only the provided fields
       const setClause = [];
       const values = [];
-      let paramCount = 1;
-
-      if (name !== undefined) {
-        setClause.push(`name = $${paramCount++}`);
-        values.push(name);
+  
+      if (branch !== undefined && branch !== '') {
+        setClause.push(`branch = $${values.length + 1}`);
+        values.push(branch);
       }
-      if (phone !== undefined) {
-        setClause.push(`phone = $${paramCount++}`);
-        values.push(phone);
+  
+      if (cgpa !== undefined && cgpa !== '') {
+        setClause.push(`cgpa = $${values.length + 1}`);
+        values.push(cgpa);
       }
-      if (skills !== undefined) {
-        setClause.push(`skills = $${paramCount++}`);
-        values.push(skills);
-      }
-      if (resume_url !== undefined) {
-        setClause.push(`resume_url = $${paramCount++}`);
-        values.push(resume_url);
-      }
-      if (resume_filename !== undefined) {
-        setClause.push(`resume_filename = $${paramCount++}`);
-        values.push(resume_filename);
-      }
-      if (resume_upload_date !== undefined) {
-        setClause.push(`resume_upload_date = $${paramCount++}`);
-        values.push(resume_upload_date);
-      }
-      if (ats_score !== undefined) {
-        setClause.push(`ats_score = $${paramCount++}`);
-        values.push(ats_score);
-      }
-      if (ats_score_date !== undefined) {
-        setClause.push(`ats_score_date = $${paramCount++}`);
-        values.push(ats_score_date);
-      }
-      if (ats_feedback !== undefined) {
-        setClause.push(`ats_feedback = $${paramCount++}`);
-        values.push(ats_feedback);
-      }
-
+  
       if (setClause.length === 0) {
-        throw new Error("No fields to update");
+        console.log("No fields to update");
+        return false;
       }
-
+  
+      // Add userId for WHERE clause
       values.push(userId);
-      const queryText = `UPDATE users SET ${setClause.join(", ")} WHERE id = $${paramCount}`;
-      
+  
+      const queryText = `
+        UPDATE users 
+        SET ${setClause.join(", ")} 
+        WHERE id = $${values.length}
+      `;
+  
       const result = await query(queryText, values);
       return result.rowCount > 0;
     } catch (error) {
-      console.error("Error updating profile:", error);
+      console.error("Error updating branch and cgpa:", error);
       throw error;
     }
   }
+  
 
   /**
    * Update resume information

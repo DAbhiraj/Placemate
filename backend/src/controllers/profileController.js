@@ -27,7 +27,7 @@ export class ProfileController {
    */
   static async onboarding(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.query.id;
       const {
         first_name,
         last_name,
@@ -77,7 +77,7 @@ export class ProfileController {
    */
   static async getProfile(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.query.userId;
       const profile = await ProfileService.getProfile(userId);
       
       res.status(200).json({
@@ -99,7 +99,7 @@ export class ProfileController {
    */
   static async updateProfile(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.params.profileId;
       const updateData = req.body;
       
       const updatedProfile = await ProfileService.updateProfile(userId, updateData);
@@ -156,7 +156,7 @@ export class ProfileController {
    */
   static async uploadResume(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.query.userId;
       
       if (!req.file) {
         return res.status(400).json({

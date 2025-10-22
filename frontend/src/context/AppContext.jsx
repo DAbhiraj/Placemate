@@ -15,6 +15,7 @@ export const AppProvider = ({ children }) => {
   const [userRole, setUserRole] = useState("student")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [showProfileSetup, setShowProfileSetup] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [companies] = useState([
     {
@@ -139,6 +140,7 @@ export const AppProvider = ({ children }) => {
           setCurrentUser(data.data);
           setIsAuthenticated(true);
           setShowOnboarding(!data.data.profile_completed);
+          setShowProfileSetup(!data.data.branch || !data.data.cgpa);
         } else {
           localStorage.removeItem('token');
         }
@@ -208,9 +210,10 @@ export const AppProvider = ({ children }) => {
   }
 
   const handleGoogleSignIn = (user) => {
-    setCurrentUser(user);
+    setCurrentUser(user.user);
     setIsAuthenticated(true);
     setShowOnboarding(!user.profile_completed);
+    setShowProfileSetup(!user.branch || !user.cgpa);
   };
 
   const handleOnboardingComplete = (userData) => {
@@ -218,11 +221,18 @@ export const AppProvider = ({ children }) => {
     setShowOnboarding(false);
   };
 
+  const handleProfileSetupComplete = (userData) => {
+    setCurrentUser(prev => ({ ...prev, ...userData }));
+    setShowProfileSetup(false);
+  };
+
   const handleSignOut = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setCurrentUser(null);
     setIsAuthenticated(false);
     setShowOnboarding(false);
+    setShowProfileSetup(false);
   };
 
   const value = {
@@ -230,6 +240,7 @@ export const AppProvider = ({ children }) => {
     userRole,
     isAuthenticated,
     showOnboarding,
+    showProfileSetup,
     notifications,
     companies,
     applications,
@@ -238,12 +249,14 @@ export const AppProvider = ({ children }) => {
     setUserRole,
     setIsAuthenticated,
     setShowOnboarding,
+    setShowProfileSetup,
     setNotifications,
     markNotificationAsRead,
     addApplication,
     updateApplicationStatus,
     handleGoogleSignIn,
     handleOnboardingComplete,
+    handleProfileSetupComplete,
     handleSignOut
   }
 

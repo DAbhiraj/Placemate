@@ -1,19 +1,59 @@
 import React, { useState } from 'react';
 import { GraduationCap } from 'lucide-react';
-import { useApp } from '../context/AppContext';
 import GoogleSignIn from '../components/Auth/GoogleSignIn';
+import ProfileSetupModal from '../components/Auth/ProfileSetupModal';
+import OnboardingComponent from '../components/Auth/OnboardingModal';
+import axios from "axios";
+
+const API_URL = "http://localhost:4000/api";
 
 const Login = () => {
-  const { handleGoogleSignIn } = useApp();
   const [error, setError] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
+
+  const handleGoogleSignIn = (user) => {
+    setCurrentUser(user.user);
+    setIsAuthenticated(true);
+
+    const shouldShowOnboarding = !user.profile_completed;
+    const shouldShowProfileSetup = !user.branch || !user.cgpa;
+
+    console.log(shouldShowOnboarding, shouldShowProfileSetup);
+
+    setShowOnboarding(shouldShowOnboarding);
+    setShowProfileSetup(shouldShowProfileSetup);
+
+    // Redirect only if profile setup is NOT needed
+    if (!shouldShowProfileSetup) {
+      window.location.href = "/dashboard";
+    }
+  };
 
   const handleGoogleSuccess = (user) => {
+    console.log("user in login page", user);
+
+    // Store credentials in localStorage
+    localStorage.setItem('id', user.id);
+    localStorage.setItem('name', user.name);
+    localStorage.setItem('email', user.email);
+    localStorage.setItem('branch', user.branch);
+    localStorage.setItem('cgpa', user.cgpa);
+    localStorage.setItem('role', user.role);
+
     handleGoogleSignIn(user);
   };
 
   const handleGoogleError = (errorMessage) => {
+    console.log(errorMessage);
     setError(errorMessage);
   };
+
+  const handleLogin = () =>{
+    window.location.href = "/adminlogin"
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -25,22 +65,14 @@ const Login = () => {
                 <GraduationCap className="w-8 h-8 text-white" />
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              NIT Warangal
-            </h1>
-            <p className="text-gray-600">
-              Career & Placement Portal
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">NIT Warangal</h1>
+            <p className="text-gray-600">Career & Placement Portal</p>
           </div>
 
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                Welcome Back
-              </h2>
-              <p className="text-gray-600">
-                Sign in to access your career portal
-              </p>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Welcome Back</h2>
+              <p className="text-gray-600">Sign in to access your career portal</p>
             </div>
 
             {error && (
@@ -61,6 +93,22 @@ const Login = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Conditional Modals */}
+      {console.log(showProfileSetup, currentUser)}
+      {showProfileSetup && localStorage.getItem("id") && (
+        <ProfileSetupModal
+        isOpen={showProfileSetup}
+        onClose={() => setShowProfileSetup(false)}
+    />
+      )}
+
+      {showOnboarding && <OnboardingComponent />}
+      <div>
+        <button onClick={handleLogin}>
+          Sign in as Admin
+        </button>
       </div>
     </div>
   );

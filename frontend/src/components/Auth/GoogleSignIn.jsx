@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
+import axios from 'axios';
 
 const GoogleSignIn = ({ onSuccess, onError }) => {
   const { setCurrentUser } = useApp();
@@ -29,29 +30,30 @@ const GoogleSignIn = ({ onSuccess, onError }) => {
     };
 
     const handleCredentialResponse = async (response) => {
+      console.log("response in google sign in", response);
+      
       try {
-        const res = await fetch('http://localhost:5000/api/auth/google', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ idToken: response.credential })
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-          localStorage.setItem('token', data.token);
-          setCurrentUser(data.user);
-          onSuccess?.(data.user);
-        } else {
-          onError?.(data.message);
-        }
+        const res = await axios.post(
+          'http://localhost:4000/api/auth/google',
+          { idToken: response.credential }, // ✅ data goes here
+         // { headers: { 'Content-Type': 'application/json' } } // ✅ config (headers) here
+        );
+    
+        // Axios automatically parses JSON response
+        const data = res.data;
+    
+        localStorage.setItem('token', data.token);
+        setCurrentUser(data.user);
+        onSuccess?.(data.user);
+    
       } catch (error) {
         console.error('Google Sign-In Error:', error);
-        onError?.('Failed to sign in. Please try again.');
+        onError?.(
+          error.response?.data?.message || 'Failed to sign in. Please try again.'
+        );
       }
     };
+    
 
     // Initialize when Google script loads
     if (window.google) {

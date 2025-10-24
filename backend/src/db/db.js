@@ -58,13 +58,3 @@ pool.on("connect", (client) => {
 export const query = (text, params) => pool.query(text, params);
 export { pool };
 
-NODE_ENV=development
-DB_USER=postgres
-DB_HOST=localhost
-DB_NAME=postgres
-DB_PASSWORD=postgres
-DB_PORT=5432
-JWT_SECRET = H8hS3jF5kL9qW7nE4zR6tU5yB2vM8pC1
-DATABASE_URL= postgresql://neondb_owner:npg_CP2kSFOidY8q@ep-rapid-cloud-ad00st61-pooler.c-2.us-east-1.aws.neon.t
-ech/neondb?sslmode=require
-GOOGLE_CLIENT_ID = 513058767811-v0ebju6q40ka9189996kv93h84h6ligs.apps.googleusercontent.com

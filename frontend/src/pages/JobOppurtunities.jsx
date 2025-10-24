@@ -283,17 +283,17 @@ const JobOpportunities = () => {
                       {/* Icon from JobsPage.jsx */}
                       <div className="flex items-center space-x-3">
                         <img
-                          src={jobForm.logo_url || "/placeholder-logo.png"} // fallback
+                          src={job.logo_url || "/placeholder-logo.png"} // fallback
                           alt="Company Logo"
                           className="w-12 h-12 object-contain rounded-md bg-white border"
                           loading="lazy"
                         />
                         <div>
                           <h3 className="font-semibold">
-                            {jobForm.company_name}
+                            {job.company_name}
                           </h3>
                           <p className="text-sm text-gray-500">
-                            {jobForm.package_range}
+                            {job.package_range}
                           </p>
                         </div>
                       </div>

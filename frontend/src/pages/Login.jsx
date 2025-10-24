@@ -52,7 +52,11 @@ const Login = () => {
   };
 
   const handleLogin = () =>{
-    window.location.href = "/adminlogin"
+    window.location.href = "/adminlogin";
+  }
+
+  const handleNormalLogin = () =>{
+    window.location.href = "/login";
   }
 
   return (
@@ -108,6 +112,12 @@ const Login = () => {
       <div>
         <button onClick={handleLogin}>
           Sign in as Admin
+        </button>
+      </div>
+
+      <div>
+        <button onClick={handleNormalLogin}>
+          Sign in
         </button>
       </div>
     </div>

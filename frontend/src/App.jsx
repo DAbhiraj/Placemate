@@ -12,6 +12,7 @@ import JobOpportunities from './pages/JobOppurtunities';
 import UpcomingDeadlines from './pages/Upcoming';
 import { AppProvider } from './context/AppContext'; // <-- Import the provid
 import AdminLogin from './pages/AdminLogin';
+import NormalAuth from './pages/NormalLogin';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         {/* Public route */}
         <Route path="/" element={<Login />} />
           <Route path="/adminlogin" element={<AdminLogin />} />
+          <Route path="/login" element={<NormalAuth />} />
 
         {/* Routes with navbar (via Layout) */}
         <Route element={<Layout />}>

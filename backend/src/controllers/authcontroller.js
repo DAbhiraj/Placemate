@@ -57,6 +57,7 @@ export async function register(req, res) {
         token,
         user: { id, name, branch, cgpa, email, role: userRole }
       });
+      console.log(cgpa);
     } catch (error) {
       console.error("❌ Error in register:", error);
       res.status(500).json({ message: "Server error" });
@@ -95,7 +96,9 @@ export async function login(req, res) {
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role
+          role: user.role,
+          cgpa : user.cgpa,
+          branch : user.branch
         }
       });
     } catch (error) {

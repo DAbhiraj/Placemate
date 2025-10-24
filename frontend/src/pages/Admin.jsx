@@ -62,6 +62,7 @@ const Admin = () => {
 
   const downloadReport = async (companyName) => {
     try {
+      console.log(companyName);
       const response = await axios.get(
         `${API_URL}/exports?companyName=${encodeURIComponent(companyName)}`,
         { responseType: "blob" }
@@ -429,7 +430,7 @@ const Admin = () => {
 
             <div className="mt-4 flex items-center space-x-2">
               <button
-                onClick={() => downloadReport(company.name)}
+                onClick={() => downloadReport(company.company_name)}
                 className="bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-sm hover:bg-green-600 hover:shadow-md transition-all duration-200 ease-in-out flex items-center gap-2"
               >
                 <svg

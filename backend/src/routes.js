@@ -25,9 +25,13 @@ router.use((req, res, next) => {
   next();
 });
 
-// --- Auth Routes ---
+
 router.get("/notifications/:userId",notificationController.getUserNotifications);
+router.get("/notifications/:userId/unread",notificationController.getUnreadCount);
 router.put("/notifications/:notificationId/read",notificationController.markNotificationAsRead);
+router.get("/notifications/role/:role",notificationController.getNotificationsByRole);
+router.post("/notifications/send-by-role",notificationController.sendNotificationByRole);
+router.get("/notifications/all",notificationController.getAllNotifications);
 
 router.post("/auth/register", register);
 router.post("/auth/login", login);
@@ -92,5 +96,6 @@ router.put("/admin/students/:studentId/status", adminController.updateStudentSta
 
 // Notification Management
 router.post("/admin/send-notification", upload.single('excelFile'), adminController.sendNotification);
+router.post("/admin/send-notification-roles", adminController.sendNotificationToRoles);
 
 export default router;

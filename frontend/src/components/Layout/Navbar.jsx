@@ -37,9 +37,8 @@ const Navbar = () => {
       })
       setUserRole(role.toLowerCase()) // for nav logic
 
-      // Fetch notifications if user is a student
-      console.log(role.toLowerCase() === "student");
-      if (role.toLowerCase() === "student" && userId) {
+      // Fetch notifications for all users (students, faculty, placement coordinators, admins)
+      if (userId) {
         fetchNotifications(userId)
       }
     }
@@ -85,9 +84,15 @@ const Navbar = () => {
   const role = (localStorage.getItem("role") || "").toLowerCase();
 
 
-  const navItems = role.toLowerCase() === "admin"
+  const navItems = role === "admin"
     ? [
       { path: "/admin", label: "Admin Panel" }
+    ]
+    : role === "faculty" || role === "placement_coordinator"
+    ? [
+      { path: "/dashboard", label: "Dashboard" },
+      { path: "/jobs", label: "Job Opportunities" },
+      { path: "/alumni", label: "Alumni Stories" },
     ]
     : [
       { path: "/dashboard", label: "Dashboard" },

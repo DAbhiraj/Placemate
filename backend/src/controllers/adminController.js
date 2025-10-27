@@ -229,6 +229,39 @@ export const adminController = {
             console.error("Error sending notifications:", err);
             res.status(500).json({ message: "Failed to send notifications" });
         }
+    },
+
+    // Send notifications to Faculty and Placement Coordinators
+    async sendNotificationToRoles(req, res) {
+        try {
+            const { message, title, type, roles } = req.body;
+
+            if (!message || !roles || !Array.isArray(roles)) {
+                return res.status(400).json({ message: "Message and roles array are required" });
+            }
+
+            let totalSent = 0;
+            console.log("roles"+roles);
+            // Send notifications to each role
+            for (const role of roles) {
+                try {
+                    const result = await notificationService.notifyByRole(role, message, type, title);
+                    totalSent += result.length;
+                } catch (err) {
+                    console.error(`Error sending notifications to ${role}:`, err);
+                }
+            }
+
+            res.json({
+                message: "Notifications sent successfully",
+                notificationsSent: totalSent,
+                rolesNotified: roles
+            });
+
+        } catch (err) {
+            console.error("Error sending notifications to roles:", err);
+            res.status(500).json({ message: "Failed to send notifications to roles" });
+        }
     }
 };
 

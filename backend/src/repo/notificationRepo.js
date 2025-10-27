@@ -25,4 +25,50 @@ export const notificationRepository = {
       [notifId]
     );
   },
+
+  // Create notifications for all users with a specific role
+  createForRole: async (role, title, message, type) => {
+    const res = await pool.query(
+      `INSERT INTO notifications (id, title, message, type)
+       SELECT id, $1, $2, $3
+       FROM users
+       WHERE role = $4
+       RETURNING *`,
+      [title, message, type, role]
+    );
+    return res.rows;
+  },
+
+  // Get notifications by role
+  findByRole: async (role) => {
+    const res = await pool.query(
+      `SELECT n.*, u.name as user_name, u.email 
+       FROM notifications n
+       JOIN users u ON n.id = u.id
+       WHERE u.role = $1 
+       ORDER BY n.created_at DESC`,
+      [role]
+    );
+    return res.rows;
+  },
+
+  // Get unread notifications count for a user
+  getUnreadCount: async (userId) => {
+    const res = await pool.query(
+      `SELECT COUNT(*) as count FROM notifications WHERE id = $1 AND is_read = false`,
+      [userId]
+    );
+    return res.rows[0].count;
+  },
+
+  // Get all notifications (for admins)
+  findAll: async () => {
+    const res = await pool.query(
+      `SELECT n.*, u.name as user_name, u.role as user_role, u.email
+       FROM notifications n
+       JOIN users u ON n.id = u.id
+       ORDER BY n.created_at DESC`
+    );
+    return res.rows;
+  },
 };

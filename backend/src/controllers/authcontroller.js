@@ -34,8 +34,18 @@ export async function register(req, res) {
       // Generate unique ID
       const id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString();
 
-      // Default role
-      const userRole = role === "ADMIN" ? "Admin" : "Student";
+      // Set role - support Student, Admin, Faculty, Placement Coordinator
+      let userRole;
+      console.log(role);
+      if (role && role.toUpperCase() === "ADMIN") {
+        userRole = "Admin";
+      } else if (role && role.toUpperCase() === "FACULTY") {
+        userRole = "Faculty";
+      } else if (role && role.toUpperCase() === "PLACEMENT_COORDINATOR") {
+        userRole = "placement_coordinator";
+      } else {
+        userRole = "Student";
+      }
 
       // Insert into DB
       await query(

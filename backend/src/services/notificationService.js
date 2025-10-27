@@ -1,14 +1,21 @@
 import { notificationRepository } from "../repo/notificationRepo.js";
 
 export const notificationService = {
+  // Send notification to any user
+  notifyUser: async (userId, message, type, title = null) => {
+    const notificationTitle = title || getDefaultTitle(type);
+    return await notificationRepository.create(userId, notificationTitle, message, type);
+  },
+
+  // Legacy method - for backward compatibility
   notifyStudent: async (studentId, message, type, title = null) => {
     const notificationTitle = title || getDefaultTitle(type);
     return await notificationRepository.create(studentId, notificationTitle, message, type);
   },
 
-  getUserNotifications: async (studentId) => {
-    //console.log(studentId+" in notification service");
-    return await notificationRepository.findByUserId(studentId);
+  getUserNotifications: async (userId) => {
+    //console.log(userId+" in notification service");
+    return await notificationRepository.findByUserId(userId);
   },
 
   markRead: async (notifId) => {
@@ -20,6 +27,21 @@ export const notificationService = {
     const notificationTitle = title || getDefaultTitle(type);
     const promises = studentIds.map(studentId =>
       notificationRepository.create(studentId, notificationTitle, message, type)
+    );
+    return await Promise.all(promises);
+  },
+
+  
+  notifyByRole: async (role, message, type, title) => {
+    const notificationTitle = title || getDefaultTitle(type);
+    return await notificationRepository.createForRole(role, notificationTitle, message, type);
+  },
+
+  
+  notifyBulkByRole: async (userIds, message, type, title = null) => {
+    const notificationTitle = title || getDefaultTitle(type);
+    const promises = userIds.map(userId =>
+      notificationRepository.create(userId, notificationTitle, message, type)
     );
     return await Promise.all(promises);
   },

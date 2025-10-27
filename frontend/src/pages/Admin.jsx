@@ -21,6 +21,7 @@ import { useApp } from "../context/AppContext"
 import StatCard from "../components/UI/StatCard"
 import StatusBadge from "../components/UI/StatusBadge"
 import NotificationForm from "../components/UI/NotificationForm"
+import RoleBasedNotificationForm from "../components/UI/RoleBasedNotificationForm"
 import axios from "axios"
 import Stats from "./Stats"
 
@@ -46,6 +47,7 @@ const Admin = () => {
   // Form states
   const [showJobForm, setShowJobForm] = useState(false)
   const [showNotificationForm, setShowNotificationForm] = useState(false)
+  const [showRoleBasedNotificationForm, setShowRoleBasedNotificationForm] = useState(false)
   const [jobForm, setJobForm] = useState({
     company_name: "",
     role: "",
@@ -155,6 +157,24 @@ const Admin = () => {
     }
   }
 
+  // Role-based notification handler
+  const handleSendRoleBasedNotification = async (notificationData) => {
+    try {
+      await axios.post(`${API_URL}/admin/send-notification-roles`, {
+        message: notificationData.message,
+        title: notificationData.title,
+        type: notificationData.type,
+        roles: notificationData.selectedRoles
+      })
+
+      // Refresh data after sending notifications
+      fetchBackendData()
+    } catch (error) {
+      console.error("Failed to send role-based notifications:", error)
+      throw error
+    }
+  }
+
 
   const stats = {
     totalStudents: backendStats.totalStudents || students.length,
@@ -229,7 +249,14 @@ const Admin = () => {
               className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <Mail className="h-6 w-6 text-orange-500 mb-2" />
-              <span className="text-sm font-medium">Send Notification</span>
+              <span className="text-sm font-medium">Student Notification</span>
+            </button>
+            <button
+              onClick={() => setShowRoleBasedNotificationForm(true)}
+              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Mail className="h-6 w-6 text-purple-500 mb-2" />
+              <span className="text-sm font-medium">Role-Based Notification</span>
             </button>
           </div>
         </div>
@@ -670,6 +697,13 @@ const Admin = () => {
         isOpen={showNotificationForm}
         onClose={() => setShowNotificationForm(false)}
         onSendNotification={handleSendNotification}
+      />
+
+      {/* Role-Based Notification Form Modal */}
+      <RoleBasedNotificationForm
+        isOpen={showRoleBasedNotificationForm}
+        onClose={() => setShowRoleBasedNotificationForm(false)}
+        onSendNotification={handleSendRoleBasedNotification}
       />
     </div>
   )

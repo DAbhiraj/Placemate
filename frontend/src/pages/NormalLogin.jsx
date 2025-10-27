@@ -152,6 +152,8 @@ const NormalAuth = () => {
                 >
                   <option value="Student">Student</option>
                   <option value="Admin">Admin</option>
+                  <option value="Faculty">Faculty</option>
+                  <option value="placement_coordinator">Placement Coordinator</option>
                 </select>
               </div>
             </>

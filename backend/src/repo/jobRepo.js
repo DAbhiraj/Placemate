@@ -17,7 +17,7 @@ export const jobRepository = {
   },
 
   async getJobById(id) {
-    const result = await pool.query("SELECT * FROM jobs WHERE id = $1", [id]);
+    const result = await pool.query("SELECT * FROM jobs WHERE job_id = $1", [id]);
     return result.rows[0];
   },
 };

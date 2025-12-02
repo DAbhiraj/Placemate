@@ -48,10 +48,11 @@ export async function register(req, res) {
       }
 
       // Insert into DB
-      await query(
-        "INSERT INTO users (id, name, branch, cgpa, email, password, role) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-        [id, name, branch, cgpa, email, hashedPassword, userRole]
-      );
+        // Insert into DB (use user_id column to match schema)
+        await query(
+          "INSERT INTO users (user_id, name, branch, cgpa, email, password, role) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+          [id, name, branch, cgpa, email, hashedPassword, userRole]
+        );
 
       // Generate JWT token
       const token = jwt.sign(
@@ -84,7 +85,7 @@ export async function login(req, res) {
         return res.status(400).json({ message: "Email and password are required" });
       }
 
-      const result = await query("SELECT * FROM users WHERE email = $1", [email]);
+      const result = await query("SELECT user_id as id, name, email, password, role, cgpa, branch FROM users WHERE email = $1", [email]);
       const user = result.rows[0];
 
       if (!user) return res.status(404).json({ message: "User not found" });
@@ -92,11 +93,11 @@ export async function login(req, res) {
       const valid = await bcrypt.compare(password, user.password);
       if (!valid) return res.status(400).json({ message: "Invalid credentials" });
 
-      const token = jwt.sign(
-        { email: user.email, id: user.id, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN || "1h" }
-      );
+        const token = jwt.sign(
+          { email: user.email, id: user.id, role: user.role },
+          process.env.JWT_SECRET,
+          { expiresIn: process.env.JWT_EXPIRES_IN || "1h" }
+        );
 
       console.log("✅ User logged in:", email);
       res.status(200).json({
@@ -138,20 +139,20 @@ export async function googleLogin(req, res) {
       const lastName = payload.family_name || null;
       const fullName = payload.name || `${firstName || ""} ${lastName || ""}`.trim();
 
-      const existing = await query(
-        "SELECT * FROM users WHERE google_id = $1 OR email = $2",
+      const result = await query(
+        "SELECT user_id as id, name, email, role, google_id, first_name, last_name, profile_completed, branch, cgpa FROM users WHERE google_id = $1 OR email = $2",
         [googleId, email]
       );
-      let user = existing.rows[0];
+      let user = result.rows[0];
 
       if (!user) {
         const id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString();
-        const insert = await query(
-          `INSERT INTO users (id, email, role, google_id, first_name, last_name, name, profile_completed)
-           VALUES ($1, $2, 'Student', $3, $4, $5, $6, false)
-           RETURNING *`,
-          [id, email, googleId, firstName, lastName, fullName]
-        );
+          const insert = await query(
+            `INSERT INTO users (user_id, email, role, google_id, first_name, last_name, name, profile_completed)
+             VALUES ($1, $2, 'Student', $3, $4, $5, $6, false)
+             RETURNING user_id as id, email, role, google_id, first_name, last_name, name, profile_completed, branch, cgpa`,
+            [id, email, googleId, firstName, lastName, fullName]
+          );
         user = insert.rows[0];
       }
 

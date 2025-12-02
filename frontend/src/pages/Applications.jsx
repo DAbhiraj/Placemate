@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react"
 import { Search, Filter, Eye, Download, Calendar } from "lucide-react"
 import { useApp } from "../context/AppContext"
 import StatusBadge from "../components/UI/StatusBadge"
+import Loader from "../components/UI/Loader"
 import { formatDate, formatDateTime } from "../utils/helpers"
 import axios from "axios"
 
@@ -12,9 +13,11 @@ const Applications = () => {
   const [applications, setApplications] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("")
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchApplications = async () => {
+      setLoading(true)
       try {
         const userId = localStorage.getItem("id")
         if (!userId) return
@@ -33,6 +36,8 @@ const Applications = () => {
         setApplications(normalized)
       } catch (e) {
         setApplications([])
+      } finally {
+        setLoading(false)
       }
     }
     fetchApplications()
@@ -63,15 +68,19 @@ const Applications = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-xl shadow-sm border p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          My Applications
-        </h1>
-        <p className="text-gray-600">
-          Track the status of all your job applications
-        </p>
-      </div>
+      {loading ? (
+        <Loader />
+      ) : (
+        <>
+          {/* Header */}
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              My Applications
+            </h1>
+            <p className="text-gray-600">
+              Track the status of all your job applications
+            </p>
+          </div>
 
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
@@ -212,6 +221,8 @@ const Applications = () => {
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   )
 }

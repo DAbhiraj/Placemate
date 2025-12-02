@@ -1,6 +1,8 @@
 CREATE TABLE Users (
-    id VARCHAR PRIMARY KEY,
+    user_id VARCHAR PRIMARY KEY,
     name VARCHAR,
+    roll_no TEXT,
+    phone TEXT,     
     branch VARCHAR,
     cgpa NUMERIC(3,2),
     email VARCHAR UNIQUE,
@@ -19,31 +21,14 @@ CREATE TABLE Users (
     ats_feedback TEXT
 );
 
-select * from Users;
-
-CREATE TABLE Companies (
-    id VARCHAR PRIMARY KEY,
-    name VARCHAR NOT NULL,
-    logo VARCHAR,
-    package TEXT,
-    location TEXT,
-    eligible_branches TEXT[],
-    min_cgpa NUMERIC(3,2),
-    deadline DATE,
-    job_type VARCHAR,
-    description TEXT,
-    requirements TEXT[],
-    applied_count INTEGER DEFAULT 0,
-    status TEXT,
-    created_at TEXT
-);
 
 CREATE TABLE jobs (
-    id SERIAL PRIMARY KEY,
+    job_id SERIAL PRIMARY KEY,
+    job_type TEXT,
     company_name TEXT,
     role TEXT,
     description TEXT,
-    custom_questions JSONB DEFAULT '[]',
+    requirements TEXT[],
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     location TEXT[],
     application_deadline DATE,
@@ -51,15 +36,15 @@ CREATE TABLE jobs (
     interview_dates DATE[],
     min_cgpa NUMERIC(3, 2),
     eligible_branches TEXT[],
-    package_range VARCHAR(255),
-    status VARCHAR(50) DEFAULT 'active',
+    package VARCHAR(255),
+    applied_count INTEGER DEFAULT 0,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     company_logo VARCHAR(255)
 );
 
 CREATE TABLE applications (
     appl_id SERIAL PRIMARY KEY,
-    id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE, -- User ID
+    user_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE, -- User ID
     job_id INTEGER REFERENCES jobs(id) ON DELETE CASCADE, -- Job ID
     answers JSONB DEFAULT '{}',
     resume_url TEXT,

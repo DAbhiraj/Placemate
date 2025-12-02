@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import StatCard from "../components/UI/StatCard";
 import StatusBadge from "../components/UI/StatusBadge";
+import Loader from "../components/UI/Loader";
 import axios from "axios";
 import { formatDateTime } from "../utils/helpers";
 
@@ -32,14 +33,13 @@ const Dashboard = () => {
   const [applications, setApplications] = useState([]);
   const [allJobs, setAllJobs] = useState([]);
   const [upcoming, setUpcoming] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-
+  // Load user from localStorage on mount
   useEffect(() => {
-    // Load current user
     const u_id = localStorage.getItem("id");
     const name = localStorage.getItem("name");
     const email = localStorage.getItem("email");
-    //const branch = localStorage.getItem("branch");
     const branch = localStorage.getItem("branch");
     const cgpa = localStorage.getItem("cgpa");
     const role = localStorage.getItem("role");
@@ -48,17 +48,17 @@ const Dashboard = () => {
     if (u_id && name && email && branch && cgpa && role) {
       setCurrentUser({ u_id, name, email, branch, cgpa, role, token });
     }
-
   }, []);
 
   useEffect(() => {
     if (!currentUser) return;
 
-
     const fetchData = async () => {
+      setLoading(true);
       try {
         // ✅ Fetch Applications
-
+        console.log("fetching data");
+        console.log(`${API_URL}/applications/userId/${currentUser.u_id}`)
         const appRes = await axios.get(
           `${API_URL}/applications/userId/${currentUser.u_id}`
         );
@@ -86,71 +86,88 @@ const Dashboard = () => {
         }));
         setAllJobs(normalizedJobs);
 
-        // ✅ Fetch Upcoming Deadlines (via backend route)
+        // ✅ Fetch All 3 Types of Upcoming Deadlines
         console.log("in dashboard for checking upcoming");
         console.log(`${API_URL}/upcoming-deadlines/${currentUser.u_id}`);
         console.log(currentUser.branch);
         console.log(currentUser.cgpa);
-        const upcomingRes = await axios.get(
-          `${API_URL}/upcoming-deadlines/${currentUser.u_id}`,
-          { params: { branch: currentUser.branch, cgpa: currentUser.cgpa } }
-        );
-        setUpcoming(upcomingRes.data);
+        
+        // Fetch all 3 types in parallel
+        const [appDeadlineRes, assessmentRes, interviewRes] = await Promise.all([
+          axios.get(`${API_URL}/upcoming-deadlines/${currentUser.u_id}?type=application`, 
+            { params: { branch: currentUser.branch, cgpa: currentUser.cgpa } }),
+          axios.get(`${API_URL}/upcoming-deadlines/${currentUser.u_id}?type=assessment`, 
+            { params: { branch: currentUser.branch, cgpa: currentUser.cgpa } }),
+          axios.get(`${API_URL}/upcoming-deadlines/${currentUser.u_id}?type=interview`, 
+            { params: { branch: currentUser.branch, cgpa: currentUser.cgpa } })
+        ]);
+
+        // Combine all upcoming events
+        const allUpcoming = [];
+
+        // Add application deadlines
+        (appDeadlineRes.data || []).forEach((job) => {
+          allUpcoming.push({
+            type: "deadline",
+            id: `${job.job_id}-deadline`,
+            job_id: job.job_id,
+            company_name: job.company_name,
+            role: job.role,
+            date: job.application_deadline,
+            status: job.application_status,
+          });
+        });
+
+        // Add online assessments
+        (assessmentRes.data || []).forEach((job) => {
+          allUpcoming.push({
+            type: "assessment",
+            id: `${job.job_id}-assessment`,
+            job_id: job.job_id,
+            company_name: job.company_name,
+            role: job.role,
+            date: job.online_assessment_date,
+            status: job.application_status,
+          });
+        });
+
+        // Add interviews
+        (interviewRes.data || []).forEach((job) => {
+          if (job.interview_dates?.length) {
+            job.interview_dates.forEach((date, idx) => {
+              allUpcoming.push({
+                type: "interview",
+                id: `${job.job_id}-interview-${idx}`,
+                job_id: job.job_id,
+                company_name: job.company_name,
+                role: job.role,
+                date: date,
+                status: job.application_status,
+              });
+            });
+          }
+        });
+
+        // Sort by date and take top 3
+        const sortedUpcoming = allUpcoming
+          .sort((a, b) => new Date(a.date) - new Date(b.date))
+          .slice(0, 3);
+
+        setUpcoming(sortedUpcoming);
       } catch (err) {
         console.error("Error loading dashboard data:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchData();
   }, [currentUser]);
 
-  // ✅ Local fallback computation of upcoming events (optional if backend already provides)
+  // ✅ Use the combined upcoming events from API
   const upcomingEvents = useMemo(() => {
-    const today = new Date();
-    const appliedJobIds = new Set(applications.map((app) => app.job_id));
-
-
-    const eligibleDeadlines = allJobs
-      .filter((job) => {
-        const deadline = job.application_deadline
-          ? new Date(job.application_deadline)
-          : null;
-        return (
-          isEligible(job, currentUser) &&
-          !appliedJobIds.has(job.id) &&
-          deadline &&
-          deadline >= today
-        );
-      })
-      .map((job) => ({
-        type: "deadline",
-        id: job.id,
-        date: job.application_deadline,
-        data: job,
-      }));
-
-    const upcomingInterviews = applications
-      .filter((app) => {
-        const interviewDate = app.interview_date
-          ? new Date(app.interview_date)
-          : null;
-        return (
-          app.status === "shortlisted" &&
-          interviewDate &&
-          interviewDate >= today
-        );
-      })
-      .map((app) => ({
-        type: "interview",
-        id: app.appl_id,
-        date: app.interview_date,
-        data: app,
-      }));
-
-    return [...eligibleDeadlines, ...upcomingInterviews]
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .slice(0, 3);
-  }, [allJobs, applications, currentUser]);
+    return upcoming;
+  }, [upcoming]);
 
   const recentApplications = useMemo(() => {
     return [...applications]
@@ -160,16 +177,20 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
-        <h1 className="text-2xl font-bold mb-2">
-          Welcome back, {currentUser?.name}! 
-        </h1> 
-        <p className="text-blue-100">
-          Track your placement journey and stay updated with the latest
-          opportunities. 
-        </p>
-      </div>
+      {loading ? (
+        <Loader />
+      ) : (
+        <>
+          {/* Welcome Section */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
+            <h1 className="text-2xl font-bold mb-2">
+              Welcome back, {localStorage.getItem('name')}! 
+            </h1> 
+            <p className="text-blue-100">
+              Track your placement journey and stay updated with the latest
+              opportunities. 
+            </p>
+          </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -180,16 +201,10 @@ const Dashboard = () => {
           gradient="bg-gradient-to-r from-blue-500 to-blue-600"
         />
         <StatCard
-          title="Interviews"
-          value={applications.filter((app) => app.status === "shortlisted").length}
-          icon={CheckCircle}
-          gradient="bg-gradient-to-r from-green-500 to-green-600"
-        />
-        <StatCard
           title="CGPA"
-          value={`${currentUser?.cgpa || 0}/10`}
+          value={`${localStorage.getItem('cgpa') || 0}/10`}
           icon={Award}
-          gradient="bg-gradient-to-r from-orange-500 to-orange-600"
+          gradient="bg-gradient-to-r from-green-500 to-green-600"
         />
       </div>
 
@@ -251,7 +266,12 @@ const Dashboard = () => {
             <h3 className="text-lg font-semibold text-gray-900">
               Upcoming Events
             </h3>
-            <Calendar className="h-5 w-5 text-gray-400" />
+            <Link
+              to="/upcoming"
+              className="text-blue-600 text-sm font-medium hover:text-blue-700 flex items-center"
+            >
+              View All <ArrowRight className="w-4 h-4 ml-1" />
+            </Link>
           </div>
 
           {upcomingEvents.length === 0 ? (
@@ -265,29 +285,21 @@ const Dashboard = () => {
           ) : (
             <div className="space-y-4">
               {upcomingEvents.map((event) => {
+                // Application Deadline
                 if (event.type === "deadline") {
-                  const job = event.data;
                   return (
                     <div
                       key={event.id}
                       className="flex items-center justify-between p-4 bg-red-50 rounded-lg border-l-4 border-red-400"
                     >
                       <div className="flex items-center space-x-3">
-                        {job.company_logo ? (
-                          <img
-                            src={job.company_logo}
-                            alt="logo"
-                            className="w-8 h-8 rounded-full object-contain"
-                          />
-                        ) : (
-                          "🏢"
-                        )}
+                        <div className="text-2xl">📋</div>
                         <div>
                           <p className="font-medium text-gray-900">
-                            {job.company_name}
+                            {event.company_name}
                           </p>
                           <p className="text-sm text-gray-500">
-                            {job.package_range}
+                            {event.role}
                           </p>
                         </div>
                       </div>
@@ -295,14 +307,42 @@ const Dashboard = () => {
                         <p className="text-sm font-medium text-red-600">
                           {formatDateTime(event.date, { dateOnly: true })}
                         </p>
-                        <p className="text-xs text-gray-500">Deadline</p>
+                        <p className="text-xs text-gray-500">Application</p>
                       </div>
                     </div>
                   );
                 }
 
+                // Online Assessment
+                if (event.type === "assessment") {
+                  return (
+                    <div
+                      key={event.id}
+                      className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-400"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="text-2xl">📝</div>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {event.company_name}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {event.role}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-yellow-600">
+                          {formatDateTime(event.date, { dateOnly: true })}
+                        </p>
+                        <p className="text-xs text-gray-500">Assessment</p>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Interview
                 if (event.type === "interview") {
-                  const app = event.data;
                   return (
                     <div
                       key={event.id}
@@ -312,10 +352,10 @@ const Dashboard = () => {
                         <Briefcase className="w-5 h-5 text-purple-600" />
                         <div>
                           <p className="font-medium text-gray-900">
-                            {app.company_name}
+                            {event.company_name}
                           </p>
                           <p className="text-sm text-gray-500">
-                            Role: {app.role}
+                            {event.role}
                           </p>
                         </div>
                       </div>
@@ -381,6 +421,8 @@ const Dashboard = () => {
           </Link>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 };

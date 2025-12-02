@@ -114,7 +114,11 @@ export const adminController = {
     async updateApplicationStatus(req, res) {
         try {
             const { applicationId } = req.params;
-            const { status } = req.body;
+            let { status } = req.body;
+            // If admin indicates this shortlist is specifically for interview, use interview_shortlist
+            if (status === 'shortlist' && req.body.interview === true) {
+                status = 'interview_shortlist';
+            }
             const result = await adminService.updateApplicationStatus(applicationId, status);
             res.json(result);
         } catch (err) {

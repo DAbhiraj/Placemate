@@ -18,7 +18,7 @@ const Navbar = () => {
 
   // Fetch user info from localStorage on mount
   useEffect(() => {
-    console.log("--- Navbar component rendering... ---");
+    //console.log("--- Navbar component rendering... ---");
     const user = localStorage.getItem("name")
     const email = localStorage.getItem("email")
     const branch = localStorage.getItem("branch")
@@ -48,11 +48,11 @@ const Navbar = () => {
   const fetchNotifications = async (userId) => {
     try {
       setLoadingNotifications(true)
-      console.log("response in navbar1");
-      console.log(`${API_URL}/notifications/${userId}`);
+     // console.log("response in navbar1");
+      //console.log(`${API_URL}/notifications/${userId}`);
       const response = await axios.get(`${API_URL}/notifications/${userId}`)
-      console.log("response in navbar2");
-      console.log(response.data);
+      //console.log("response in navbar2");
+     // console.log(response.data);
       setNotifications(response.data)
     } catch (error) {
       console.error("Failed to fetch notifications:", error)
@@ -67,7 +67,7 @@ const Navbar = () => {
       await axios.put(`${API_URL}/notifications/${notificationId}/read`)
       setNotifications(prev =>
         prev.map(notif =>
-          notif.id === notificationId ? { ...notif, is_read: true } : notif
+          notif.notification_id === notificationId ? { ...notif, is_read: true } : notif
         )
       )
     } catch (error) {
@@ -189,7 +189,7 @@ const Navbar = () => {
                         notifications.map(notification => (
                           <div
                             key={notification.id}
-                            onClick={() => !notification.is_read && markAsRead(notification.id)}
+                            onClick={() => !notification.is_read && markAsRead(notification.notification_id)}
                             className={`p-3 rounded-lg border cursor-pointer ${getNotificationTypeColor(
                               notification.type
                             )} ${!notification.is_read ? "ring-2 ring-blue-200" : ""

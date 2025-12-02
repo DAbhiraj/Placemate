@@ -1,9 +1,12 @@
 import React, { useState } from "react";
+import { useDispatch } from "react-redux";
+import { setUser } from "../store/slices/userSlice";
 import axios from "axios";
 
 const API_URL = "http://localhost:4000/api"; // Change if deployed
 
 const NormalAuth = () => {
+  const dispatch = useDispatch();
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -34,6 +37,21 @@ const NormalAuth = () => {
 
       console.log("✅ Registration successful:", response.data);
 
+      const userData = {
+        u_id: response.data.user.id,
+        id: response.data.user.id,
+        token: response.data.token,
+        role: response.data.user.role,
+        email: response.data.user.email,
+        name: response.data.user.name,
+        branch: response.data.user.branch,
+        cgpa: response.data.user.cgpa,
+      };
+
+      // Store in Redux
+      dispatch(setUser(userData));
+
+      // Also store in localStorage as fallback
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("role", response.data.user.role);
       localStorage.setItem("id", response.data.user.id);
@@ -41,8 +59,6 @@ const NormalAuth = () => {
       localStorage.setItem("name", response.data.user.name);
       localStorage.setItem("branch", response.data.user.branch);
       localStorage.setItem("cgpa", response.data.user.cgpa);
-
-
 
       alert(`Welcome ${response.data.user.name}! Registration successful.`);
       window.location.href = "/dashboard";
@@ -67,6 +83,21 @@ const NormalAuth = () => {
 
       console.log("✅ Login successful:", response.data);
 
+      const userData = {
+        u_id: response.data.user.id,
+        id: response.data.user.id,
+        token: response.data.token,
+        role: response.data.user.role,
+        email: response.data.user.email,
+        name: response.data.user.name,
+        branch: response.data.user.branch,
+        cgpa: response.data.user.cgpa,
+      };
+
+      // Store in Redux
+      dispatch(setUser(userData));
+
+      // Also store in localStorage as fallback
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("role", response.data.user.role);
       localStorage.setItem("id", response.data.user.id);

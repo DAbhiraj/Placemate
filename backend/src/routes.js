@@ -64,12 +64,15 @@ router.post("/alumni", AlumniController.create);
 // --- Profile Routes ---
 router.get("/profile", ProfileController.getProfile);
 router.put("/profile/:profileId",  ProfileController.updateProfile);
-router.put("/profile/skills",  ProfileController.updateSkills);
+router.put("/profile/skills/:userId",  ProfileController.updateSkills);
 router.post("/profile/resume",  uploadMiddleware, ProfileController.uploadResume);
 router.get("/profile/resume",  ProfileController.getResume);
 router.delete("/profile/resume",  ProfileController.deleteResume);
 router.get("/profile/ats-score",  ProfileController.getATSScore);
 router.post("/profile/onboarding",  uploadMiddleware, ProfileController.onboarding);
+
+// Parse resume endpoint (returns parsed JSON from resume)
+router.post("/parse-resume", uploadMiddleware, ProfileController.parseResume);
 
 router.post("/admin/companies", adminController.createCompany);
 router.get("/admin/companies", adminController.getCompanies);

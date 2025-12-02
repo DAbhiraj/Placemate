@@ -6,8 +6,21 @@ const CompanyRepo = {
   async getAll() {
     console.log("came to get Companies repo");
     try {
-      const result = await query("SELECT * FROM companies");
-      console.log("got results");
+      // Get distinct companies from jobs table
+      const result = await query(
+        `SELECT DISTINCT ON (company_name) 
+          company_name as name,
+          company_logo as logo,
+          package,
+          location,
+          eligible_branches,
+          min_cgpa,
+          job_type,
+          job_id as id
+         FROM jobs
+         ORDER BY company_name, job_id DESC`
+      );
+      console.log("got results from jobs table");
       return result.rows;
     } catch (error) {
       // ⚠️ PRINT THE FULL OBJECT ⚠️
@@ -19,7 +32,21 @@ const CompanyRepo = {
   },
 
   async getById(id) {
-    const result = await query("SELECT * FROM companies WHERE id = $1", [id]);
+    const result = await query(
+      `SELECT DISTINCT ON (company_name)
+        company_name as name,
+        company_logo as logo,
+        package,
+        location,
+        eligible_branches,
+        min_cgpa,
+        job_type,
+        job_id as id
+       FROM jobs
+       WHERE job_id = $1
+       ORDER BY company_name, job_id DESC`,
+      [id]
+    );
     return result.rows[0];
   },
 
@@ -31,33 +58,30 @@ async create(company) {
       location,
       eligible_branches = [],
       min_cgpa,
-      deadline,
+      application_deadline,
       job_type,
       description,
       requirements = [],
-      applied_count = 0
+      role = "Software Developer"
     } = company;
 
-    const id = uuidv4(); // generate unique id
-
     const result = await query(
-      `INSERT INTO companies
-        (id, name, logo, package, location, eligible_branches, min_cgpa, deadline, job_type, description, requirements, applied_count)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-       RETURNING *`,
+      `INSERT INTO jobs
+        (company_name, company_logo, package, location, eligible_branches, min_cgpa, application_deadline, job_type, description, requirements, role)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+       RETURNING job_id as id, company_name as name, company_logo as logo, package, location, eligible_branches, min_cgpa, application_deadline as deadline, job_type, description, requirements`,
       [
-        id,
         name,
         logo,
         pkg,
         location,
         eligible_branches,
         min_cgpa,
-        deadline,
+        application_deadline,
         job_type,
         description,
         requirements,
-        applied_count
+        role
       ]
     );
 

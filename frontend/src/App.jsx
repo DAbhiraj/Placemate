@@ -14,6 +14,7 @@ import { AppProvider } from './context/AppContext'; // <-- Import the provid
 import AdminLogin from './pages/AdminLogin';
 import NormalAuth from './pages/NormalLogin';
 
+
 function App() {
   return (
     <Router>
@@ -23,6 +24,7 @@ function App() {
         <Route path="/" element={<Login />} />
           <Route path="/adminlogin" element={<AdminLogin />} />
           <Route path="/login" element={<NormalAuth />} />
+          <Route path="/onboarding" element={<ProfileSetupModal />} />
 
         {/* Routes with navbar (via Layout) */}
         <Route element={<Layout />}>

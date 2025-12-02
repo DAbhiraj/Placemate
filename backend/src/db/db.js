@@ -6,7 +6,7 @@ import pkg from "pg";
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 const { Pool } = pkg;
 
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = true;
 
 // Base config for the pool
 const connectionConfig = {

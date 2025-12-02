@@ -69,58 +69,91 @@ const applicationController = {
 
   },
 
-  // GET /api/upcoming-deadlines/:userId
-    getUpcomingDeadline: async (req, res) => {
+  // GET /api/upcoming-deadlines/:userId?type=application|assessment|interview
+  getUpcomingDeadline: async (req, res) => {
     const { userId } = req.params;
-    let { branch, cgpa } = req.query;
+    let { branch, cgpa, type } = req.query;
     if (cgpa === undefined && req.query["amp;cgpa"]) {
       cgpa = req.query["amp;cgpa"];
     }
 
     console.log("in upcoming controller");
     console.log("Full req.query:", req.query);
-    console.log(userId);
-    console.log(branch);
-    console.log(cgpa);
+    console.log("userId:", userId);
+    console.log("branch:", branch);
+    console.log("cgpa:", cgpa);
+    console.log("type:", type);
+
     try {
-      const result = await pool.query(
-        `SELECT 
-    j.id               AS job_id,
+      let query;
+      let params = [userId, branch, cgpa];
+
+      if (type === "application") {
+        // CASE 1: User hasn't applied yet -> show application deadline if upcoming
+        query = `SELECT 
+      j.job_id               AS job_id,
     j.company_name,
     j.role,
     j.application_deadline,
     j.online_assessment_date,
     j.interview_dates,
-    COALESCE(a.status, 'applied') AS application_status
+    NULL AS application_status
 FROM jobs j
 LEFT JOIN applications a
-    ON j.id = a.job_id
-    AND a.id = $1           -- $1 = logged-in user id
+      ON j.job_id = a.job_id
+    WHERE
+    a.user_id = $1 is NULL
+    AND ($2 = ANY(j.eligible_branches))
+    AND (j.min_cgpa <= $3)
+    AND j.application_deadline >= CURRENT_TIMESTAMP
+ORDER BY j.application_deadline ASC;`;
+      } else if (type === "assessment") {
+        // CASE 2: User applied -> show online assessment if upcoming
+        query = `SELECT 
+      j.job_id               AS job_id,
+    j.company_name,
+    j.role,
+    j.application_deadline,
+    j.online_assessment_date,
+    j.interview_dates,
+    a.status AS application_status
+FROM jobs j
+INNER JOIN applications a
+      ON j.job_id = a.job_id
+    AND a.user_id = $1
 WHERE
-    -- user must be eligible for the job
-    ($2 = ANY(j.eligible_branches))   -- $2 = user branch
-    AND (j.min_cgpa <= $3)            -- $3 = user cgpa
-    AND (
-        -- CASE 1: No application record for this user -> show job deadline if still upcoming
-        (a.appl_id IS NULL AND j.application_deadline >= CURRENT_DATE)
+    ($2 = ANY(j.eligible_branches))
+    AND (j.min_cgpa <= $3)
+    AND a.status is NULL
+    AND j.online_assessment_date >= CURRENT_TIMESTAMP
+ORDER BY j.online_assessment_date ASC;`;
+      } else if (type === "interview") {
+        // CASE 3 & 4: User shortlisted or selected -> show interview dates if upcoming
+        query = `SELECT 
+      j.job_id               AS job_id,
+    j.company_name,
+    j.role,
+    j.application_deadline,
+    j.online_assessment_date,
+    j.interview_dates,
+    a.status AS application_status
+FROM jobs j
+INNER JOIN applications a
+      ON j.job_id = a.job_id
+    AND a.user_id = $1
+WHERE
+    ($2 = ANY(j.eligible_branches))
+    AND (j.min_cgpa <= $3)
+    AND (a.status = 'interview_shortlist' OR a.status = 'selected')
+    AND j.interview_dates IS NOT NULL
+    AND j.interview_dates[1] >= CURRENT_TIMESTAMP
+ORDER BY j.interview_dates[1] ASC;`
+      } else {
+        // If no type or invalid type, return empty array
+        return res.json([]);
+      }
 
-        OR  
-
-        -- CASE 2: Application exists (status NULL treated as 'applied') -> show online assessment if upcoming
-        ((a.status IS NULL OR a.status = 'applied') AND j.online_assessment_date >= NOW())
-
-        OR
-
-        -- CASE 3: Application exists and user is shortlisted -> show first interview date if upcoming
-        (a.status = 'shortlisted' AND (j.interview_dates IS NOT NULL AND j.interview_dates[1] >= NOW()))
-    )
-ORDER BY
-    -- pick the earliest relevant date for ordering (deadline/test/interview)
-    COALESCE(j.application_deadline, j.online_assessment_date, j.interview_dates[1]) ASC;
-`,
-        [userId, branch, cgpa]
-      );
-
+      const result = await pool.query(query, params);
       res.json(result.rows);
     } catch (err) {
       console.error(err);

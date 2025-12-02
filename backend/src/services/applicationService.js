@@ -10,6 +10,10 @@ export const applicationService = {
   },
 
   submitOrUpdateApplication: async (studentId, jobId, answers, resumeUrl) => {
+    console.log(studentId);
+    console.log(jobId);
+    console.log(answers);
+    console.log(resumeUrl);
     const existing = await applicationRepository.findByStudentAndJob(studentId, jobId);
     let application;
 

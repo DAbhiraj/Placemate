@@ -2,7 +2,7 @@ import { query } from "../db/db.js";
 
 const AlumniRepo = {
   async getAll() {
-    const result = await query("SELECT * FROM alumni_stories ORDER BY id ASC");
+    const result = await query("SELECT * FROM alumni_stories ORDER BY alum_id ASC");
     return result.rows;
   },
   

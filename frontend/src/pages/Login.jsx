@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
 import { GraduationCap } from 'lucide-react';
 import GoogleSignIn from '../components/Auth/GoogleSignIn';
 import ProfileSetupModal from '../components/Auth/ProfileSetupModal';
+import ProfileSetupLoader from '../components/Auth/ProfileSetupLoader';
 import OnboardingComponent from '../components/Auth/OnboardingModal';
+import { setUser } from '../store/slices/userSlice';
 import axios from "axios";
 
 const API_URL = "http://localhost:4000/api";
 
 const Login = () => {
+  const dispatch = useDispatch();
   const [error, setError] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [showProfileSetupLoader, setShowProfileSetupLoader] = useState(false);
 
   const handleGoogleSignIn = (user) => {
     setCurrentUser(user.user);
@@ -21,13 +26,15 @@ const Login = () => {
     const shouldShowOnboarding = !user.profile_completed;
     const shouldShowProfileSetup = !user.branch || !user.cgpa;
 
-    console.log(shouldShowOnboarding, shouldShowProfileSetup);
-
     setShowOnboarding(shouldShowOnboarding);
-    setShowProfileSetup(shouldShowProfileSetup);
-
-    // Redirect only if profile setup is NOT needed
-    if (!shouldShowProfileSetup) {
+    if (shouldShowProfileSetup) {
+      setShowProfileSetupLoader(true);
+      setTimeout(() => {
+        setShowProfileSetup(true);
+        setShowProfileSetupLoader(false);
+      }, 900); // 0.9s smooth loader before modal
+    } else {
+      setShowProfileSetup(false);
       window.location.href = "/dashboard";
     }
   };
@@ -35,7 +42,19 @@ const Login = () => {
   const handleGoogleSuccess = (user) => {
     console.log("user in login page", user);
 
-    // Store credentials in localStorage
+    // Store in Redux
+    dispatch(setUser({
+      u_id: user.id,
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      branch: user.branch,
+      cgpa: user.cgpa,
+      role: user.role,
+      token: user.token,
+    }));
+
+    // Also store in localStorage as fallback
     localStorage.setItem('id', user.id);
     localStorage.setItem('name', user.name);
     localStorage.setItem('email', user.email);
@@ -100,12 +119,16 @@ const Login = () => {
       </div>
 
       {/* Conditional Modals */}
-      {console.log(showProfileSetup, currentUser)}
+
+      {showProfileSetupLoader && <ProfileSetupLoader />}
       {showProfileSetup && localStorage.getItem("id") && (
         <ProfileSetupModal
-        isOpen={showProfileSetup}
-        onClose={() => setShowProfileSetup(false)}
-    />
+          isOpen={showProfileSetup}
+          onClose={() => setShowProfileSetup(false)}
+          onParsed={(data) => {
+            window.location.href = "/profile"
+          }}
+        />
       )}
 
       {showOnboarding && <OnboardingComponent />}

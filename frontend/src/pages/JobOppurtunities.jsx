@@ -49,12 +49,16 @@ const JobOpportunities = () => {
         ? raw.jobs
         : [];
 
+        console.log('list');
+        console.log(list);
+
       const normalized = list.map((j) => ({
-        id: j.id,
+        id: j.job_id,
         title: j.title ?? j.role ?? "",
         company: j.company ?? j.company_name ?? "",
         location: j.location ?? "Remote",
-        salary: j.package_range ?? "Not Disclosed",
+        salary: j.package ?? "Not Disclosed",
+        application_deadline: j.application_deadline ?? j.applicationDeadline ?? j.deadline ?? null,
         postedDate:
           j.postedDate ??
           j.created_at ??
@@ -62,6 +66,7 @@ const JobOpportunities = () => {
           new Date().toISOString(),
         description: j.description ?? "No description available.",
         company_logo: j.company_logo,
+        job_type: j.job_type || j.jobType || j.type || null,
       }));
       setJobs(normalized);
     } catch (err) {
@@ -138,6 +143,11 @@ const JobOpportunities = () => {
   // 4. Filter and Sort Logic (from Companies.jsx, adapted for Jobs)
   const filteredJobs = jobs
     .filter((job) => {
+      // Determine user's application type (prioritize stored value, fallback to roll_no heuristic)
+      const storedAppType = localStorage.getItem('application_type');
+      const roll = localStorage.getItem('roll_no') || '';
+      const userAppType = storedAppType || ((String(roll).slice(0,2) === '23') ? 'internship' : 'fte');
+
       const matchesSearch =
         job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         job.company.toLowerCase().includes(searchTerm.toLowerCase());
@@ -154,6 +164,11 @@ const JobOpportunities = () => {
           jobSalary >= 80000 &&
           jobSalary < 150000) ||
         (filterSalary === "entry" && jobSalary < 80000);
+
+      // If job defines a job_type, only show jobs matching user's application type
+      if (job.job_type && userAppType) {
+        if (job.job_type !== userAppType) return false;
+      }
 
       return matchesSearch && matchesLocation && matchesSalary;
     })
@@ -341,33 +356,44 @@ const JobOpportunities = () => {
                           <Calendar className="w-4 h-4 mr-1" />
                           Posted {new Date(job.postedDate).toLocaleDateString()}
                         </span>
+                        {job.application_deadline && (
+                          <span className="text-gray-500 flex items-center ml-4">
+                            <Lock className="w-4 h-4 mr-1" />
+                            Deadline {new Date(job.application_deadline).toLocaleDateString()}
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     {/* Footer / Actions (from Companies.jsx, logic from JobsPage.jsx) */}
                     <div className="flex items-center justify-end pt-4 border-t border-gray-100">
-                      <button
-                        onClick={() => handleViewDetailsClick(job)}
-                        disabled={isStudentSelected} // ✅ disable if selected anywhere
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
-                          isStudentSelected
-                            ? "bg-gray-400 cursor-not-allowed text-white"
-                            : isApplied
-                            ? "bg-green-600 hover:bg-green-700 text-white"
-                            : "bg-blue-600 hover:bg-blue-700 text-white"
-                        }`}
-                      >
-                        <span>
-                          {isStudentSelected
-                            ? "Applications Locked"
-                            : isApplied
-                            ? "View Application"
-                            : "View & Apply"}
-                        </span>
-                        {!isApplied && !isStudentSelected && (
-                          <ArrowRight className="w-4 h-4" />
-                        )}
-                      </button>
+                      {(!job.application_deadline || new Date(job.application_deadline) >= new Date()) && (
+                        <button
+                          onClick={() => handleViewDetailsClick(job)}
+                          disabled={isStudentSelected} // ✅ disable if selected anywhere
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                            isStudentSelected
+                              ? "bg-gray-400 cursor-not-allowed text-white"
+                              : isApplied
+                              ? "bg-green-600 hover:bg-green-700 text-white"
+                              : "bg-blue-600 hover:bg-blue-700 text-white"
+                          }`}
+                        >
+                          <span>
+                            {isStudentSelected
+                              ? "Applications Locked"
+                              : isApplied
+                              ? "View Application"
+                              : "View & Apply"}
+                          </span>
+                          {!isApplied && !isStudentSelected && (
+                            <ArrowRight className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
+                      {job.application_deadline && new Date(job.application_deadline) < new Date() && (
+                        <span className="text-red-500 font-medium">Application Closed</span>
+                      )}
                     </div>
                   </div>
                 </div>

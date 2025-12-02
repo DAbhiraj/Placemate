@@ -97,6 +97,8 @@ const Admin = () => {
         axios.get(`${API_URL}/admin/students`)
       ])
 
+      console.log(studentsRes.data);
+
       setBackendStats(statsRes.data)
       setBackendCompanies(companiesRes.data)
       setBackendJobs(jobsRes.data)
@@ -185,7 +187,7 @@ const Admin = () => {
 
 
 
-  const filteredStudents = students.filter(
+  const filteredStudents = backendStudents.filter(
     student =>
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.rollNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -324,7 +326,7 @@ const Admin = () => {
                         {student.name}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {student.rollNumber}
+                        {student.roll_no}
                       </div>
                     </div>
                   </td>
@@ -337,7 +339,7 @@ const Admin = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="text-sm font-medium text-gray-900">
-                        {student.resumeScore}/100
+                        {student.ats_score || 0}/100
                       </div>
                       <div
                         className={`ml-2 w-16 h-2 rounded-full ${student.resumeScore >= 80
@@ -534,7 +536,7 @@ const Admin = () => {
 
       {/* Job Form Modal */}
       {showJobForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold">Add New Job</h3>
@@ -598,6 +600,48 @@ const Admin = () => {
                     onChange={(e) => setJobForm({ ...jobForm, online_assessment_date: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
                   />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Interview Dates</label>
+                <div className="space-y-2">
+                  {jobForm.interview_dates.map((date, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <input
+                        type="date"
+                        value={date}
+                        onChange={(e) => {
+                          const updated = [...jobForm.interview_dates];
+                          updated[idx] = e.target.value;
+                          setJobForm({ ...jobForm, interview_dates: updated });
+                        }}
+                        className="flex-1 px-3 py-2 border rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = jobForm.interview_dates.filter((_, i) => i !== idx);
+                          setJobForm({ ...jobForm, interview_dates: updated });
+                        }}
+                        className="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setJobForm({
+                        ...jobForm,
+                        interview_dates: [...jobForm.interview_dates, ""]
+                      })
+                    }
+                    className="px-3 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 w-full"
+                  >
+                    + Add Interview Date
+                  </button>
                 </div>
               </div>
 
@@ -697,6 +741,7 @@ const Admin = () => {
         isOpen={showNotificationForm}
         onClose={() => setShowNotificationForm(false)}
         onSendNotification={handleSendNotification}
+        modalBgClass="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50"
       />
 
       {/* Role-Based Notification Form Modal */}
@@ -704,6 +749,7 @@ const Admin = () => {
         isOpen={showRoleBasedNotificationForm}
         onClose={() => setShowRoleBasedNotificationForm(false)}
         onSendNotification={handleSendRoleBasedNotification}
+        modalBgClass="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50"
       />
     </div>
   )

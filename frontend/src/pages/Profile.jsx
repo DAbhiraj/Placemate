@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from "react"
+import Loader from "../components/Loader"
+import { useSelector, useDispatch } from "react-redux"
+import { updateUser } from "../store/slices/userSlice"
 import {
   User,
   Mail,
@@ -14,22 +17,14 @@ import {
   Trash2,
   Loader2
 } from "lucide-react"
-import { useApp } from "../context/AppContext"
 import axios from "axios";
 
 const Profile = () => {
-  console.log("profile ----------")
+  const dispatch = useDispatch()
+  const reduxUser = useSelector((state) => state.user.user)
   
-  const [currentUser, setCurrentUser] = useState({
-    branch: localStorage.getItem("branch") || "",
-    cgpa: localStorage.getItem("cgpa") || "",
-    email: localStorage.getItem("email") || "",
-    id: localStorage.getItem("id") || "",
-    name: localStorage.getItem("name") || "",
-    role: localStorage.getItem("role") || "",
-    user: localStorage.getItem("user") || "",
-    userId: localStorage.getItem("userId") || ""
-  });
+  const [currentUser, setCurrentUser] = useState({})
+  const [editingUser, setEditingUser] = useState({})
 
   const [isEditing, setIsEditing] = useState(false)
   const [newSkill, setNewSkill] = useState("")
@@ -54,14 +49,57 @@ const Profile = () => {
     try {
       setLoading(true)
       const token = getAuthToken()
-      const response = await axios.get(`${API_BASE}/profile`);
+      const response = await axios.get(`${API_BASE}/profile?userId=${localStorage.getItem("id")}`);
       console.log("response");
       console.log(response);
         const data = response.data;
+        
         setProfile(data.data)
-        setSkills(data.data.skills || [])
-        setAtsScore(data.data.ats_score)
+        // Normalize skills into an array. Accept: Array, comma-separated string, or JSON string with escapes.
+        const rawSkills = data.data.skills;
+        let skillsArr = [];
+        if (Array.isArray(rawSkills)) {
+          skillsArr = rawSkills;
+        } else if (typeof rawSkills === 'string' && rawSkills.trim()) {
+          try {
+            // Try JSON parse first (handles "[\"C++\", \"Java\"]" cases)
+            const parsed = JSON.parse(rawSkills);
+            if (Array.isArray(parsed)) skillsArr = parsed;
+            else if (typeof parsed === 'string') skillsArr = parsed.split(/,|\n/).map(s => s.trim()).filter(Boolean);
+            else skillsArr = [];
+          } catch (e) {
+            // Fallback: clean escaped newlines and quotes, then split by comma or newline
+            let cleaned = rawSkills.replace(/\\n/g, ',');
+            cleaned = cleaned.replace(/^[{\[]+|[}\]]+$/g, ''); // remove surrounding braces/brackets
+            cleaned = cleaned.replace(/\"/g, '"');
+            cleaned = cleaned.replace(/(^\"|\"$)/g, '');
+            cleaned = cleaned.replace(/\"/g, '');
+            skillsArr = cleaned.split(/,|\n/).map(s => s.trim()).filter(Boolean);
+          }
+        } else {
+          skillsArr = [];
+        }
+        setSkills(skillsArr);
+        setAtsScore(data.data.ats_score || 0)
         setAtsFeedback(data.data.ats_feedback || "")
+
+        setCurrentUser(prev => ({
+          ...prev,
+          name: data.data.name,
+          email: data.data.email,
+          branch: data.data.branch,
+          cgpa: data.data.cgpa,
+          phone: data.data.phone,
+          rollNumber: data.data.roll_no,
+          application_type : data.data.application_type
+        }))
+        // Store branch and cgpa in localStorage for Redux hydration (robust)
+        if (data.data.branch) localStorage.setItem('branch', data.data.branch);
+        if (typeof data.data.cgpa === 'number' && !isNaN(data.data.cgpa)) {
+          localStorage.setItem('cgpa', String(data.data.cgpa));
+        } else if (typeof data.data.cgpa === 'string' && data.data.cgpa.trim() !== '' && !isNaN(Number(data.data.cgpa))) {
+          localStorage.setItem('cgpa', String(Number(data.data.cgpa)));
+        }
       
     } catch (error) {
       console.error("Error fetching profile:", error)
@@ -74,17 +112,31 @@ const Profile = () => {
   const updateProfile = async (updateData) => {
     try {
       const token = getAuthToken()
-      const response = await fetch(`${API_BASE}/profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(updateData)
+      const response = await axios.put(`${API_BASE}/profile/${localStorage.getItem("id")}`, {
+        updateData
       })
       
-      if (response.ok) {
-        const data = await response.json()
-        setProfile(data.data)
+      if (response.data.success) {
+        const profile = response.data;
+        setProfile(profile.data)
+        
+        // Sync profile updates to localStorage (excluding skills and resume)
+        if (updateData.name) {
+          localStorage.setItem('name', updateData.name);
+        }
+        if (updateData.email) {
+          localStorage.setItem('email', updateData.email);
+        }
+        if (updateData.branch) {
+          localStorage.setItem('branch', updateData.branch);
+        }
+        if (updateData.cgpa) {
+          localStorage.setItem('cgpa', String(Number(updateData.cgpa)));
+        }
+        if (updateData.application_type) {
+          localStorage.setItem('application_type', updateData.application_type);
+        }
+        
         return true
       }
       return false
@@ -94,23 +146,68 @@ const Profile = () => {
     }
   }
 
+  // Handle edit mode toggle
+  const toggleEditMode = () => {
+    if (isEditing) {
+      // Cancel edit
+      setEditingUser({})
+    } else {
+      // Enter edit mode
+      setEditingUser({ ...currentUser })
+    }
+    setIsEditing(!isEditing)
+  }
+
+  // Handle input changes in edit mode
+  const handleFieldChange = (field, value) => {
+    setEditingUser(prev => ({ ...prev, [field]: value }))
+  }
+
+  // Save edited profile
+  const handleSaveProfile = async () => {
+    try {
+      const updateData = {
+        branch: editingUser.branch || currentUser.branch,
+        cgpa: editingUser.cgpa || currentUser.cgpa,
+        email : editingUser.email || currentUser.email,
+        phone : editingUser.phone || currentUser.phone,
+        name  : editingUser.name || currentUser.name
+      }
+      // Determine application type from roll number prefix
+      const roll = (editingUser.rollNumber || currentUser.rollNumber || localStorage.getItem('roll_no') || "").toString();
+      const prefix = roll.slice(0,2);
+      // Map prefix '23' => internship, otherwise 'fte'
+      updateData.application_type = (prefix === '23') ? 'internship' : 'fte';
+      const success = await updateProfile(updateData)
+      if (success) {
+        const updatedUser = { ...currentUser, ...editingUser }
+        setCurrentUser(updatedUser)
+        // Also update Redux store
+        dispatch(updateUser(updatedUser))
+        setEditingUser({})
+        setIsEditing(false)
+        alert("Profile updated successfully!")
+      } else {
+        alert("Failed to update profile")
+      }
+    } catch (error) {
+      console.error("Error saving profile:", error)
+      alert("Error updating profile")
+    }
+  }
+
   // Update skills
   const updateSkills = async () => {
     try {
       const token = getAuthToken()
-      const response = await fetch(`${API_BASE}/profile/skills`, {
-        method: "PUT",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ skills })
-      })
-      
-      if (response.ok) {
-        return true
-      }
-      return false
+      const response = await axios.put(`${API_BASE}/profile/skills/${localStorage.getItem("id")}`, 
+        {skills}
+      )
+      console.log("response is ok na");
+      console.log(response);
+      setSkills(response.data.data);
+
+      return response.data.success;
     } catch (error) {
       console.error("Error updating skills:", error)
       return false
@@ -208,10 +305,9 @@ const Profile = () => {
 
   // Load profile data on component mount
   useEffect(() => {
-    if (currentUser) {
-      fetchProfile()
-    }
-  }, [currentUser])
+    fetchProfile();
+  }, []);   // only on component load
+
 
   const addSkill = () => {
     if (newSkill.trim() && !skills.includes(newSkill.trim())) {
@@ -265,6 +361,10 @@ const Profile = () => {
     return "Needs Improvement"
   }
 
+  if (loading) {
+    return <Loader text={uploading ? "Updating..." : "Loading..."} />;
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -277,17 +377,27 @@ const Profile = () => {
             <div>
               <h1 className="text-2xl font-bold">{currentUser?.name}</h1>
               <p className="text-blue-100">
-                {currentUser?.branch} • {currentUser?.rollNumber}
+                {currentUser?.branch} • {currentUser?.rollNumber} • {currentUser?.application_type}
               </p>
             </div>
           </div>
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors flex items-center"
-          >
-            <Edit3 className="w-4 h-4 mr-2" />
-            {isEditing ? "Cancel" : "Edit Profile"}
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={toggleEditMode}
+              className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors flex items-center"
+            >
+              <Edit3 className="w-4 h-4 mr-2" />
+              {isEditing ? "Cancel" : "Edit Profile"}
+            </button>
+            {isEditing && (
+              <button
+                onClick={handleSaveProfile}
+                className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg transition-colors flex items-center text-white"
+              >
+                Save Changes
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -309,9 +419,10 @@ const Profile = () => {
                   <User className="w-5 h-5 text-gray-400 mr-3" />
                   <input
                     type="text"
-                    value={currentUser?.name || ""}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    readOnly={!isEditing}
+                    value={isEditing ? (editingUser?.name || "") : (currentUser?.name || "")}
+                    onChange={(e) => handleFieldChange('name', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                    disabled={!isEditing}
                   />
                 </div>
               </div>
@@ -339,9 +450,10 @@ const Profile = () => {
                   <Mail className="w-5 h-5 text-gray-400 mr-3" />
                   <input
                     type="email"
-                    value={currentUser?.email || ""}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    readOnly={!isEditing}
+                    value={isEditing ? (editingUser?.email || "") : (currentUser?.email || "")}
+                    onChange={(e) => handleFieldChange('email', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                    disabled={!isEditing}
                   />
                 </div>
               </div>
@@ -368,9 +480,10 @@ const Profile = () => {
                 <input
                   type="number"
                   step="0.01"
-                  value={currentUser?.cgpa || ""}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  readOnly={!isEditing}
+                  value={isEditing ? (editingUser?.cgpa || "") : (currentUser?.cgpa || "")}
+                  onChange={(e) => handleFieldChange('cgpa', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                  disabled={!isEditing}
                 />
               </div>
 
@@ -383,8 +496,10 @@ const Profile = () => {
                   <input
                     type="tel"
                     placeholder="+91 XXXXX XXXXX"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    readOnly={!isEditing}
+                    value={isEditing ? (editingUser?.phone || "") : (currentUser?.phone || "")}
+                    onChange={(e) => handleFieldChange('phone', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                    disabled={!isEditing}
                   />
                 </div>
               </div>
@@ -527,28 +642,6 @@ const Profile = () => {
                   </div>
                 )}
               </div>
-
-              {/* Transcript placeholder */}
-              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                <div className="flex items-center">
-                  <FileText className="w-5 h-5 text-gray-400 mr-3" />
-                  <div>
-                    <p className="font-medium text-gray-900">Transcript</p>
-                    <p className="text-sm text-gray-500">
-                      Coming soon
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button disabled className="text-gray-400 text-sm font-medium cursor-not-allowed">
-                    View
-                  </button>
-                  <button disabled className="text-gray-400 text-sm font-medium flex items-center cursor-not-allowed">
-                    <Download className="w-4 h-4 mr-1" />
-                    Download
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -623,52 +716,7 @@ const Profile = () => {
             </button>
           </div>
 
-          {/* Quick Actions */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Quick Actions
-            </h3>
-            <div className="space-y-3">
-              {profile?.resume_filename ? (
-                <button 
-                  onClick={downloadResume}
-                  className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center">
-                    <Download className="h-5 w-5 text-gray-400 mr-3" />
-                    <span className="text-sm font-medium">Download Resume</span>
-                  </div>
-                </button>
-              ) : (
-                <button 
-                  onClick={() => document.querySelector('input[type="file"]').click()}
-                  className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center">
-                    <Upload className="h-5 w-5 text-gray-400 mr-3" />
-                    <span className="text-sm font-medium">Upload Resume</span>
-                  </div>
-                </button>
-              )}
-              <button 
-                onClick={() => setIsEditing(!isEditing)}
-                className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center">
-                  <Edit3 className="h-5 w-5 text-gray-400 mr-3" />
-                  <span className="text-sm font-medium">
-                    {isEditing ? "Stop Editing" : "Edit Profile"}
-                  </span>
-                </div>
-              </button>
-              <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center">
-                  <Mail className="h-5 w-5 text-gray-400 mr-3" />
-                  <span className="text-sm font-medium">Email Preferences</span>
-                </div>
-              </button>
-            </div>
-          </div>
+          
         </div>
       </div>
     </div>

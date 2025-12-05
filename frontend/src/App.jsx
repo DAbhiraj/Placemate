@@ -1,17 +1,17 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout/Layout';
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Applications from './pages/Applications';
-import Profile from './pages/Profile';
-import Alumni from './pages/Alumini';
-import Admin from './pages/Admin';
+import Dashboard from './pages/student/Dashboard';
+import Applications from './pages/student/MyApplications';
+import Profile from './pages/student/Profile';
+import Alumni from '../waste/Alumini';
+import Admin from './pages/admin/Admin';
 import OnboardingModal from './components/Auth/OnboardingModal';
 import ProfileSetupModal from './components/Auth/ProfileSetupModal';
-import JobOpportunities from './pages/JobOppurtunities';
-import UpcomingDeadlines from './pages/Upcoming';
+import JobOpportunities from './pages/student/JobOppurtunities';
+import UpcomingDeadlines from './pages/student/Upcoming';
 import { AppProvider } from './context/AppContext'; // <-- Import the provid
-import AdminLogin from './pages/AdminLogin';
+import AdminLogin from './pages/admin/AdminLogin';
 import NormalAuth from './pages/NormalLogin';
 
 

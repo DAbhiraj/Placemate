@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react"
-import Loader from "../components/Loader"
+import Loader from "../../components/Loader"
 import { useSelector, useDispatch } from "react-redux"
-import { updateUser } from "../store/slices/userSlice"
+import { updateUser } from "../../store/slices/userSlice"
 import {
   User,
   Mail,

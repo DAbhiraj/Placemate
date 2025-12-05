@@ -17,11 +17,11 @@ import {
   MapPin,
   DollarSign
 } from "lucide-react"
-import { useApp } from "../context/AppContext"
-import StatCard from "../components/UI/StatCard"
-import StatusBadge from "../components/UI/StatusBadge"
-import NotificationForm from "../components/UI/NotificationForm"
-import RoleBasedNotificationForm from "../components/UI/RoleBasedNotificationForm"
+import { useApp } from "../../context/AppContext"
+import StatCard from "../../components/UI/StatCard"
+import StatusBadge from "../../components/UI/StatusBadge"
+import NotificationForm from "../../components/UI/NotificationForm"
+import RoleBasedNotificationForm from "../../components/UI/RoleBasedNotificationForm"
 import axios from "axios"
 import Stats from "./Stats"
 

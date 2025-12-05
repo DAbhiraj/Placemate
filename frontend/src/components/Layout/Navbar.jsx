@@ -92,14 +92,14 @@ const Navbar = () => {
     ? [
       { path: "/dashboard", label: "Dashboard" },
       { path: "/jobs", label: "Job Opportunities" },
-      { path: "/alumni", label: "Alumni Stories" },
+      // { path: "/alumni", label: "Alumni Stories" },
     ]
     : [
       { path: "/dashboard", label: "Dashboard" },
       { path: "/upcoming", label: "Upcoming Deadlines" },
       { path: "/jobs", label: "Jobs" },
       { path: "/applications", label: "My Applications" },
-      { path: "/alumni", label: "Alumni Stories" },
+      // { path: "/alumni", label: "Alumni Stories" },
     ];
 
 

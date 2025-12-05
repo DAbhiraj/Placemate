@@ -213,7 +213,7 @@ export class ProfileController {
         formData.append("resume", req.file.buffer, req.file.originalname);
 
         const response = await axios.post(
-          "http://127.0.0.1:7000/parse-resume",
+          "http://127.0.0.1:7001/parse-resume",
           formData,
           {
             headers: formData.getHeaders(),

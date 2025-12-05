@@ -8,7 +8,7 @@ import {
   Users,
   ExternalLink,
 } from "lucide-react";
-import { calculateDaysUntilDeadline } from "../utils/helpers";
+import { calculateDaysUntilDeadline } from "../src/utils/helpers";
 
 const API_URL = import.meta.env.VITE_API_URL ;
 

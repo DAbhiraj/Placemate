@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Search, Filter, Calendar } from "lucide-react";
 import axios from "axios";
-import StatusBadge from "../components/UI/StatusBadge";
-import { formatDateTime } from "../utils/helpers";
+import StatusBadge from "../../components/UI/StatusBadge";
+import { formatDateTime } from "../../utils/helpers";
 import ApplicationForm from "./ApplicationForm";
-import Loader from "../components/UI/Loader";
+import Loader from "../../components/UI/Loader";
 
 const API_URL = import.meta.env.VITE_API_URL ;
 

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { setUser } from "../store/slices/userSlice";
 import axios from "axios";
+import GoogleSignIn from "../components/Auth/GoogleSignIn";
 
 const API_URL = "http://localhost:4000/api"; // Change if deployed
 
@@ -114,6 +115,45 @@ const NormalAuth = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ✅ GOOGLE SIGN-IN HANDLERS (student)
+  const handleGoogleSuccess = (user) => {
+    try {
+      const userData = {
+        u_id: user.id,
+        id: user.id,
+        token: localStorage.getItem("token") || user.token || "",
+        role: user.role,
+        email: user.email,
+        name: user.name,
+        branch: user.branch || "",
+        cgpa: user.cgpa || "",
+      };
+
+      // Store in Redux
+      dispatch(setUser(userData));
+
+      // Also store in localStorage as fallback
+      if (userData.token) localStorage.setItem("token", userData.token);
+      localStorage.setItem("role", userData.role);
+      localStorage.setItem("id", userData.id);
+      localStorage.setItem("email", userData.email);
+      localStorage.setItem("name", userData.name);
+      localStorage.setItem("branch", userData.branch);
+      localStorage.setItem("cgpa", userData.cgpa);
+
+      alert(`Welcome back, ${userData.name}!`);
+      window.location.href = "/dashboard";
+    } catch (err) {
+      console.error("Google sign-in processing failed:", err);
+      alert("Failed to sign in with Google. Please try again.");
+    }
+  };
+
+  const handleGoogleError = (message) => {
+    console.error("Google Sign-In Error:", message);
+    alert(message || "Google sign-in failed");
   };
 
   return (
@@ -236,6 +276,14 @@ const NormalAuth = () => {
               : "Login"}
           </button>
         </form>
+
+        {/* Google sign-in for students */}
+        {!isRegister && (
+          <div className="mt-6 flex flex-col items-center space-y-3">
+            <div className="text-sm text-gray-500">or sign in with</div>
+            <GoogleSignIn onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
+          </div>
+        )}
 
         <p className="text-center mt-4 text-gray-600">
           {isRegister ? (

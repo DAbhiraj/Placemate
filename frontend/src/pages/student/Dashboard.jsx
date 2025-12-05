@@ -8,11 +8,11 @@ import {
   ArrowRight,
   Briefcase,
 } from "lucide-react";
-import StatCard from "../components/UI/StatCard";
-import StatusBadge from "../components/UI/StatusBadge";
-import Loader from "../components/UI/Loader";
+import StatCard from "../../components/UI/StatCard";
+import StatusBadge from "../../components/UI/StatusBadge";
+import Loader from "../../components/UI/Loader";
 import axios from "axios";
-import { formatDateTime } from "../utils/helpers";
+import { formatDateTime } from "../../utils/helpers";
 
 const API_URL = import.meta.env.VITE_API_URL ;
 
@@ -192,21 +192,52 @@ const Dashboard = () => {
             </p>
           </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Applications"
-          value={applications.length}
-          icon={FileText}
-          gradient="bg-gradient-to-r from-blue-500 to-blue-600"
-        />
-        <StatCard
-          title="CGPA"
-          value={`${localStorage.getItem('cgpa') || 0}/10`}
-          icon={Award}
-          gradient="bg-gradient-to-r from-green-500 to-green-600"
-        />
-      </div>
+          {/* Quick Actions */}
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Quick Actions
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Link
+                to="/jobs"
+                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors group"
+              >
+                <div className="flex-1">
+                  <h4 className="font-medium text-gray-900 group-hover:text-blue-600">
+                    Browse Opportunities
+                  </h4>
+                  <p className="text-sm text-gray-500">Explore new roles</p>
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+              </Link>
+
+              <Link
+                to="/profile"
+                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors group"
+              >
+                <div className="flex-1">
+                  <h4 className="font-medium text-gray-900 group-hover:text-blue-600">
+                    Update Profile
+                  </h4>
+                  <p className="text-sm text-gray-500">Keep your CGPA updated</p>
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+              </Link>
+
+              <Link
+                to="/applications"
+                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors group"
+              >
+                <div className="flex-1">
+                  <h4 className="font-medium text-gray-900 group-hover:text-blue-600">
+                    My Applications
+                  </h4>
+                  <p className="text-sm text-gray-500">Track your progress</p>
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+              </Link>
+            </div>
+          </div>
 
       {/* Recent Activity and Upcoming Events */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -375,52 +406,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-xl shadow-sm border p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Quick Actions
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link
-            to="/jobs"
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors group"
-          >
-            <div className="flex-1">
-              <h4 className="font-medium text-gray-900 group-hover:text-blue-600">
-                Browse Opportunities
-              </h4>
-              <p className="text-sm text-gray-500">Explore new roles</p>
-            </div>
-            <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
-          </Link>
-
-          <Link
-            to="/profile"
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors group"
-          >
-            <div className="flex-1">
-              <h4 className="font-medium text-gray-900 group-hover:text-blue-600">
-                Update Profile
-              </h4>
-              <p className="text-sm text-gray-500">Keep your CGPA updated</p>
-            </div>
-            <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
-          </Link>
-
-          <Link
-            to="/applications"
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors group"
-          >
-            <div className="flex-1">
-              <h4 className="font-medium text-gray-900 group-hover:text-blue-600">
-                My Applications
-              </h4>
-              <p className="text-sm text-gray-500">Track your progress</p>
-            </div>
-            <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
-          </Link>
-        </div>
-      </div>
+      
         </>
       )}
     </div>

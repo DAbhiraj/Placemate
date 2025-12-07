@@ -6,7 +6,7 @@ export const notificationController = {
     async getUserNotifications(req, res) {
         try {
             const { userId } = req.params;
-            console.log(userId+" in notification controller");
+            //console.log(userId+" in notification controller");
             const notifications = await notificationService.getUserNotifications(userId);
             res.json(notifications);
         } catch (err) {

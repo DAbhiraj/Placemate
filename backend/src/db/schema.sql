@@ -10,6 +10,7 @@ CREATE TABLE Users (
     role VARCHAR(200),
     application_type TEXT,
     google_id TEXT,
+    linkedin_id TEXT,
     first_name TEXT,
     last_name TEXT,
     profile_completed TEXT,
@@ -18,7 +19,8 @@ CREATE TABLE Users (
     resume_upload_date TIMESTAMP,
     ats_score NUMERIC(5,2),
     ats_score_date TIMESTAMP,
-    ats_feedback TEXT
+    ats_feedback TEXT,
+    is_verified BOOLEAN DEFAULT false
 );
 
 
@@ -76,4 +78,32 @@ CREATE TABLE alumni_stories (
     tips TEXT[]
 );
 
+CREATE TABLE spoc_job_assignments (
+    assignment_id SERIAL PRIMARY KEY,
+    spoc_id VARCHAR(255) REFERENCES users(user_id) ON DELETE CASCADE,
+    job_id INTEGER REFERENCES jobs(job_id) ON DELETE CASCADE,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) DEFAULT 'In Discussion',
+    message_count INTEGER DEFAULT 0,
+    has_changes BOOLEAN DEFAULT false,
+    UNIQUE(spoc_id, job_id)
+);
 
+CREATE TABLE recruiter_kyc (
+    kyc_id SERIAL PRIMARY KEY,
+    recruiter_id VARCHAR(255) REFERENCES users(user_id) ON DELETE CASCADE,
+    company_name VARCHAR(255) NOT NULL,
+    company_website VARCHAR(255),
+    company_address TEXT NOT NULL,
+    pan_number VARCHAR(10) NOT NULL UNIQUE,
+    pan_document_url TEXT NOT NULL,
+    hr_contact_number VARCHAR(20) NOT NULL,
+    linkedin_profile_url VARCHAR(500),
+    years_of_experience INTEGER,
+    submission_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    approval_status VARCHAR(50) DEFAULT 'pending',
+    rejection_reason TEXT,
+    approved_date TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

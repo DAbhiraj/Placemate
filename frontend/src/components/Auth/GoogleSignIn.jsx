@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState,useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import axios from 'axios';
 
 const GoogleSignIn = ({ onSuccess, onError }) => {
-  const { setCurrentUser } = useApp();
+  //const { setCurrentUser } = useApp();
+  const [currentUser,setCurrentUser] = useState({});
   const googleButtonRef = useRef(null);
 
   useEffect(() => {

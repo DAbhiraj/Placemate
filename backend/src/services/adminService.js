@@ -41,51 +41,7 @@ export const adminService = {
     },
 
     // Job Management
-    async createJob(jobData) {
-        console.log(jobData);
-        const {
-            company_name,
-            role,
-            description,
-            application_deadline,
-            online_assessment_date,
-            interview_dates,
-            min_cgpa,
-            eligible_branches,
-            package_range,
-            location
-        } = jobData;
-
-        return await adminRepository.createJob(
-            company_name,
-            role,
-            description,
-            application_deadline,
-            online_assessment_date,
-            interview_dates,
-            min_cgpa,
-            eligible_branches,
-            package_range,
-            location
-        );
-    },
-
-    async getAllJobs() {
-        return await adminRepository.getAllJobs();
-    },
-
-    async updateJob(jobId, updateData) {
-        return await adminRepository.updateJob(jobId, updateData);
-    },
-
-    async deleteJob(jobId) {
-        return await adminRepository.deleteJob(jobId);
-    },
-
-    // Application Management
-    async getApplicationsForJob(jobId) {
-        return await adminRepository.getApplicationsForJob(jobId);
-    },
+    
 
     async updateApplicationStatus(applicationId, status) {
         const result = await adminRepository.updateApplicationStatus(applicationId, status);

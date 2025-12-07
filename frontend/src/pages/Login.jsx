@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 // images from public folder used below
 import GoogleSignIn from '../components/Auth/GoogleSignIn';
+import LinkedInSignIn from '../components/Auth/LinkedInSignIn';
 import ProfileSetupModal from '../components/Auth/ProfileSetupModal';
 import ProfileSetupLoader from '../components/Auth/ProfileSetupLoader';
 import OnboardingComponent from '../components/Auth/OnboardingModal';
@@ -14,7 +15,6 @@ const Login = () => {
 
   // UI + Auth State
   const [error, setError] = useState('');
-  const [currentUser, setCurrentUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
@@ -22,24 +22,41 @@ const Login = () => {
 
   // Modal state for Student Google sign-in
   const [showStudentGoogleModal, setShowStudentGoogleModal] = useState(false);
+  const [showRecruiterGoogleModal, setShowRecruiterGoogleModal] = useState(false);
 
   const handleGoogleSignIn = (user) => {
-    setCurrentUser(user.user);
+
     setIsAuthenticated(true);
+   
+    const role = localStorage.getItem('role');
+    if(role==='student'){
+      const needOnboarding = !user.profile_completed;
+      const needProfileSetup = !user.branch || !user.cgpa;
 
-    const needOnboarding = !user.profile_completed;
-    const needProfileSetup = !user.branch || !user.cgpa;
+      setShowOnboarding(needOnboarding);
 
-    setShowOnboarding(needOnboarding);
+      if (needProfileSetup) {
+        setShowProfileSetupLoader(true);
+        setTimeout(() => {
+          setShowProfileSetup(true);
+          setShowProfileSetupLoader(false);
+        }, 900);
+      } else {
+        window.location.href = "/dashboard";
+      }
+    }else if(role==='recruiter'){
 
-    if (needProfileSetup) {
-      setShowProfileSetupLoader(true);
-      setTimeout(() => {
-        setShowProfileSetup(true);
-        setShowProfileSetupLoader(false);
-      }, 900);
-    } else {
-      window.location.href = "/dashboard";
+      if(user.is_verified){
+        localStorage.setItem("company",user.company);
+        window.location.href = "/recruiter/viewjobs";
+      }else{
+        window.location.href = "/recruiter/verification";
+      }
+    }
+    else if(role==='spoc'){
+      window.location.href = "/spoc/assignedjobs";
+    }else if(role==='admin'){
+      window.location.href = "/admin";
     }
   };
 
@@ -130,27 +147,29 @@ const Login = () => {
             </div>
 
             {/* Recruiter (placeholder) */}
-            <div className="p-6 rounded-lg border border-gray-100 bg-white/50 flex flex-col items-center justify-center opacity-95">
+            <div role="button"
+              onClick={() => setShowRecruiterGoogleModal(true)}
+              className="cursor-pointer p-6 rounded-lg border border-gray-100 hover:shadow-lg transition-shadow bg-white">
               <div className="flex items-center justify-center mb-4">
                 <div className="w-20 h-20 rounded-lg bg-white shadow flex items-center justify-center overflow-hidden">
                   <img src="profile/recruiter.png" alt="recruiter" className="w-full h-full object-contain" />
                 </div>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center">Recruiter</h3>
-              <p className="text-sm text-gray-600 mb-4 text-center">Recruiter portal (UI placeholder)</p>
-              <div className="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-md cursor-not-allowed">Coming Soon</div>
+              <p className="text-sm text-gray-600 mb-4 text-center">Recruiter portal</p>
             </div>
 
             {/* Coordinator (placeholder) */}
-            <div className="p-6 rounded-lg border border-gray-100 bg-white/50 flex flex-col items-center justify-center opacity-95">
+            <div role="button"
+              onClick={() => setShowRecruiterGoogleModal(true)}
+              className="cursor-pointer p-6 rounded-lg border border-gray-100 hover:shadow-lg transition-shadow bg-white">
               <div className="flex items-center justify-center mb-4">
                 <div className="w-20 h-20 rounded-lg bg-white shadow flex items-center justify-center overflow-hidden">
                   <img src="profile/coordinator.png" alt="coordinator" className="w-full h-full object-contain" />
                 </div>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center">Coordinator</h3>
-              <p className="text-sm text-gray-600 mb-4 text-center">Coordinator portal (UI placeholder)</p>
-              <div className="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-md cursor-not-allowed">Coming Soon</div>
+              <p className="text-sm text-gray-600 mb-4 text-center">Coordinator portal</p>
             </div>
 
             {/* Staff (normal signin) */}
@@ -180,6 +199,30 @@ const Login = () => {
                 <p className="text-sm text-gray-600 mb-4">Sign in with your student Google account</p>
                 <div className="flex justify-center">
                   <GoogleSignIn onSuccess={(user) => { setShowStudentGoogleModal(false); handleGoogleSuccess(user); }} onError={handleGoogleError} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showRecruiterGoogleModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Recruiter Sign in</h3>
+                  <button onClick={() => setShowRecruiterGoogleModal(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">Choose your preferred sign-in method</p>
+                <div className="flex flex-col gap-3">
+                  <GoogleSignIn onSuccess={(user) => { setShowRecruiterGoogleModal(false); handleGoogleSuccess(user); }} onError={handleGoogleError} />
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-300"></div>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-2 bg-white text-gray-500">or</span>
+                    </div>
+                  </div>
+                  <LinkedInSignIn onSuccess={(user) => { setShowRecruiterGoogleModal(false); handleGoogleSuccess(user); }} onError={handleGoogleError} />
                 </div>
               </div>
             </div>

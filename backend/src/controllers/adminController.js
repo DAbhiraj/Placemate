@@ -57,59 +57,7 @@ export const adminController = {
         }
     },
 
-    // Job Management
-    async createJob(req, res) {
-        try {
-            console.log("inside controller");
-            console.log(req.body);
-            const job = await adminService.createJob(req.body);
-            res.status(201).json(job);
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ message: "Failed to create job" });
-        }
-    },
-
-    async getJobs(req, res) {
-        try {
-            const jobs = await adminService.getAllJobs();
-            res.json(jobs);
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ message: "Failed to fetch jobs" });
-        }
-    },
-
-    async updateJob(req, res) {
-        try {
-            const job = await adminService.updateJob(req.params.id, req.body);
-            res.json(job);
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ message: "Failed to update job" });
-        }
-    },
-
-    async deleteJob(req, res) {
-        try {
-            await adminService.deleteJob(req.params.id);
-            res.json({ message: "Job deleted successfully" });
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ message: "Failed to delete job" });
-        }
-    },
-
-    // Application Management
-    async getApplicationsForJob(req, res) {
-        try {
-            const applications = await adminService.getApplicationsForJob(req.params.jobId);
-            res.json(applications);
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ message: "Failed to fetch applications" });
-        }
-    },
+   
 
     async updateApplicationStatus(req, res) {
         try {

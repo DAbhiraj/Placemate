@@ -1,7 +1,7 @@
 // src/routes.js
 import express from "express";
 import multer from "multer";
-import { register, login, googleLogin } from "./controllers/authcontroller.js";
+import { register, login, googleLogin, linkedinLogin } from "./controllers/authcontroller.js";
 import CompanyController from "./controllers/companyController.js";
 import AlumniController from "./controllers/alumniController.js";
 import { ProfileController, uploadMiddleware } from "./controllers/profileController.js";
@@ -10,6 +10,10 @@ import { jobController } from "./controllers/jobController.js";
 import jwt from "jsonwebtoken";
 import { notificationController } from "./controllers/notificationController.js";
 import { adminController } from "./controllers/adminController.js";
+import { recruiterController } from "./controllers/recruiterController.js";
+import { spocController } from "./controllers/spocController.js";
+import { recruiterKycController } from "./controllers/recruiterKycController.js";
+import { uploadController } from "./controllers/uploadController.js";
 
 const router = express.Router();
 
@@ -19,11 +23,6 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-// Middleware for authentication (mock)
-router.use((req, res, next) => {
-  req.user = { id: 1 }; // student
-  next();
-});
 
 
 router.get("/notifications/:userId",notificationController.getUserNotifications);
@@ -36,6 +35,7 @@ router.get("/notifications/all",notificationController.getAllNotifications);
 router.post("/auth/register", register);
 router.post("/auth/login", login);
 router.post("/auth/google", googleLogin);
+router.post("/auth/linkedin", linkedinLogin);
 
 router.post("/register", register);
 router.post("/login", login);
@@ -80,13 +80,15 @@ router.put("/admin/companies/:id", adminController.updateCompany);
 router.delete("/admin/companies/:id", adminController.deleteCompany);
 
 // Job Management
-router.post("/admin/jobs", adminController.createJob);
-router.get("/admin/jobs", adminController.getJobs);
-router.put("/admin/jobs/:id", adminController.updateJob);
-router.delete("/admin/jobs/:id", adminController.deleteJob);
+router.post("/recruiter/jobs", recruiterController.createJob);
+router.get("/recruiter/jobs", recruiterController.getJobs);
+router.get("/recruiter/:recruiterId", recruiterController.getRecruiter);
+router.get("/recruiter/jobs/:company", recruiterController.getJobsByCompany);
+router.put("/recruiter/jobs/:id", recruiterController.updateJob);
+router.delete("/recruiter/jobs/:id", recruiterController.deleteJob);
 
 // Application Management
-router.get("/admin/jobs/:jobId/applications", adminController.getApplicationsForJob);
+router.get("/jobs/:jobId/applications", recruiterController.getApplicationsForJob);
 router.put("/admin/applications/:applicationId/status", adminController.updateApplicationStatus);
 router.put("/admin/jobs/:jobId/applications/bulk-status", adminController.updateBulkApplicationStatus);
 
@@ -100,5 +102,23 @@ router.put("/admin/students/:studentId/status", adminController.updateStudentSta
 // Notification Management
 router.post("/admin/send-notification", upload.single('excelFile'), adminController.sendNotification);
 router.post("/admin/send-notification-roles", adminController.sendNotificationToRoles);
+
+// SPOC Routes
+router.get("/spoc/:spocId/assigned-jobs", spocController.getAssignedJobs);
+router.post("/spoc/assign-job", spocController.assignJob);
+router.put("/spoc/:spocId/jobs/:jobId/status", spocController.updateStatus);
+router.put("/spoc/:spocId/jobs/:jobId/messages", spocController.updateMessageCount);
+router.put("/spoc/:spocId/jobs/:jobId/changes", spocController.updateHasChanges);
+router.delete("/spoc/:spocId/jobs/:jobId", spocController.removeAssignment);
+
+// Recruiter KYC Routes
+router.post("/recruiter/:recruiterId/kyc", recruiterKycController.submitKyc);
+router.get("/recruiter/:recruiterId/kyc", recruiterKycController.getKyc);
+router.get("/admin/recruiter-kyc/pending", recruiterKycController.getPendingKyc);
+router.put("/admin/recruiter-kyc/:kycId/approve", recruiterKycController.approveKyc);
+router.put("/admin/recruiter-kyc/:kycId/reject", recruiterKycController.rejectKyc);
+
+// Upload Routes
+router.post("/upload/document", upload.single('file'), uploadController.uploadDocument);
 
 export default router;

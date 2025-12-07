@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { GraduationCap, Bell, User, ChevronDown } from "lucide-react"
 import { getNotificationTypeColor } from "../../utils/helpers"
+import { Briefcase, Users, MessageSquare, Plus, LayoutDashboard } from 'lucide-react';
 import axios from "axios"
 
 const API_URL = import.meta.env.VITE_API_URL ;
@@ -88,11 +89,18 @@ const Navbar = () => {
     ? [
       { path: "/admin", label: "Admin Panel" }
     ]
-    : role === "faculty" || role === "placement_coordinator"
+    : role === "recruiter" 
     ? [
-      { path: "/dashboard", label: "Dashboard" },
-      { path: "/jobs", label: "Job Opportunities" },
-      // { path: "/alumni", label: "Alumni Stories" },
+        { path: "/recruiter/viewjobs", label: 'View Jobs', icon: Briefcase },
+        { path: "/recruiter/spocmsgs", label: 'SPOC Messages', icon: MessageSquare },
+        // { path: "/recruiter/candidates", label: 'Candidates', icon: Users },
+    ]
+    :  role === "spoc" 
+    ? [
+        // { path: "/spoc/dashboard" , label: 'Dashboard', icon: LayoutDashboard },
+        { path: "/spoc/assignedjobs", label: 'Assigned Companies', icon: Briefcase },
+        { path: "/spoc/recruitermsgs", label: 'Recruiter Messages', icon: MessageSquare },
+        { path: "/spoc/studentgrp", label: 'Student groups', icon: Users },
     ]
     : [
       { path: "/dashboard", label: "Dashboard" },

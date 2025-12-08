@@ -115,9 +115,9 @@ export const adminController = {
         try {
             const { applicationId } = req.params;
             let { status } = req.body;
-            // If admin indicates this shortlist is specifically for interview, use interview_shortlist
+            // If admin indicates this shortlist is specifically for interview, use shortlisted
             if (status === 'shortlist' && req.body.interview === true) {
-                status = 'interview_shortlist';
+                status = 'shortlisted';
             }
             const result = await adminService.updateApplicationStatus(applicationId, status);
             res.json(result);
@@ -274,8 +274,10 @@ function getUpdateTypeText(statusUpdate) {
     switch (statusUpdate) {
         case "shortlist":
             return "Shortlisted";
-        case "interview_shortlist":
+        case "shortlisted":
             return "Interview Shortlisted";
+        case "interviewed":
+            return "Interviewed";
         case "selected":
             return "Selected";
         case "rejected":
@@ -290,8 +292,10 @@ function getDefaultMessage(statusUpdate, companyName) {
     switch (statusUpdate) {
         case "shortlist":
             return `Congratulations! You have been shortlisted for ${companyName}. Please check your email for further details.`;
-        case "interview_shortlist":
+        case "shortlisted":
             return `Great news! You have been shortlisted for the interview round at ${companyName}. Please prepare well and check your email for interview details.`;
+        case "interviewed":
+            return `Thank you for attending the interview at ${companyName}. We will notify you of the results soon.`;
         case "selected":
             return `Congratulations! You have been selected for ${companyName}. Welcome to the team! Please check your email for next steps.`;
         case "rejected":
@@ -306,8 +310,10 @@ function getNotificationType(statusUpdate) {
     switch (statusUpdate) {
         case "shortlist":
             return "APPLICATION_STATUS_SHORTLISTED";
-        case "interview_shortlist":
+        case "shortlisted":
             return "INTERVIEW_SHORTLISTED";
+        case "interviewed":
+            return "APPLICATION_STATUS_INTERVIEWED";
         case "selected":
             return "APPLICATION_STATUS_SELECTED";
         case "rejected":

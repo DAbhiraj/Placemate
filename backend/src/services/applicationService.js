@@ -1,3 +1,5 @@
+// src/services/applicationService.js
+
 import { applicationRepository } from "../repo/applicationRepo.js";
 import { notificationService } from "./notificationService.js";
 import ExcelJS from "exceljs";
@@ -18,7 +20,7 @@ export const applicationService = {
     let application;
 
     if (existing) {
-      application = await applicationRepository.update(existing.id, answers, resumeUrl);
+      application = await applicationRepository.update(existing.appl_id, answers, resumeUrl);
       // Asynchronous notification
       setImmediate(() => {
         notificationService.notifyStudent(
@@ -40,6 +42,25 @@ export const applicationService = {
 
     return application;
   },
+  
+  // 👇 NEW FUNCTION: Get dashboard data
+  getDashboardData: async (studentId) => {
+    const profile = await applicationRepository.getStudentProfile(studentId); 
+    
+    if (!profile) {
+        throw new Error("Student profile not found. Cannot determine job eligibility.");
+    }
+    
+    const { branch, cgpa } = profile; 
+    
+    const dashboardData = await applicationRepository.getStudentDashboardData(
+        studentId, 
+        branch, 
+        cgpa
+    );
+    
+    return dashboardData;
+  },
 
   generateCompanyReport: async (companyName) => {
     const applications = await applicationRepository.getApplicationsByCompany(companyName);
@@ -55,7 +76,7 @@ export const applicationService = {
       { header: 'Company Name', key: 'company_name', width: 20 },
       { header: 'Role', key: 'role', width: 20 },
       { header: 'Location', key: 'location', width: 20 },
-      { header: 'Package Range', key: 'package_range', width: 15 },
+      { header: 'Package Range', key: 'package', width: 15 },
       { header: 'Status', key: 'application_status', width: 15 },
       { header: 'Resume URL', key: 'resume_url', width: 30 },
       { header: 'Applied At', key: 'created_at', width: 20 },
@@ -66,11 +87,4 @@ export const applicationService = {
     const buffer = await workbook.xlsx.writeBuffer();
     return buffer;
   },
-
- async getApplicationByUser(userId){
-  const data = await applicationRepository.findApplicationByUser(userId);
-  return data;
- }
-
-  
 };

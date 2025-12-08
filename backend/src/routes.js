@@ -19,11 +19,12 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-// Middleware for authentication (mock)
-router.use((req, res, next) => {
-  req.user = { id: 1 }; // student
-  next();
-});
+// // Middleware for authentication (mock)
+// router.use((req, res, next) => {
+//   req.user = { id: '76f76f47-58db-49a4-bd12-0b91ba259d6e' }; // student (Assuming '1' is a valid student user_id in your DB) 
+//   // '76f76f47-58db-49a4-bd12-0b91ba259d6e'
+//   next();
+// });
 
 
 router.get("/notifications/:userId",notificationController.getUserNotifications);
@@ -41,6 +42,7 @@ router.post("/register", register);
 router.post("/login", login);
 
 // applications
+router.get("/applications/dashboard", applicationController.getDashboardData);
 router.get('/exports', applicationController.downloadCompanyReport);
 router.get("/upcoming-deadlines/:userId",applicationController.getUpcomingDeadline);
 router.get("/applications/userId/:userId", applicationController.getApplicationByUser);
@@ -68,7 +70,7 @@ router.put("/profile/skills/:userId",  ProfileController.updateSkills);
 router.post("/profile/resume",  uploadMiddleware, ProfileController.uploadResume);
 router.get("/profile/resume",  ProfileController.getResume);
 router.delete("/profile/resume",  ProfileController.deleteResume);
-router.get("/profile/ats-score",  ProfileController.getATSScore);
+// router.get("/profile/ats-score",  ProfileController.getATSScore);
 router.post("/profile/onboarding",  uploadMiddleware, ProfileController.onboarding);
 
 // Parse resume endpoint (returns parsed JSON from resume)

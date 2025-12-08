@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/student/Dashboard';
-import Applications from './pages/student/MyApplications';
+// import Applications from './pages/student/MyApplications';
 import Profile from './pages/student/Profile';
 import Alumni from '../waste/Alumini';
 import Admin from './pages/admin/Admin';
@@ -29,7 +29,7 @@ function App() {
         {/* Routes with navbar (via Layout) */}
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/applications" element={<Applications />} />
+          {/* <Route path="/applications" element={<Applications />} /> */}
           <Route path="/profile" element={<Profile />} />
           <Route path="/alumni" element={<Alumni />} />
           <Route path="/admin" element={<Admin />} />

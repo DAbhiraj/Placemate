@@ -41,21 +41,27 @@ export default function Candidates() {
       
       if (jobId) {
         // Fetch applications for specific job
-        const applicationsResponse = await fetch(`${API_BASE_URL}/jobs/${jobId}/applications`);
-        const applications = await applicationsResponse.json();
+        const applicationsResponse = await axios.get(`${API_BASE_URL}/jobs/${jobId}/applications`, {
+          withCredentials: true
+        });
+        const applications = applicationsResponse.data;
         
         if (Array.isArray(applications)) {
           allCandidates = applications;
         }
       } else {
         // Fetch all jobs first to get job IDs
-        const response = await axios.get(`${API_BASE_URL}/recruiter/jobs/${company_name}`);
+        const response = await axios.get(`${API_BASE_URL}/recruiter/jobs/${company_name}`, {
+          withCredentials: true
+        });
         const jobs = response.data;
         
         // Fetch applications for each job
         for (const job of (Array.isArray(jobs) ? jobs : jobs.jobs || [])) {
-          const applicationsResponse = await fetch(`${API_BASE_URL}/jobs/${job.job_id}/applications`);
-          const applications = await applicationsResponse.json();
+          const applicationsResponse = await axios.get(`${API_BASE_URL}/jobs/${job.job_id}/applications`, {
+            withCredentials: true
+          });
+          const applications = applicationsResponse.data;
           
           if (Array.isArray(applications)) {
             allCandidates = [...allCandidates, ...applications];
@@ -112,7 +118,9 @@ export default function Candidates() {
       console.log(companyName);
       const response = await axios.get(
         `${API_BASE_URL}/exports?companyName=${encodeURIComponent(companyName)}`,
-        { responseType: "blob" }
+        { responseType: "blob",
+          withCredentials:true
+         }
       );
 
       const url = window.URL.createObjectURL(new Blob([response.data]));

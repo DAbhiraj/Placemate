@@ -125,12 +125,15 @@ export const adminController = {
     // Notification Management
     async sendNotification(req, res) {
         try {
+            console.log(" in ntificatin cntrler ")
             const { statusUpdate, companyName, customMessage } = req.body;
             const excelFile = req.file;
 
             if (!excelFile) {
                 return res.status(400).json({ message: "Excel file is required" });
             }
+
+            console.log(excelFile,statusUpdate,companyName,customMessage)
 
             // Parse Excel file to extract emails
             const fileBuffer = fs.readFileSync(excelFile.path);

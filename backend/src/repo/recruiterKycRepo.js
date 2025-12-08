@@ -13,6 +13,8 @@ export const recruiterKycRepository = {
             years_of_experience
         } = kycData;
 
+        console.log(recruiterId);
+
         const result = await pool.query(
             `INSERT INTO recruiter_kyc (
                 recruiter_id, company_name, company_website, company_address, 

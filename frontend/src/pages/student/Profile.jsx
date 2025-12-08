@@ -225,13 +225,15 @@ const Profile = () => {
       formData.append("resume", selectedFile)
       const userId = localStorage.getItem("id");
 
-      const response = await fetch(`${API_BASE}/profile/resume?userId=${userId}`, {
-        method: "POST",
-        body: formData
+      const response = await axios.post(`${API_BASE}/profile/resume?userId=${userId}`, formData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       })
 
-      if (response.ok) {
-        const data = await response.json()
+      if (response.status === 200) {
+        const data = response.data
         setAtsScore(data.data.ats_score)
         setAtsFeedback(data.data.feedback)
         setSelectedFile(null)
@@ -239,8 +241,7 @@ const Profile = () => {
         await fetchProfile()
         alert("Resume uploaded and analyzed successfully!")
       } else {
-        const errorData = await response.json()
-        alert(`Error: ${errorData.message}`)
+        alert(`Error: ${response.data.message}`)
       }
     } catch (error) {
       console.error("Error uploading resume:", error)
@@ -253,15 +254,13 @@ const Profile = () => {
   // Download resume
   const downloadResume = async () => {
     try {
-      const token = getAuthToken()
-      const response = await fetch(`${API_BASE}/profile/resume`, {
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
+      const response = await axios.get(`${API_BASE}/profile/resume`, {
+        withCredentials: true,
+        responseType: 'blob'
       })
 
-      if (response.ok) {
-        const blob = await response.blob()
+      if (response.status === 200) {
+        const blob = response.data
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement("a")
         a.href = url
@@ -284,12 +283,11 @@ const Profile = () => {
     if (!confirm("Are you sure you want to delete your resume?")) return
 
     try {
-      const token = getAuthToken()
-      const response = await fetch(`${API_BASE}/profile/resume`, {
-        method: "DELETE",
+      const response = await axios.delete(`${API_BASE}/profile/resume`, {
+        withCredentials: true
       })
 
-      if (response.ok) {
+      if (response.status === 200) {
         setAtsScore(null)
         setAtsFeedback("")
         await fetchProfile()

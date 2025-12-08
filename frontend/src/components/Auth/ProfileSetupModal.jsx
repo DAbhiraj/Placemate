@@ -29,9 +29,11 @@ const ProfileSetupModal = ({ isOpen, onClose, onParsed }) => {
     try {
       const response = await axios.post(
         "http://localhost:4000/api/parse-resume",
+        
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
+          withCredentials : true,
         }
       );
 

@@ -41,7 +41,8 @@ CREATE TABLE jobs (
     package VARCHAR(255),
     applied_count INTEGER DEFAULT 0,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    company_logo VARCHAR(255)
+    company_logo VARCHAR(255),
+    job_status VARCHAR(100) DEFAULT 'in initial stage'
 );
 
 CREATE TABLE applications (

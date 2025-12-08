@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import { PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from "recharts";
 
 const COLORS = ["#4CAF50", "#FF5252"]; // Green = Placed, Red = Unplaced
@@ -9,9 +10,10 @@ const Stats = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch("http://localhost:4000/api/admin/dashboard/stats");
-        const data = await res.json();
-        setStats(data);
+        const res = await axios.get("http://localhost:4000/api/admin/dashboard/stats", {
+          withCredentials: true
+        });
+        setStats(res.data);
       } catch (err) {
         console.error("Error fetching stats:", err);
       }

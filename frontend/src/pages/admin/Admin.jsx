@@ -29,7 +29,7 @@ import Stats from "./Stats"
 const API_URL = "http://localhost:4000/api";
 
 const Admin = () => {
-  const { students, companies, applications } = useApp()
+  // const { students, companies, applications } = useApp()
   const [activeTab, setActiveTab] = useState("overview")
   const [searchTerm, setSearchTerm] = useState("")
 
@@ -179,10 +179,10 @@ const Admin = () => {
 
 
   const stats = {
-    totalStudents: backendStats.totalStudents || students.length,
-    activeCompanies: backendStats.totalCompanies || companies.length,
-    totalPlacements: backendStats.totalPlacements || applications.filter(app => app.status === "selected").length,
-    avgPackage: backendStats.avgPackage || "₹12.5L"
+    totalStudents: backendStats.totalStudents || 0,
+    activeCompanies: backendStats.totalCompanies || 0,
+    totalPlacements: backendStats.totalPlacements || 0,
+    avgPackage: backendStats.avgPackage || "0"
   }
 
 

@@ -60,7 +60,8 @@ const Dashboard = () => {
         console.log("fetching data");
         console.log(`${API_URL}/applications/userId/${currentUser.u_id}`)
         const appRes = await axios.get(
-          `${API_URL}/applications/userId/${currentUser.u_id}`
+          `${API_URL}/applications/userId/${currentUser.u_id}`,
+          {withCredentials:true}
         );
         const normalizedApps = (appRes.data || []).map((a) => ({
           appl_id: a.appl_id,

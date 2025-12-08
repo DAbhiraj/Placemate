@@ -102,18 +102,25 @@ const Navbar = () => {
         { path: "/spoc/recruitermsgs", label: 'Recruiter Messages', icon: MessageSquare },
         { path: "/spoc/studentgrp", label: 'Student groups', icon: Users },
     ]
-    : [
+    : role === "student" &&  [
       { path: "/dashboard", label: "Dashboard" },
       { path: "/upcoming", label: "Upcoming Deadlines" },
       { path: "/jobs", label: "Jobs" },
       { path: "/applications", label: "My Applications" },
       // { path: "/alumni", label: "Alumni Stories" },
-    ];
+    ] 
 
 
-  const handleSignOut = () => {
-    localStorage.clear()
-    window.location.href = "/" // redirect to login page
+  const handleSignOut = async () => {
+    try {
+      await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true })
+    } catch (err) {
+      console.error("Logout failed", err?.response?.data || err.message)
+    } finally {
+      sessionStorage.clear()
+      localStorage.clear()
+      window.location.href = "/" // redirect to login page
+    }
   }
 
   return (

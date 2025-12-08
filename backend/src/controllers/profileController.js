@@ -222,6 +222,7 @@ export class ProfileController {
         );
 
         const parsed = response.data;
+        
         console.log(parsed.data);
 
 

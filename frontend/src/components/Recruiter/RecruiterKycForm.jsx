@@ -102,8 +102,7 @@ const RecruiterKycForm = ({ recruiterData, onSuccess }) => {
 
     setLoading(true);
     try {
-      const recruiterId = localStorage.getItem('id');
-      const response = await axios.post(`${API_URL}/recruiter/${recruiterId}/kyc`, {
+      const response = await axios.post(`${API_URL}/recruiter/kyc`, {
         company_name: formData.company_name,
         company_website: formData.company_website || null,
         company_address: formData.company_address,

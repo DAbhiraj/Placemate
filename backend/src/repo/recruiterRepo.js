@@ -13,7 +13,8 @@ export const recruiterRepo = {
     eligible_branches,
     salary,
     location,
-    job_type
+    job_type,
+    job_status
   ) {
     console.log([
       company_name,
@@ -40,8 +41,9 @@ export const recruiterRepo = {
     job_type,
     eligible_branches,
     package,
-    location
-  ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+    location,
+    job_status
+  ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
   RETURNING *`,
       [
         company_name,
@@ -53,8 +55,9 @@ export const recruiterRepo = {
         min_cgpa,
         job_type,
         eligible_branches,
-        salary, // this is for "package"
+        salary,
         location,
+        job_status || 'in initial stage'
       ]
     );
 

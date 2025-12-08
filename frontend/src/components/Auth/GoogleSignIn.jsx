@@ -2,7 +2,7 @@ import React, { useState,useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import axios from 'axios';
 
-const GoogleSignIn = ({ onSuccess, onError }) => {
+const GoogleSignIn = ({ onSuccess, onError, role }) => {
   //const { setCurrentUser } = useApp();
   const [currentUser,setCurrentUser] = useState({});
   const googleButtonRef = useRef(null);
@@ -34,18 +34,19 @@ const GoogleSignIn = ({ onSuccess, onError }) => {
       console.log("response in google sign in", response);
       
       try {
+        const userRole = role || localStorage.getItem("role") || "Student";
         const res = await axios.post(
           'http://localhost:4000/api/auth/google',
-          { idToken: response.credential }, // ✅ data goes here
-         // { headers: { 'Content-Type': 'application/json' } } // ✅ config (headers) here
+          { idToken: response.credential, role: userRole }, 
+          { withCredentials: true }
         );
     
         // Axios automatically parses JSON response
         const data = res.data;
-    
-        localStorage.setItem('token', data.token);
+
         setCurrentUser(data.user);
         onSuccess?.(data.user);
+        
     
       } catch (error) {
         console.error('Google Sign-In Error:', error);
@@ -68,7 +69,7 @@ const GoogleSignIn = ({ onSuccess, onError }) => {
         }
       }, 100);
     }
-  }, [setCurrentUser, onSuccess, onError]);
+  }, [setCurrentUser, onSuccess, onError, role]);
 
   return (
     <div className="flex flex-col items-center space-y-4">

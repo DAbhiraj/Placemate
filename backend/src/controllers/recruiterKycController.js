@@ -1,14 +1,23 @@
 import { recruiterKycService } from "../services/recruiterKycService.js";
+import { keycloakService } from "../services/keycloakService.js";
+
+const ACCESS_TOKEN_COOKIE = "pm_access_token";
 
 export const recruiterKycController = {
     async submitKyc(req, res) {
         try {
-            const { recruiterId } = req.params;
-            const kycData = req.body;
-
-            if (!recruiterId) {
-                return res.status(400).json({ message: "Recruiter ID is required" });
+            // Extract recruiterId from auth cookie (Keycloak ID is used as user_id in database)
+            const accessToken = req.cookies[ACCESS_TOKEN_COOKIE];
+            if (!accessToken) {
+                return res.status(401).json({ message: "Not authenticated" });
             }
+
+            const recruiterId = keycloakService.decodeUserId(accessToken);
+            if (!recruiterId) {
+                return res.status(401).json({ message: "Invalid authentication token" });
+            }
+
+            const kycData = req.body;
 
             const kyc = await recruiterKycService.submitKyc(recruiterId, kycData);
             res.status(201).json({
@@ -23,10 +32,15 @@ export const recruiterKycController = {
 
     async getKyc(req, res) {
         try {
-            const { recruiterId } = req.params;
+            // Extract recruiterId from auth cookie (Keycloak ID is used as user_id in database)
+            const accessToken = req.cookies[ACCESS_TOKEN_COOKIE];
+            if (!accessToken) {
+                return res.status(401).json({ message: "Not authenticated" });
+            }
 
+            const recruiterId = keycloakService.decodeUserId(accessToken);
             if (!recruiterId) {
-                return res.status(400).json({ message: "Recruiter ID is required" });
+                return res.status(401).json({ message: "Invalid authentication token" });
             }
 
             const kyc = await recruiterKycService.getRecruiterKyc(recruiterId);

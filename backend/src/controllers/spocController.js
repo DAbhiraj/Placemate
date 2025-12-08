@@ -4,10 +4,10 @@ export const spocController = {
     // Get all jobs assigned to a SPOC
     async getAssignedJobs(req, res) {
         try {
-            const { spocId } = req.params;
+            const spocId = req.user.id; // Get spocId from authenticated user (cookies)
             
             if (!spocId) {
-                return res.status(400).json({ message: "SPOC ID is required" });
+                return res.status(401).json({ message: "SPOC ID not found in authentication" });
             }
 
             const jobs = await spocService.getAssignedJobs(spocId);
@@ -35,28 +35,11 @@ export const spocController = {
         }
     },
 
-    // Update assignment status
-    async updateStatus(req, res) {
-        try {
-            const { spocId, jobId } = req.params;
-            const { status } = req.body;
-
-            if (!status) {
-                return res.status(400).json({ message: "Status is required" });
-            }
-
-            const updated = await spocService.updateStatus(spocId, jobId, status);
-            res.json(updated);
-        } catch (err) {
-            console.error("Error updating status:", err);
-            res.status(500).json({ message: "Failed to update status" });
-        }
-    },
-
     // Update message count
     async updateMessageCount(req, res) {
         try {
-            const { spocId, jobId } = req.params;
+            const spocId = req.user.id; // Get spocId from authenticated user (cookies)
+            const { jobId } = req.params;
             const { count } = req.body;
 
             if (count === undefined) {
@@ -74,7 +57,8 @@ export const spocController = {
     // Update has_changes flag
     async updateHasChanges(req, res) {
         try {
-            const { spocId, jobId } = req.params;
+            const spocId = req.user.id; // Get spocId from authenticated user (cookies)
+            const { jobId } = req.params;
             const { hasChanges } = req.body;
 
             if (hasChanges === undefined) {
@@ -92,13 +76,44 @@ export const spocController = {
     // Remove assignment
     async removeAssignment(req, res) {
         try {
-            const { spocId, jobId } = req.params;
+            const spocId = req.user.id; // Get spocId from authenticated user (cookies)
+            const { jobId } = req.params;
 
             await spocService.removeAssignment(spocId, jobId);
             res.json({ message: "Assignment removed successfully" });
         } catch (err) {
             console.error("Error removing assignment:", err);
             res.status(500).json({ message: "Failed to remove assignment" });
+        }
+    },
+
+    // Update job status (SPOC manual update)
+    async updateJobStatus(req, res) {
+        try {
+            const spocId = req.user.id; // Get spocId from authenticated user (cookies)
+            const { jobId } = req.params;
+            const { job_status } = req.body;
+
+            if (!job_status) {
+                return res.status(400).json({ message: "Job status is required" });
+            }
+
+            const updated = await spocService.updateJobStatus(spocId, jobId, job_status);
+            res.json(updated);
+        } catch (err) {
+            console.error("Error updating job status:", err);
+            res.status(500).json({ message: err.message || "Failed to update job status" });
+        }
+    },
+
+    // System auto-update job statuses (called by cron or manually)
+    async autoUpdateJobStatuses(req, res) {
+        try {
+            const result = await spocService.autoUpdateJobStatuses();
+            res.json(result);
+        } catch (err) {
+            console.error("Error auto-updating job statuses:", err);
+            res.status(500).json({ message: "Failed to auto-update job statuses" });
         }
     }
 };

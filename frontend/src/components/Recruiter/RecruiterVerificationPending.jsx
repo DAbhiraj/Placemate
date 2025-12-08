@@ -22,7 +22,7 @@ const RecruiterVerificationPending = ({ recruiterId, onVerified }) => {
   const checkKycStatus = async () => {
     try {
       const response = await axios.get(
-        `${API_URL}/recruiter/${recruiterId}/kyc`
+        `${API_URL}/recruiter/kyc`
       );
       setKycStatus(response.data);
       setLoading(false);

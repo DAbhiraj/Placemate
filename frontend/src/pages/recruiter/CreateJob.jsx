@@ -1,5 +1,6 @@
 import { Briefcase, DollarSign, MapPin, Calendar, Users, FileText, X, IndianRupee } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:4000/api';
 
@@ -29,6 +30,16 @@ const LOCATIONS = [
   'Remote'
 ];
 
+const JOB_STATUSES = [
+  'in initial stage',
+  'in review',
+  'in negotiation',
+  'applications opened',
+  'ot conducted',
+  'interview',
+  'completed the drive'
+];
+
 export default function CreateJob({ isModal = false, jobId = null, initialData = null, onClose = null, onJobCreated = null }) {
   const [formData, setFormData] = useState({
     companyName: localStorage.getItem("company"),
@@ -38,6 +49,7 @@ export default function CreateJob({ isModal = false, jobId = null, initialData =
     salary: '',
     deadline: '',
     jobType: 'Full Time',
+    jobStatus: 'in initial stage',
     description: '',
     skills: '',
     minimumCgpa: '',
@@ -125,57 +137,56 @@ export default function CreateJob({ isModal = false, jobId = null, initialData =
         eligible_branches: formData.department,
         package_range: formData.salary,
         location: formData.location,
-        job_type: formData.jobType
+        job_type: formData.jobType,
+        job_status: formData.jobStatus
       };
 
       const url = isEditing 
         ? `${API_BASE_URL}/recruiter/jobs/${jobId}`
         : `${API_BASE_URL}/recruiter/jobs`;
 
-      const response = await fetch(url, {
+      const response = await axios({
         method: isEditing ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(jobPayload)
+        url: url,
+        data: jobPayload,
+        withCredentials: true
       });
 
-      if (!response.ok) {
-        throw new Error(isEditing ? 'Failed to update job' : 'Failed to create job');
-      }
-
-      const data = await response.json();
-      setSuccess(isEditing ? 'Job updated successfully!' : 'Job posted successfully!');
-      
-      // Call callback if provided
-      if (onJobCreated) {
-        onJobCreated(data);
-      }
-      
-      // Reset form
-      setFormData({
-        companyName: localStorage.getItem('company'),
-        jobRole: '',
-        department: [],
-        location: [],
-        salary: '',
-        deadline: '',
-        jobType: '',
-        description: '',
-        skills: '',
-        minimumCgpa: '',
-        eligibleBranches: '',
-        onlineAssessmentDate: '',
-        interviewDates: ['']
-      });
-
-      setTimeout(() => {
-        setSuccess('');
-        // Close modal if in modal mode
-        if (isModal && onClose) {
-          onClose();
+      if (response.status === 200 || response.status === 201) {
+        const data = response.data;
+        setSuccess(isEditing ? 'Job updated successfully!' : 'Job posted successfully!');
+        
+        // Call callback if provided
+        if (onJobCreated) {
+          onJobCreated(data);
         }
-      }, 2000);
+        
+        // Reset form
+        setFormData({
+          companyName: localStorage.getItem('company'),
+          jobRole: '',
+          department: [],
+          location: [],
+          salary: '',
+          deadline: '',
+          jobType: 'Full Time',
+          jobStatus: 'in initial stage',
+          description: '',
+          skills: '',
+          minimumCgpa: '',
+          eligibleBranches: '',
+          onlineAssessmentDate: '',
+          interviewDates: ['']
+        });
+
+        setTimeout(() => {
+          setSuccess('');
+          // Close modal if in modal mode
+          if (isModal && onClose) {
+            onClose();
+          }
+        }, 2000);
+      }
     } catch (err) {
       setError(err.message || 'Error creating job. Please try again.');
     } finally {
@@ -318,6 +329,24 @@ export default function CreateJob({ isModal = false, jobId = null, initialData =
               >
                 <option>Full Time</option>
                 <option>Internship</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Job Status *
+              </label>
+              <select 
+                name="jobStatus"
+                value={formData.jobStatus}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              >
+                {JOB_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

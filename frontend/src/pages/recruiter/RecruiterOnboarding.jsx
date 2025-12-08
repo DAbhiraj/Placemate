@@ -37,7 +37,7 @@ const RecruiterOnboarding = () => {
       });
 
       // Check if recruiter is verified
-      const userResponse = await axios.get(`${API_URL}/recruiter/${recruiterId}`);
+      const userResponse = await axios.get(`${API_URL}/recruiter`,{withCredentials:true});
       const user = userResponse.data;
 
       if (user.is_verified) {
@@ -48,7 +48,7 @@ const RecruiterOnboarding = () => {
       }
 
       // Check if KYC already submitted
-      const kycResponse = await axios.get(`${API_URL}/recruiter/${recruiterId}/kyc`);
+      const kycResponse = await axios.get(`${API_URL}/recruiter/kyc`,{withCredentials:true});
       if (kycResponse.data) {
         // KYC submitted, check status
         if (kycResponse.data.approval_status === 'approved') {

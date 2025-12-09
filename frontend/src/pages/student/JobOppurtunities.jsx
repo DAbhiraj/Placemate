@@ -10,7 +10,6 @@ import {
   ArrowRight,
   Lock,
 } from "lucide-react";
-import ApplicationForm from "./ApplicationForm"; // Assuming this is in the same folder
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -130,14 +129,13 @@ const JobOpportunities = () => {
   }, [jobs]);
 
   // 3. Modal/Form Handling (from JobsPage.jsx)
+  // For Jobs page: just show job details in a read-only modal (no ApplicationForm)
   const handleViewDetailsClick = (job) => {
     setSelectedJob(job);
   };
 
   const handleCloseForm = () => {
     setSelectedJob(null);
-    // Refresh applied jobs list after closing form
-    fetchUserApplications();
   };
 
   // 4. Filter and Sort Logic (from Companies.jsx, adapted for Jobs)
@@ -189,15 +187,79 @@ const JobOpportunities = () => {
       }
     });
 
-  // 5. Render ApplicationForm if a job is selected (from JobsPage.jsx)
+  // 5. Render job details in read-only modal (no apply button; user applies via Applications tab)
   if (selectedJob) {
-    const isApplied = appliedJobs.has(selectedJob.id);
     return (
-      <ApplicationForm
-        job={selectedJob}
-        isApplied={isApplied}
-        onClose={handleCloseForm}
-      />
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden w-full max-w-3xl my-8">
+          <div className="bg-slate-900 px-8 py-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-white mb-2">
+                  {selectedJob.title}
+                </h1>
+                <p className="text-slate-300">
+                  {selectedJob.company} • {selectedJob.location}
+                </p>
+                {selectedJob.description && (
+                  <>
+                    <p className="mt-3 text-white text-sm leading-relaxed max-w-2xl font-bold">
+                      Description
+                    </p>
+                    <p className="mt-3 text-slate-400 text-sm leading-relaxed max-w-2xl">
+                      {selectedJob.description}
+                    </p>
+                  </>
+                )}
+              </div>
+              <button
+                onClick={handleCloseForm}
+                className="text-white hover:text-slate-300 transition"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <div className="p-8">
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+              {selectedJob.salary && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Package
+                  </label>
+                  <p className="text-lg font-semibold text-slate-900">{selectedJob.salary}</p>
+                </div>
+              )}
+              {selectedJob.application_deadline && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Application Deadline
+                  </label>
+                  <p className="text-lg font-semibold text-slate-900">
+                    {new Date(selectedJob.application_deadline).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg mb-6">
+              <p className="text-sm font-medium">
+                ℹ️ To apply for this job, please visit the <strong>Applications</strong> or <strong>Upcoming Deadlines</strong> tabs.
+              </p>
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={handleCloseForm}
+                className="flex-1 px-6 py-3 border border-slate-300 text-slate-700 rounded-lg font-semibold hover:bg-slate-50 transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -365,35 +427,15 @@ const JobOpportunities = () => {
                       </div>
                     </div>
 
-                    {/* Footer / Actions (from Companies.jsx, logic from JobsPage.jsx) */}
+                    {/* Footer / Actions: View-only details button (apply via Applications tab) */}
                     <div className="flex items-center justify-end pt-4 border-t border-gray-100">
-                      {(!job.application_deadline || new Date(job.application_deadline) >= new Date()) && (
-                        <button
-                          onClick={() => handleViewDetailsClick(job)}
-                          disabled={isStudentSelected} // ✅ disable if selected anywhere
-                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
-                            isStudentSelected
-                              ? "bg-gray-400 cursor-not-allowed text-white"
-                              : isApplied
-                              ? "bg-green-600 hover:bg-green-700 text-white"
-                              : "bg-blue-600 hover:bg-blue-700 text-white"
-                          }`}
-                        >
-                          <span>
-                            {isStudentSelected
-                              ? "Applications Locked"
-                              : isApplied
-                              ? "View Application"
-                              : "View & Apply"}
-                          </span>
-                          {!isApplied && !isStudentSelected && (
-                            <ArrowRight className="w-4 h-4" />
-                          )}
-                        </button>
-                      )}
-                      {job.application_deadline && new Date(job.application_deadline) < new Date() && (
-                        <span className="text-red-500 font-medium">Application Closed</span>
-                      )}
+                      <button
+                        onClick={() => handleViewDetailsClick(job)}
+                        className="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 bg-gray-600 hover:bg-gray-700 text-white"
+                      >
+                        <span>View Details</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 </div>

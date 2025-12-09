@@ -45,6 +45,7 @@ router.post("/auth/linkedin", linkedinLogin);
 router.use(requireAuth);
 
 // applications
+router.get("/applications/dashboard", applicationController.getDashboardData);
 router.get('/exports', applicationController.downloadCompanyReport);
 router.get("/upcoming-deadlines/:userId",applicationController.getUpcomingDeadline);
 router.get("/applications/userId/:userId", applicationController.getApplicationByUser);
@@ -72,7 +73,7 @@ router.put("/profile/skills/:userId",  ProfileController.updateSkills);
 router.post("/profile/resume",  uploadMiddleware, ProfileController.uploadResume);
 router.get("/profile/resume",  ProfileController.getResume);
 router.delete("/profile/resume",  ProfileController.deleteResume);
-router.get("/profile/ats-score",  ProfileController.getATSScore);
+// router.get("/profile/ats-score",  ProfileController.getATSScore);
 router.post("/profile/onboarding",  uploadMiddleware, ProfileController.onboarding);
 
 // Parse resume endpoint (returns parsed JSON from resume)

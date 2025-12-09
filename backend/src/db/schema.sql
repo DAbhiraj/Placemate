@@ -47,8 +47,8 @@ CREATE TABLE jobs (
 
 CREATE TABLE applications (
     appl_id SERIAL PRIMARY KEY,
-    user_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE, -- User ID
-    job_id INTEGER REFERENCES jobs(id) ON DELETE CASCADE, -- Job ID
+    user_id VARCHAR(255) REFERENCES users(user_id) ON DELETE CASCADE, -- User ID
+    job_id INTEGER REFERENCES jobs(job_id) ON DELETE CASCADE, -- Job ID
     answers JSONB DEFAULT '{}',
     resume_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -58,7 +58,7 @@ CREATE TABLE applications (
 
 CREATE TABLE notifications (
     notification_id SERIAL PRIMARY KEY,
-    id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE, -- User ID
+    id VARCHAR(255) REFERENCES users(user_id) ON DELETE CASCADE, -- User ID
     message TEXT,
     type TEXT,
     is_read BOOLEAN DEFAULT false,

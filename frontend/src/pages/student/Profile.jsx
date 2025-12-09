@@ -33,8 +33,8 @@ const Profile = () => {
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
-  const [atsScore, setAtsScore] = useState(null)
-  const [atsFeedback, setAtsFeedback] = useState("")
+  // const [atsScore, setAtsScore] = useState(null)
+  // const [atsFeedback, setAtsFeedback] = useState("")
 
   // API Base URL
   const API_BASE = "http://localhost:4000/api"
@@ -80,8 +80,8 @@ const Profile = () => {
           skillsArr = [];
         }
         setSkills(skillsArr);
-        setAtsScore(data.data.ats_score || 0)
-        setAtsFeedback(data.data.ats_feedback || "")
+        // setAtsScore(data.data.ats_score || 0)
+        // setAtsFeedback(data.data.ats_feedback || "")
 
         setCurrentUser(prev => ({
           ...prev,
@@ -232,10 +232,10 @@ const Profile = () => {
         }
       })
 
-      if (response.status === 200) {
-        const data = response.data
-        setAtsScore(data.data.ats_score)
-        setAtsFeedback(data.data.feedback)
+      if (response.ok) {
+        const data = await response.json()
+        // setAtsScore(data.data.ats_score)
+        // setAtsFeedback(data.data.feedback)
         setSelectedFile(null)
         // Refresh profile data
         await fetchProfile()
@@ -287,9 +287,9 @@ const Profile = () => {
         withCredentials: true
       })
 
-      if (response.status === 200) {
-        setAtsScore(null)
-        setAtsFeedback("")
+      if (response.ok) {
+        // setAtsScore(null)
+        // setAtsFeedback("")
         await fetchProfile()
         alert("Resume deleted successfully")
       } else {
@@ -343,20 +343,6 @@ const Profile = () => {
       }
       setSelectedFile(file)
     }
-  }
-
-  const resumeScoreColor = score => {
-    if (score >= 90) return "text-green-600"
-    if (score >= 75) return "text-blue-600"
-    if (score >= 60) return "text-yellow-600"
-    return "text-red-600"
-  }
-
-  const resumeScoreLabel = score => {
-    if (score >= 90) return "Excellent"
-    if (score >= 75) return "Good"
-    if (score >= 60) return "Average"
-    return "Needs Improvement"
   }
 
   if (loading) {
@@ -631,90 +617,9 @@ const Profile = () => {
                     </div>
                   )}
                 </div>
-
-                {/* ATS Feedback */}
-                {atsFeedback && (
-                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">ATS Feedback:</h4>
-                    <p className="text-sm text-gray-700">{atsFeedback}</p>
-                  </div>
-                )}
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Resume Score & Quick Actions */}
-        <div className="space-y-6">
-          {/* Resume Score */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Resume Score
-            </h3>
-            <div className="text-center">
-              <div className="relative inline-flex items-center justify-center w-32 h-32 mb-4">
-                <svg className="w-32 h-32 transform -rotate-90">
-                  <circle
-                    cx="64"
-                    cy="64"
-                    r="56"
-                    stroke="currentColor"
-                    strokeWidth="8"
-                    fill="transparent"
-                    className="text-gray-200"
-                  />
-                  <circle
-                    cx="64"
-                    cy="64"
-                    r="56"
-                    stroke="currentColor"
-                    strokeWidth="8"
-                    fill="transparent"
-                    strokeDasharray={`${(atsScore || 0) *
-                      3.51} 351`}
-                    className={resumeScoreColor(atsScore || 0)}
-                  />
-                </svg>
-                <span className="absolute text-2xl font-bold text-gray-900">
-                  {atsScore || 0}/100
-                </span>
-              </div>
-              <p
-                className={`font-medium ${resumeScoreColor(
-                  atsScore || 0
-                )}`}
-              >
-                {resumeScoreLabel(atsScore || 0)}
-              </p>
-            </div>
-
-            <div className="mt-6 space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Contact Info</span>
-                <span className="text-green-600 font-medium">✓ Complete</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Experience</span>
-                <span className="text-green-600 font-medium">✓ Complete</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Projects</span>
-                <span className="text-yellow-600 font-medium">
-                  • Needs Work
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Skills</span>
-                <span className="text-green-600 font-medium">✓ Complete</span>
-              </div>
-            </div>
-
-            <button className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
-              Improve Resume
-            </button>
-          </div>
-
-          
         </div>
       </div>
     </div>

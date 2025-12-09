@@ -38,6 +38,7 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
     const fetchPrefill = async () => {
       try {
         console.log(job);
+        // FIX 1: Use job.id (mapped from job_id in Upcoming.jsx)
         const { data } = await axios.get(
           `${API_URL}/applications/${job.id}`
         )
@@ -59,7 +60,8 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
         // ignore errors; user can fill manually
       }
     }
-    fetchPrefill()
+    // Only fetch if job.id exists
+    if(job.id) fetchPrefill() 
   }, [job.id])
 
   const handleSubmit = async (e) => {
@@ -69,7 +71,9 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
     const studentId = localStorage.getItem("id")
     try {
       const token = localStorage.getItem("token")
-      await axios.post(
+      // FIX 2: Use job.id for submission
+      console.debug("Submitting application", { jobId: job.id, studentId, payload: { answers: formData.answers, resumeUrl: formData.resumeUrl } })
+      const res = await axios.post(
         `${API_URL}/applications/${job.id}/apply/${studentId}`,
         {
           answers: formData.answers,
@@ -82,14 +86,20 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
         }
       )
 
+      console.debug("Application submit response:", res?.data)
       setSuccess(true)
+      // notify parent/listeners to refresh
+      try {
+        window.dispatchEvent(new Event("application:submitted"))
+      } catch (e) {}
+
       setTimeout(() => {
         onClose()
-      }, 2000)
+      }, 1200)
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to submit application"
-      )
+      console.error("Application submit error:", err)
+      const serverMsg = err?.response?.data?.message || err?.response?.data || null
+      setError(serverMsg || (err instanceof Error ? err.message : "Failed to submit application"))
     } finally {
       setLoading(false)
     }
@@ -138,9 +148,11 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
                 {hasExistingApp
                   ? "Update your application for"
                   : "Apply for"}{" "}
+                {/* Use job.title (mapped from job.role) */}
                 {job.title}
               </h1>
               <p className="text-slate-300">
+                {/* Use job.company (mapped from job.company_name) */}
                 {job.company} • {locationDisplay}
               </p>
               {/* 📝 Show job description if present */}

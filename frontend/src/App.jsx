@@ -3,7 +3,7 @@ import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import RoleRedirect from './components/Auth/RoleRedirect';
 import Dashboard from './pages/student/Dashboard';
-import Applications from './pages/student/MyApplications';
+// import Applications from './pages/student/MyApplications';
 import Profile from './pages/student/Profile';
 import Alumni from '../waste/Alumini';
 import Admin from './pages/admin/Admin';

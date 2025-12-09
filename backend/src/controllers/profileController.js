@@ -343,35 +343,35 @@ export class ProfileController {
   /**
    * Get ATS score
    */
-  static async getATSScore(req, res) {
-    try {
-      const userId = req.user.id;
-      const profile = await ProfileService.getProfile(userId);
+  // static async getATSScore(req, res) {
+  //   try {
+  //     const userId = req.user.id;
+  //     const profile = await ProfileService.getProfile(userId);
       
-      if (!profile.ats_score) {
-        return res.status(404).json({
-          success: false,
-          message: "No ATS score available. Please upload a resume first."
-        });
-      }
+  //     if (!profile.ats_score) {
+  //       return res.status(404).json({
+  //         success: false,
+  //         message: "No ATS score available. Please upload a resume first."
+  //       });
+  //     }
       
-      res.status(200).json({
-        success: true,
-        data: {
-          score: profile.ats_score,
-          feedback: profile.ats_feedback,
-          date: profile.ats_score_date
-        }
-      });
-    } catch (error) {
-      console.error("Error in ProfileController.getATSScore:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to get ATS score",
-        error: error.message
-      });
-    }
-  }
+  //     res.status(200).json({
+  //       success: true,
+  //       data: {
+  //         score: profile.ats_score,
+  //         feedback: profile.ats_feedback,
+  //         date: profile.ats_score_date
+  //       }
+  //     });
+  //   } catch (error) {
+  //     console.error("Error in ProfileController.getATSScore:", error);
+  //     res.status(500).json({
+  //       success: false,
+  //       message: "Failed to get ATS score",
+  //       error: error.message
+  //     });
+  //   }
+  // }
 }
 
 // Export multer middleware for use in routes

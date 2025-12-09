@@ -23,7 +23,7 @@ export class ProfileRepo {
   static async getProfile(userId) {
     try {
       const result = await query(
-        "SELECT user_id as id, name, branch, cgpa, email,phone,roll_no, role, skills, resume_url, resume_filename, resume_upload_date, ats_score, ats_score_date, ats_feedback, application_type FROM users WHERE user_id = $1",
+        "SELECT user_id as id, name, branch, cgpa, email,phone,roll_no, role, skills, resume_url, resume_filename, resume_upload_date, application_type FROM users WHERE user_id = $1",
         [userId]
       );
       const row = result.rows[0];
@@ -143,21 +143,21 @@ export class ProfileRepo {
   /**
    * Update ATS score
    */
-  static async updateATSScore(userId, atsData) {
-    try {
-      const { ats_score, ats_score_date, ats_feedback } = atsData;
+  // static async updateATSScore(userId, atsData) {
+  //   try {
+  //     const { ats_score, ats_score_date, ats_feedback } = atsData;
       
-      const result = await query(
-        "UPDATE users SET ats_score = $1, ats_score_date = $2, ats_feedback = $3 WHERE user_id = $4",
-        [ats_score, ats_score_date, ats_feedback, userId]
-      );
+  //     const result = await query(
+  //       "UPDATE users SET ats_score = $1, ats_score_date = $2, ats_feedback = $3 WHERE user_id = $4",
+  //       [ats_score, ats_score_date, ats_feedback, userId]
+  //     );
       
-      return result.rowCount > 0;
-    } catch (error) {
-      console.error("Error updating ATS score:", error);
-      throw error;
-    }
-  }
+  //     return result.rowCount > 0;
+  //   } catch (error) {
+  //     console.error("Error updating ATS score:", error);
+  //     throw error;
+  //   }
+  // }
 
   /**
    * Get user skills

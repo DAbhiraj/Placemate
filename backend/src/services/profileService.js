@@ -176,23 +176,13 @@ Resume:
         resume_url: `/uploads/${filename}`,
         resume_filename: file.originalname,
         resume_upload_date: new Date(),
-        ats_score: atsScore.score,
-        ats_score_date: new Date(),
-        ats_feedback: atsScore.feedback
       };
 
       await ProfileRepo.updateResume(userId, resumeData);
-      await ProfileRepo.updateATSScore(userId, {
-        ats_score: atsScore.score,
-        ats_score_date: new Date(),
-        ats_feedback: atsScore.feedback
-      });
 
       return {
         success: true,
         resume_url: resumeData.resume_url,
-        ats_score: atsScore.score,
-        feedback: atsScore.feedback
       };
     } catch (error) {
       console.error("Error in ProfileService.uploadResume:", error);
@@ -203,90 +193,90 @@ Resume:
   /**
    * Calculate ATS score using external API or mock implementation
    */
-  static async calculateATSScore(filepath) {
-    try {
-      const apiUrl = process.env.ATS_API_URL;
-      const apiKey = process.env.ATS_API_KEY;
+  // static async calculateATSScore(filepath) {
+  //   try {
+  //     const apiUrl = process.env.ATS_API_URL;
+  //     const apiKey = process.env.ATS_API_KEY;
 
-      if (apiUrl && apiKey) {
-        // Call external ATS API
-        // Read file buffer
-        const fileBuffer = fs.readFileSync(filepath);
+  //     if (apiUrl && apiKey) {
+  //       // Call external ATS API
+  //       // Read file buffer
+  //       const fileBuffer = fs.readFileSync(filepath);
 
-        // Prefer native fetch if available (Node 18+), otherwise dynamic import
-        const doFetch = typeof fetch === "function" ? fetch : (await import("node-fetch")).default;
+  //       // Prefer native fetch if available (Node 18+), otherwise dynamic import
+  //       const doFetch = typeof fetch === "function" ? fetch : (await import("node-fetch")).default;
 
-        const formDataBoundary = `----placemate-ats-boundary-${Date.now()}`;
-        const CRLF = "\r\n";
-        // Minimal manual multipart body to avoid extra deps
-        const preamble = `--${formDataBoundary}${CRLF}Content-Disposition: form-data; name="file"; filename="resume.pdf"${CRLF}Content-Type: application/pdf${CRLF}${CRLF}`;
-        const epilogue = `${CRLF}--${formDataBoundary}--${CRLF}`;
-        const body = Buffer.concat([
-          Buffer.from(preamble, "utf8"),
-          fileBuffer,
-          Buffer.from(epilogue, "utf8"),
-        ]);
+  //       const formDataBoundary = `----placemate-ats-boundary-${Date.now()}`;
+  //       const CRLF = "\r\n";
+  //       // Minimal manual multipart body to avoid extra deps
+  //       const preamble = `--${formDataBoundary}${CRLF}Content-Disposition: form-data; name="file"; filename="resume.pdf"${CRLF}Content-Type: application/pdf${CRLF}${CRLF}`;
+  //       const epilogue = `${CRLF}--${formDataBoundary}--${CRLF}`;
+  //       const body = Buffer.concat([
+  //         Buffer.from(preamble, "utf8"),
+  //         fileBuffer,
+  //         Buffer.from(epilogue, "utf8"),
+  //       ]);
 
-        const resp = await doFetch(apiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": `multipart/form-data; boundary=${formDataBoundary}`,
-            "Authorization": `Bearer ${apiKey}`
-          },
-          body
-        });
+  //       const resp = await doFetch(apiUrl, {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": `multipart/form-data; boundary=${formDataBoundary}`,
+  //           "Authorization": `Bearer ${apiKey}`
+  //         },
+  //         body
+  //       });
 
-        if (!resp.ok) {
-          throw new Error(`ATS API error: ${resp.status}`);
-        }
+  //       if (!resp.ok) {
+  //         throw new Error(`ATS API error: ${resp.status}`);
+  //       }
 
-        const json = await resp.json();
-        // Expecting { score: number, feedback: string }
-        if (typeof json.score === "number") {
-          return {
-            score: Math.max(0, Math.min(100, Math.round(json.score))),
-            feedback: json.feedback || ""
-          };
-        }
-      }
+  //       const json = await resp.json();
+  //       // Expecting { score: number, feedback: string }
+  //       if (typeof json.score === "number") {
+  //         return {
+  //           score: Math.max(0, Math.min(100, Math.round(json.score))),
+  //           feedback: json.feedback || ""
+  //         };
+  //       }
+  //     }
 
-      // Fallback to mock
-      const mockScore = this.generateMockATSScore();
-      return mockScore;
-    } catch (error) {
-      console.error("Error calculating ATS score:", error);
-      // Return default score on error
-      return {
-        score: 50,
-        feedback: "Unable to analyze resume. Please try uploading again."
-      };
-    }
-  }
+  //     // Fallback to mock
+  //     const mockScore = this.generateMockATSScore();
+  //     return mockScore;
+  //   } catch (error) {
+  //     console.error("Error calculating ATS score:", error);
+  //     // Return default score on error
+  //     return {
+  //       score: 50,
+  //       feedback: "Unable to analyze resume. Please try uploading again."
+  //     };
+  //   }
+  // }
 
   /**
    * Generate mock ATS score for demonstration
    * In production, replace this with actual API call
    */
-  static generateMockATSScore() {
-    // Generate random score between 60-95 for demonstration
-    const score = Math.floor(Math.random() * 36) + 60;
+  // static generateMockATSScore() {
+  //   // Generate random score between 60-95 for demonstration
+  //   const score = Math.floor(Math.random() * 36) + 60;
     
-    let feedback = "";
-    if (score >= 90) {
-      feedback = "Excellent resume! Strong keywords, clear structure, and comprehensive experience.";
-    } else if (score >= 80) {
-      feedback = "Good resume with solid content. Consider adding more relevant keywords and quantifying achievements.";
-    } else if (score >= 70) {
-      feedback = "Decent resume. Focus on adding more specific achievements and relevant skills.";
-    } else {
-      feedback = "Resume needs improvement. Add more relevant keywords, quantify achievements, and improve formatting.";
-    }
+  //   let feedback = "";
+  //   if (score >= 90) {
+  //     feedback = "Excellent resume! Strong keywords, clear structure, and comprehensive experience.";
+  //   } else if (score >= 80) {
+  //     feedback = "Good resume with solid content. Consider adding more relevant keywords and quantifying achievements.";
+  //   } else if (score >= 70) {
+  //     feedback = "Decent resume. Focus on adding more specific achievements and relevant skills.";
+  //   } else {
+  //     feedback = "Resume needs improvement. Add more relevant keywords, quantify achievements, and improve formatting.";
+  //   }
 
-    return {
-      score,
-      feedback
-    };
-  }
+  //   return {
+  //     score,
+  //     feedback
+  //   };
+  // }
 
   /**
    * Get resume file
@@ -333,11 +323,11 @@ Resume:
         resume_upload_date: null
       });
 
-      await ProfileRepo.updateATSScore(userId, {
-        ats_score: null,
-        ats_score_date: null,
-        ats_feedback: null
-      });
+      // await ProfileRepo.updateATSScore(userId, {
+      //   ats_score: null,
+      //   ats_score_date: null,
+      //   ats_feedback: null
+      // });
 
       return { success: true };
     } catch (error) {

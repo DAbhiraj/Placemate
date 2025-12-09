@@ -1,3 +1,4 @@
+// src/repo/applicationRepo.js
 import { pool } from "../db/db.js";
 
 export const applicationRepository = {
@@ -9,21 +10,53 @@ export const applicationRepository = {
     return result.rows[0];
   },
 
-  create: async (studentId, jobId, answers, resumeUrl) => {
-    const result = await pool.query(
-      `INSERT INTO applications (user_id, job_id, answers, resume_url)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [studentId, jobId, answers, resumeUrl]
+  // Return job row by id
+  getJobById: async (jobId) => {
+    const { rows } = await pool.query(
+      `SELECT job_id, company_name, role, application_deadline, online_assessment_date,
+              interview_dates, applied_count, min_cgpa, eligible_branches
+       FROM jobs WHERE job_id = $1`,
+      [jobId]
     );
-    return result.rows[0];
+    return rows[0];
   },
 
+  // Create application inside transaction and increment applied_count
+  create: async (studentId, jobId, answers, resumeUrl) => {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      const insertQ = `
+        INSERT INTO applications (user_id, job_id, answers, resume_url, status, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, 'applied', NOW(), NOW())
+        RETURNING *;
+      `;
+      const insertRes = await client.query(insertQ, [studentId, jobId, answers || {}, resumeUrl || null]);
+      // increment applied_count safely (avoid null)
+      await client.query(
+        `UPDATE jobs SET applied_count = COALESCE(applied_count,0) + 1, updated_at = NOW() WHERE job_id = $1`,
+        [jobId]
+      );
+
+      await client.query("COMMIT");
+      return insertRes.rows[0];
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
+  },
+
+  // Update existing application (answers/resume_url/updated_at)
   update: async (applicationId, answers, resumeUrl) => {
     const result = await pool.query(
       `UPDATE applications
        SET answers = $1, resume_url = $2, updated_at = NOW()
-       WHERE appl_id = $3 RETURNING *`,
-      [answers, resumeUrl, applicationId]
+       WHERE appl_id = $3
+       RETURNING *`,
+      [answers || {}, resumeUrl || null, applicationId]
     );
     return result.rows[0];
   },
@@ -33,6 +66,52 @@ export const applicationRepository = {
       studentId,
     ]);
     return result.rows[0];
+  },
+
+  // Fetch eligible + applied jobs + status (already had this, improved slightly)
+  getStudentDashboardData: async (studentId, branch, cgpa) => {
+    const query = `
+      SELECT
+        j.job_id,
+        j.company_name,
+        j.role,
+        j.location,
+        j.package,
+        j.application_deadline,
+        j.online_assessment_date,
+        j.interview_dates,
+        j.description,
+        j.min_cgpa,
+        j.eligible_branches,
+        a.status
+      FROM jobs j
+      LEFT JOIN applications a ON j.job_id = a.job_id AND a.user_id = $1
+      WHERE
+        (
+          ($2 = ANY(j.eligible_branches))
+          AND (j.min_cgpa <= $3)
+        )
+        OR a.user_id IS NOT NULL
+      ORDER BY j.application_deadline DESC NULLS LAST, j.created_at DESC;
+    `;
+    const { rows } = await pool.query(query, [studentId, branch, cgpa]);
+
+    return rows.map(row => {
+      const today = new Date();
+      const deadline = row.application_deadline ? new Date(row.application_deadline) : null;
+
+      let status = row.status || 'not applied';
+
+      // If job is not applied and deadline has passed -> 'deadline missed'
+      if (!row.status && deadline && today > deadline) {
+        status = 'deadline missed';
+      }
+
+      return {
+        ...row,
+        status
+      };
+    });
   },
 
   getApplicationsByCompany: async (companyName) => {
@@ -60,24 +139,18 @@ export const applicationRepository = {
 
   async findApplicationByUser(userId){
     const query = `
-    SELECT 
-    j.company_name,
-    j.role,
-    j.description,
-    a.updated_at,
-    a.status
-    FROM 
-    applications a
-    JOIN 
-    jobs j ON a.job_id = j.job_id
-    WHERE 
-    a.user_id = $1
-    ORDER BY 
-    a.created_at DESC;
+      SELECT 
+        j.company_name,
+        j.role,
+        j.description,
+        a.updated_at,
+        a.status
+      FROM applications a 
+      JOIN jobs j ON a.job_id = j.job_id 
+      WHERE a.user_id = $1
+      ORDER BY a.updated_at DESC
     `;
     const { rows } = await pool.query(query, [userId]);
-    console.log("if rows print down");
-    console.log(rows);
     return rows;
-  }
+  },
 };

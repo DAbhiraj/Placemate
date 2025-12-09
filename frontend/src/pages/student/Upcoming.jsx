@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Search, Filter, Calendar, Eye, RefreshCw } from "lucide-react";
 import axios from "axios";
-// Assuming formatDateTime and Loader are available via existing imports
 import { formatDateTime } from "../../utils/helpers"; 
 import ApplicationForm from "./ApplicationForm";
 import Loader from "../../components/UI/Loader";
@@ -257,6 +256,19 @@ const UpcomingDashboard = () => {
   const handleCloseForm = () => {
     setSelectedJob(null);
     fetchDashboardData(); // Refresh data after applying/updating
+
+    // Handle applying inside ApplicationForm
+    const handleApply = async ({ jobId, answers, resumeUrl }) => {
+      try {
+        const studentId = localStorage.getItem("id");
+        await axios.post(`${API_URL}/applications/create`, { studentId, jobId, answers, resumeUrl });
+        setSelectedJob(null);
+        window.dispatchEvent(new Event("application:submitted"));
+      } catch (err) {
+        console.error("Error submitting application:", err);
+        alert("Failed to submit application.");
+      }
+    };
   };
 
 
@@ -389,15 +401,46 @@ const UpcomingDashboard = () => {
                     <StatusBadge status={job.status} /> 
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <button
-                      onClick={() => handleViewJob(job.job_id)}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1"
-                      aria-label={`View job details for ${job.company_name}`}
-                    >
-                      <Eye className="w-4 h-4" /> 
-                      View Job
-                    </button>
+                    {(() => {
+                      // Check if deadline is missed
+                      let deadlineMissed = false;
+                      if (job.application_deadline) {
+                        const deadline = new Date(job.application_deadline).getTime();
+                        deadlineMissed = deadline < Date.now();
+                      }
+                      if (deadlineMissed) {
+                        return (
+                          <button
+                            onClick={() => window.location.href = `/jobs/${job.job_id}`}
+                            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            View Details
+                          </button>
+                        );
+                      } else {
+                        return (
+                          (job.status || "").toLowerCase().trim() === "not applied" ? (
+                            <button
+                              onClick={() => handleViewJob(job.job_id)}
+                              className="text-sm text-green-600 hover:text-green-800 font-medium"
+                            >
+                              Apply
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleViewJob(job.job_id)}
+                              className="text-sm text-yellow-600 hover:text-yellow-800 font-medium"
+                            >
+                              Update Application
+                            </button>
+                          )
+                        );
+                      }
+                    })()}
                   </td>
+
+
+
                 </tr>
               ))}
               {/* Handle Empty State */}

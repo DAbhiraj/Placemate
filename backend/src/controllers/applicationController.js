@@ -1,12 +1,12 @@
 // src/controllers/applicationController.js
 
 import { applicationService } from "../services/applicationService.js";
-import { pool } from "../db/db.js";
+// import { pool } from "../db/db.js";
 
 const applicationController = {
   async getFormData(req, res) {
     try {
-      const studentId = req.user.id;
+      const studentId = req.user?.id || req.params?.studentId || req.query?.userId;
       const { jobId } = req.params;
       const data = await applicationService.getPrefilledForm(studentId, jobId);
       res.json(data);
@@ -20,11 +20,23 @@ const applicationController = {
     try {
       const { jobId, studentId } = req.params;
       const { answers, resumeUrl } = req.body;
+
+      // Basic validation
+      if (!studentId || !jobId) {
+        return res.status(400).json({ message: "Missing studentId or jobId" });
+      }
+
       const result = await applicationService.submitOrUpdateApplication(studentId, jobId, answers, resumeUrl);
-      res.json(result);
+      return res.json({ success: true, data: result });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Failed to submit form" });
+      console.error("SubmitForm error:", err);
+      if (err.code === "DEADLINE_PASSED") {
+        return res.status(400).json({ success: false, message: err.message });
+      }
+      if (err.code === "JOB_NOT_FOUND") {
+        return res.status(404).json({ success: false, message: err.message });
+      }
+      return res.status(500).json({ success: false, message: "Failed to submit form" });
     }
   },
 

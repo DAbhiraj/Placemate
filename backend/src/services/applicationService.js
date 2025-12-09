@@ -12,29 +12,49 @@ export const applicationService = {
   },
 
   submitOrUpdateApplication: async (studentId, jobId, answers, resumeUrl) => {
-    console.log(studentId);
-    console.log(jobId);
-    console.log(answers);
-    console.log(resumeUrl);
+    // fetch job to check deadline, and student profile if needed
+    const job = await applicationRepository.getJobById(jobId);
+    if (!job) {
+      const e = new Error("Job not found");
+      e.code = "JOB_NOT_FOUND";
+      throw e;
+    }
+
+    const today = new Date();
+    if (job.application_deadline) {
+      const deadline = new Date(job.application_deadline);
+      // If current time is after the deadline -> block
+      if (today > deadline) {
+        const err = new Error("Application deadline has passed. Cannot apply or update.");
+        err.code = "DEADLINE_PASSED";
+        throw err;
+      }
+    }
+
+    // existing application?
     const existing = await applicationRepository.findByStudentAndJob(studentId, jobId);
     let application;
 
     if (existing) {
+      // Update allowed (we already validated deadline)
       application = await applicationRepository.update(existing.appl_id, answers, resumeUrl);
-      // Asynchronous notification
+
+      // Send notification (async)
       setImmediate(() => {
         notificationService.notifyStudent(
           studentId,
-          "Your job application was updated successfully!",
+          `Your application for ${job.company_name} (${job.role}) was updated.`,
           "APPLICATION_UPDATED"
         );
       });
     } else {
+      // Create application (transaction increments count)
       application = await applicationRepository.create(studentId, jobId, answers, resumeUrl);
+
       setImmediate(() => {
         notificationService.notifyStudent(
           studentId,
-          "Your job application was submitted successfully!",
+          `Your application for ${job.company_name} (${job.role}) was submitted.`,
           "APPLICATION_SUBMITTED"
         );
       });

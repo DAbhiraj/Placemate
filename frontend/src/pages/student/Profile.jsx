@@ -347,20 +347,6 @@ const Profile = () => {
     }
   }
 
-  // const resumeScoreColor = score => {
-  //   if (score >= 90) return "text-green-600"
-  //   if (score >= 75) return "text-blue-600"
-  //   if (score >= 60) return "text-yellow-600"
-  //   return "text-red-600"
-  // }
-
-  // const resumeScoreLabel = score => {
-  //   if (score >= 90) return "Excellent"
-  //   if (score >= 75) return "Good"
-  //   if (score >= 60) return "Average"
-  //   return "Needs Improvement"
-  // }
-
   if (loading) {
     return <Loader text={uploading ? "Updating..." : "Loading..."} />;
   }
@@ -633,14 +619,6 @@ const Profile = () => {
                     </div>
                   )}
                 </div>
-
-                {/* ATS Feedback */}
-                {/* {atsFeedback && (
-                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">ATS Feedback:</h4>
-                    <p className="text-sm text-gray-700">{atsFeedback}</p>
-                  </div>
-                )} */}
               </div>
             </div>
           </div>

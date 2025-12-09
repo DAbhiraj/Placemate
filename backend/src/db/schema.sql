@@ -17,9 +17,7 @@ CREATE TABLE Users (
     skills TEXT,
     resume_filename TEXT,
     resume_upload_date TIMESTAMP,
-    ats_score NUMERIC(5,2),
-    ats_score_date TIMESTAMP,
-    ats_feedback TEXT,
+    resume_url TEXT
     is_verified BOOLEAN DEFAULT false
 );
 

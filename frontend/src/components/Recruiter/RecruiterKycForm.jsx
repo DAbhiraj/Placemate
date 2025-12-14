@@ -102,7 +102,7 @@ const RecruiterKycForm = ({ recruiterData, onSuccess }) => {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/recruiter/kyc`, {
+      const response = await axiosClient.post(`/recruiter/kyc`, {
         company_name: formData.company_name,
         company_website: formData.company_website || null,
         company_address: formData.company_address,

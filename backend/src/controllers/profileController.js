@@ -30,7 +30,7 @@ export class ProfileController {
    */
   static async onboarding(req, res) {
     try {
-      const userId = req.query.id;
+      const userId = req.user.id;
       const {
         first_name,
         last_name,
@@ -80,8 +80,8 @@ export class ProfileController {
    */
   static async getProfile(req, res) {
     try {
-      const userId = req.query.userId;
-      console.log("userId is "+userId);
+      const userId = req.user.id;
+      console.log("userId in getProfile is "+userId);
       const profile = await ProfileService.getProfile(userId);
       
       res.status(200).json({
@@ -103,9 +103,9 @@ export class ProfileController {
    */
   static async updateProfile(req, res) {
     try {
-      const userId = req.params.profileId;
+      const userId = req.user.id;
       const updateData = req.body;
-      console.log("userId "+userId);
+      console.log("userId in updateProfile "+userId);
       console.log(updateData);
       const updatedProfile = await ProfileService.updateProfile(userId, updateData);
       
@@ -130,7 +130,7 @@ export class ProfileController {
   static async updateSkills(req, res) {
   try {
     console.log("in update skills controller"); // ✅ this should now print
-    const userId = req.params.userId;
+    const userId = req.user.id;
     const { skills } = req.body;
 
     if (!Array.isArray(skills)) {
@@ -178,7 +178,7 @@ export class ProfileController {
    */
   static async uploadResume(req, res) {
     try {
-      const userId = req.query.userId;
+      const userId = req.user.id;
       
       if (!req.file) {
         return res.status(400).json({
@@ -226,7 +226,7 @@ export class ProfileController {
         console.log(parsed.data);
 
 
-        const userId = req.body.userId; // JWT or logged-in user
+        const userId = req.user.id; // JWT or logged-in user
         const fullName = parsed.data.full_name;
         const branch = parsed.data.branch;
         const email = parsed.data.email?.split(",")[0].trim(); // pick first email

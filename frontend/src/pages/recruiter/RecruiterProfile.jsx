@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Edit, LogOut, User, Briefcase, Phone, Linkedin, MapPin, Globe, IndianRupee, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import axiosClient from '../../api/axiosClient';
 
 const RecruiterProfile = () => {
   const navigate = useNavigate();
@@ -13,29 +14,15 @@ const RecruiterProfile = () => {
     loadProfileData();
   }, []);
 
-  const loadProfileData = () => {
+  const loadProfileData = async () => {
     try {
-      const data = {
-        // Personal Details
-        name: localStorage.getItem('name') || '',
-        email: localStorage.getItem('email') || '',
-        id: localStorage.getItem('id') || '',
-        role: localStorage.getItem('role') || 'recruiter',
-        
-        // Recruiter Details
-        yearsOfExperience: localStorage.getItem('yearsOfExperience') || '',
-        hrContactNumber: localStorage.getItem('hrContactNumber') || '',
-        linkedinProfile: localStorage.getItem('linkedinProfile') || '',
-        
-        // Company Details
-        company: localStorage.getItem('company') || '',
-        companyWebsite: localStorage.getItem('companyWebsite') || '',
-        companyAddress: localStorage.getItem('companyAddress') || '',
-        panNumber: localStorage.getItem('panNumber') || '',
-      };
-
-      setRecruiterData(data);
-      setEditData(data);
+      const response = await axiosClient.get('/recruiter');
+      console.log('📘 RecruiterProfile - loadProfileData:', response.data);
+      setRecruiterData(response.data);
+      setEditData({
+        hr_contact_number: response.data.hr_contact_number || '',
+        linkedinProfile: response.data.linkedinProfile || '',
+      });
       setLoading(false);
     } catch (err) {
       console.error('Error loading profile:', err);
@@ -80,7 +67,7 @@ const RecruiterProfile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
+    <div className="min-h-screen py-12 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header Card */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-6">
@@ -97,7 +84,6 @@ const RecruiterProfile = () => {
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">{recruiterData.name}</h1>
                   <p className="text-gray-600">{recruiterData.email}</p>
-                  <p className="text-sm text-gray-500 mt-1">Recruiter ID: {recruiterData.id}</p>
                 </div>
               </div>
 
@@ -140,7 +126,7 @@ const RecruiterProfile = () => {
                     <Calendar className="w-5 h-5 text-blue-600" />
                     <div>
                       <p className="text-sm text-gray-600">Years of Experience</p>
-                      <p className="text-lg font-semibold text-gray-900">{recruiterData.yearsOfExperience || 'N/A'} years</p>
+                      <p className="text-lg font-semibold text-gray-900">{recruiterData.years_of_experience || 'N/A'} years</p>
                     </div>
                   </div>
                 </div>
@@ -154,13 +140,13 @@ const RecruiterProfile = () => {
                   {isEditing ? (
                     <input
                       type="tel"
-                      value={editData.hrContactNumber}
-                      onChange={(e) => handleEditChange('hrContactNumber', e.target.value)}
+                      value={editData.hr_contact_number}
+                      onChange={(e) => handleEditChange('hr_contact_number', e.target.value)}
                       placeholder="+91 9876543210"
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
                   ) : (
-                    <p className="px-4 py-2.5 bg-gray-100 rounded-lg text-gray-900">{recruiterData.hrContactNumber || 'Not provided'}</p>
+                    <p className="px-4 py-2.5 bg-gray-100 rounded-lg text-gray-900">{recruiterData.hr_contact_number || 'Not provided'}</p>
                   )}
                 </div>
 
@@ -195,7 +181,15 @@ const RecruiterProfile = () => {
                     </div>
                   )}
                 </div>
+                                {/* PAN Number */}
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <label className="text-sm text-gray-600 mb-1 flex items-center gap-2">
+                    PAN Number
+                  </label>
+                  <p className="text-gray-900 font-mono">{recruiterData.pan_number || 'N/A'}</p>
+                </div>
               </div>
+              
 
               {isEditing && (
                 <button
@@ -205,6 +199,7 @@ const RecruiterProfile = () => {
                   Save Changes
                 </button>
               )}
+              
             </div>
 
             {/* Company Details Section */}
@@ -220,7 +215,7 @@ const RecruiterProfile = () => {
                 {/* Company Name */}
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-600 mb-1">Company Name</p>
-                  <p className="text-lg font-semibold text-gray-900">{recruiterData.company || 'N/A'}</p>
+                  <p className="text-lg font-semibold text-gray-900">{recruiterData.company_name || 'N/A'}</p>
                 </div>
 
                 {/* Company Website */}
@@ -229,14 +224,14 @@ const RecruiterProfile = () => {
                     <Globe className="w-4 h-4 text-indigo-600" />
                     Company Website
                   </label>
-                  {recruiterData.companyWebsite ? (
+                  {recruiterData.company_website ? (
                     <a
-                      href={recruiterData.companyWebsite}
+                      href={recruiterData.company_website}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:underline break-all text-sm"
                     >
-                      {recruiterData.companyWebsite}
+                      {recruiterData.company_website}
                     </a>
                   ) : (
                     <p className="text-gray-900">Not provided</p>
@@ -249,17 +244,10 @@ const RecruiterProfile = () => {
                     <MapPin className="w-4 h-4 text-indigo-600" />
                     Company Address
                   </label>
-                  <p className="text-gray-900 text-sm whitespace-pre-wrap">{recruiterData.companyAddress || 'N/A'}</p>
+                  <p className="text-gray-900 text-sm whitespace-pre-wrap">{recruiterData.company_address || 'N/A'}</p>
                 </div>
 
-                {/* PAN Number */}
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <label className="text-sm text-gray-600 mb-1 flex items-center gap-2">
-                    <IndianRupee className="w-4 h-4 text-indigo-600" />
-                    PAN Number
-                  </label>
-                  <p className="text-gray-900 font-mono">{recruiterData.panNumber || 'N/A'}</p>
-                </div>
+
               </div>
             </div>
           </div>
@@ -271,35 +259,12 @@ const RecruiterProfile = () => {
               <h3 className="text-lg font-bold text-gray-900 mb-4">Account Status</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                  <span className="text-sm text-green-700 font-medium">Verified</span>
+                  <span className="text-sm text-green-700 font-medium">Verified: {recruiterData.is_verified}</span>
                   <span className="inline-block w-2 h-2 bg-green-600 rounded-full"></span>
-                </div>
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-blue-700">
-                    <strong>Role:</strong> {recruiterData.role}
-                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="bg-white rounded-2xl shadow-xl p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <button
-                  onClick={() => navigate('/recruiter/dashboard')}
-                  className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm"
-                >
-                  Go to Dashboard
-                </button>
-                <button
-                  onClick={() => navigate('/recruiter/viewjobs')}
-                  className="w-full px-4 py-2.5 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition font-medium text-sm"
-                >
-                  View My Jobs
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </div>

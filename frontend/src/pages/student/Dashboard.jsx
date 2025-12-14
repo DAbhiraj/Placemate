@@ -11,7 +11,7 @@ import {
 import StatCard from "../../components/UI/StatCard";
 import StatusBadge from "../../components/UI/StatusBadge";
 import Loader from "../../components/UI/Loader";
-import axios from "axios";
+import axiosClient from "../../api/axiosClient";
 import { formatDateTime } from "../../utils/helpers";
 
 const API_URL = import.meta.env.VITE_API_URL ;
@@ -59,9 +59,8 @@ const Dashboard = () => {
         // ✅ Fetch Applications
         console.log("fetching data");
         console.log(`${API_URL}/applications/userId/${currentUser.u_id}`)
-        const appRes = await axios.get(
-          `${API_URL}/applications/userId/${currentUser.u_id}`,
-          {withCredentials:true}
+        const appRes = await axiosClient.get(
+          `/applications/userId/${currentUser.u_id}`
         );
         const normalizedApps = (appRes.data || []).map((a) => ({
           appl_id: a.appl_id,
@@ -76,7 +75,7 @@ const Dashboard = () => {
         setApplications(normalizedApps);
 
         // ✅ Fetch All Jobs
-        const jobRes = await axios.get(`${API_URL}/jobs`);
+        const jobRes = await axiosClient.get(`/jobs`);
         const normalizedJobs = (jobRes.data || []).map((job) => ({
           ...job,
           eligible_branches: job.eligible_branches || [],
@@ -95,11 +94,11 @@ const Dashboard = () => {
         
         // Fetch all 3 types in parallel
         const [appDeadlineRes, assessmentRes, interviewRes] = await Promise.all([
-          axios.get(`${API_URL}/upcoming-deadlines/${currentUser.u_id}?type=application`, 
+          axiosClient.get(`/upcoming-deadlines/${currentUser.u_id}?type=application`, 
             { params: { branch: currentUser.branch, cgpa: currentUser.cgpa } }),
-          axios.get(`${API_URL}/upcoming-deadlines/${currentUser.u_id}?type=assessment`, 
+          axiosClient.get(`/upcoming-deadlines/${currentUser.u_id}?type=assessment`, 
             { params: { branch: currentUser.branch, cgpa: currentUser.cgpa } }),
-          axios.get(`${API_URL}/upcoming-deadlines/${currentUser.u_id}?type=interview`, 
+          axiosClient.get(`/upcoming-deadlines/${currentUser.u_id}?type=interview`, 
             { params: { branch: currentUser.branch, cgpa: currentUser.cgpa } })
         ]);
 

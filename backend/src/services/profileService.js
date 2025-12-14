@@ -167,9 +167,7 @@ Resume:
 
       // Save file
       fs.writeFileSync(filepath, file.buffer);
-
-      // Calculate ATS score
-      const atsScore = await this.calculateATSScore(filepath);
+     
 
       // Update database
       const resumeData = {

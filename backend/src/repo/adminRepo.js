@@ -128,9 +128,38 @@ export const adminRepository = {
     // Student Management
     async getAllStudents() {
         const result = await pool.query(
-            "SELECT user_id as id, name,roll_no,ats_score, email, branch, cgpa, role FROM users WHERE role = 'Student' ORDER BY name"
+            "SELECT user_id as id, name,roll_no, email, branch,is_placed, cgpa, role FROM users WHERE role = 'Student' ORDER BY name"
         );
         return result.rows;
+    },
+
+    async getAllSpocs() {
+        const result = await pool.query(
+            "SELECT user_id as id, name,roll_no, email, branch FROM users WHERE role = 'spoc' ORDER BY name"
+        );
+        return result.rows;
+    },
+
+    async searchUsers(query) {
+        const searchPattern = `%${query}%`;
+        const result = await pool.query(
+            `SELECT user_id, name, email, roll_no, branch, phone, role 
+             FROM users 
+             WHERE (LOWER(email) LIKE LOWER($1) OR LOWER(roll_no) LIKE LOWER($1)) 
+             AND (role IS NULL OR role != 'spoc')
+             LIMIT 10`,
+            [searchPattern]
+        );
+        return result.rows;
+    },
+
+    async addSpoc(spocId) {
+        const result = await pool.query(
+            "UPDATE users SET role = 'spoc' WHERE user_id = $1 RETURNING *",
+            [spocId]
+        );
+
+        return result.rows[0];
     },
 
     async updateStudentStatus(studentId, status) {

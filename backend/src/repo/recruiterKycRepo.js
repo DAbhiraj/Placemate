@@ -53,13 +53,33 @@ export const recruiterKycRepository = {
 
     async getAllPendingKyc() {
         const result = await pool.query(
-            `SELECT rk.*, u.name, u.email, u.company_name 
+            `SELECT rk.*, u.name, u.email 
              FROM recruiter_kyc rk
              JOIN users u ON rk.recruiter_id = u.user_id
              WHERE rk.approval_status = 'pending'
              ORDER BY rk.submission_date ASC`
         );
         return result.rows;
+    },
+
+    async getAllKycByStatus(status) {
+        const result = await pool.query(
+            `SELECT rk.*, u.name, u.email 
+             FROM recruiter_kyc rk
+             JOIN users u ON rk.recruiter_id = u.user_id
+             WHERE rk.approval_status = $1
+             ORDER BY rk.submission_date DESC`,
+            [status]
+        );
+        return result.rows;
+    },
+
+    async getAllApprovedKyc() {
+        return this.getAllKycByStatus('approved');
+    },
+
+    async getAllRejectedKyc() {
+        return this.getAllKycByStatus('rejected');
     },
 
     async updateRecruiterVerified(recruiterId) {

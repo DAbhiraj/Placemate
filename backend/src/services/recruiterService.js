@@ -1,11 +1,12 @@
 import { recruiterRepo } from "../repo/recruiterRepo.js";
-//import { notificationService } from "./notificationService.js";
+import { notificationService } from "./notificationService.js";
+import { pool } from "../db/db.js";
 
 
 export const recruiterService = {
 
-    async createJob(jobData) {
-            console.log(jobData);
+    async createJob(jobData,recruiter_id) {
+            //console.log(jobData);
             const {
                 company_name,
                 role,
@@ -18,10 +19,11 @@ export const recruiterService = {
                 eligible_branches,
                 package_range,
                 location,
-                job_status
+                job_status,
+                custom_questions
             } = jobData;
     
-            return await recruiterRepo.createJob(
+            const job = await recruiterRepo.createJob(
                 company_name,
                 role,
                 description,
@@ -33,8 +35,45 @@ export const recruiterService = {
                 package_range,
                 location,
                 job_type,
-                job_status
+                job_status,
+                custom_questions,
+                recruiter_id
             );
+
+            // Send notification to admin
+            try {
+                const adminResult = await pool.query(
+                    `SELECT user_id FROM users WHERE role = 'Admin' LIMIT 1`
+                );
+                if (adminResult.rows.length > 0) {
+                    await notificationService.notifyUser(
+                        adminResult.rows[0].user_id,
+                        `New job posted: ${role} at ${company_name}`,
+                        'job_created',
+                        'New Job Posted',
+                        recruiter_id
+                    );
+                }
+
+                // Send notification to assigned SPOCs if any
+                const spocResult = await pool.query(
+                    `SELECT spoc_id FROM spoc_job_assignments WHERE job_id = $1`,
+                    [job.job_id]
+                );
+                for (const row of spocResult.rows) {
+                    await notificationService.notifyUser(
+                        row.spoc_id,
+                        `New job posted: ${role} at ${company_name}`,
+                        'job_created',
+                        'New Job Posted',
+                        recruiter_id
+                    );
+                }
+            } catch (notifErr) {
+                console.error('Error sending job creation notifications:', notifErr);
+            }
+
+            return job;
         },
     
         async getAllJobs() {
@@ -84,28 +123,66 @@ export const recruiterService = {
                 }
                 
                 return {
-                    job_id: job.job_id,
-                    role: job.role,
-                    company_name: job.company_name,
-                    location: location,
-                    package: job.package,
-                    application_deadline: formatDate(job.application_deadline),
-                    online_assessment_date: formatDate(job.online_assessment_date),
-                    interview_dates: interviewDates,
-                    min_cgpa: job.min_cgpa,
-                    job_type: job.job_type,
-                    eligible_branches: branches,
-                    description: job.description,
-                    job_status: job.job_status || 'in initial stage',
-                    created_at: formatDate(job.created_at),
-                    applied_count: job.applied_count || 0
-                };
+        job_id: job.job_id,
+        role: job.role,
+        company_name: job.company_name,
+        location: location,
+        package: job.package,
+        application_deadline: formatDate(job.application_deadline),
+        online_assessment_date: formatDate(job.online_assessment_date),
+        interview_dates: interviewDates,
+        min_cgpa: job.min_cgpa,
+        job_type: job.job_type,
+        eligible_branches: branches,
+        description: job.description,
+        job_status: job.job_status || 'in initial stage',
+        created_at: formatDate(job.created_at),
+        applied_count: job.applied_count || 0,
+        recruiter_id: job.recruiter_id,
+        recruiter_name: job.recruiter_name,
+        recruiter_email: job.recruiter_email
+      };
             });
         },
     
         async updateJob(jobId, updateData) {
-            return await recruiterRepo.updateJob(jobId, updateData);
-        },
+        const job = await recruiterRepo.updateJob(jobId, updateData);
+
+        // Send notification to admin
+        try {
+            const adminResult = await pool.query(
+                `SELECT user_id FROM users WHERE role = 'Admin' LIMIT 1`
+            );
+            if (adminResult.rows.length > 0) {
+                await notificationService.notifyUser(
+                    adminResult.rows[0].user_id,
+                    `Job updated: ${job.role} at ${job.company_name}`,
+                    'job_updated',
+                    'Job Updated',
+                    job.recruiter_id
+                );
+            }
+
+            // Send notification to assigned SPOCs
+            const spocResult = await pool.query(
+                `SELECT spoc_id FROM spoc_job_assignments WHERE job_id = $1`,
+                [jobId]
+            );
+            for (const row of spocResult.rows) {
+                await notificationService.notifyUser(
+                    row.spoc_id,
+                    `Job updated: ${job.role} at ${job.company_name}`,
+                    'job_updated',
+                    'Job Updated',
+                    job.recruiter_id
+                );
+            }
+        } catch (notifErr) {
+            console.error('Error sending job update notifications:', notifErr);
+        }
+
+        return job;
+    },
     
         async deleteJob(jobId) {
             return await recruiterRepo.deleteJob(jobId);

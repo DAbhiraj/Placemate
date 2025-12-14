@@ -4,6 +4,7 @@ import axios from 'axios';
 import RecruiterKycFormMultiStep from '../../components/Recruiter/RecruiterKycFormMultiStep';
 import RecruiterVerificationPending from '../../components/Recruiter/RecruiterVerificationPending';
 import RecruiterDashboard from './RecruiterDashboard';
+import axiosClient from '../../api/axiosClient';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -20,35 +21,40 @@ const RecruiterOnboarding = () => {
 
   const checkRecruiterStatus = async () => {
     try {
-      const recruiterId = localStorage.getItem('id');
+      console.log("🟡 RecruiterOnboarding - START checkRecruiterStatus");
       const email = localStorage.getItem('email');
       const name = localStorage.getItem('name');
+      const role = localStorage.getItem('role');
 
-      if (!recruiterId) {
-        navigate('/');
-        return;
-      }
+      console.log("🟡 RecruiterOnboarding - localStorage data:", { 
+        email, 
+        name, 
+        role,
+      });
 
       // Get recruiter data
       setRecruiterData({
-        id: recruiterId,
         email,
         name
       });
 
       // Check if recruiter is verified
-      const userResponse = await axios.get(`${API_URL}/recruiter`,{withCredentials:true});
+      const userResponse = await axiosClient.get(`/recruiter`);
       const user = userResponse.data;
+      
+      console.log("RecruiterOnboarding - User from API:", user);
+      console.log("RecruiterOnboarding - User is verified:", user.is_verified);
 
       if (user.is_verified) {
         // Already verified, show dashboard
+        console.log("🟡 RecruiterOnboarding - User is VERIFIED, setting kycStatus to 'verified'");
         setKycStatus('verified');
         setLoading(false);
         return;
       }
 
       // Check if KYC already submitted
-      const kycResponse = await axios.get(`${API_URL}/recruiter/kyc`,{withCredentials:true});
+      const kycResponse = await axiosClient.get(`/recruiter/kyc`);
       if (kycResponse.data) {
         // KYC submitted, check status
         if (kycResponse.data.approval_status === 'approved') {
@@ -69,9 +75,8 @@ const RecruiterOnboarding = () => {
       if (err.response?.status === 404) {
         // Recruiter endpoint not found, show form
         setKycStatus('form');
-        const recruiterId = localStorage.getItem('id');
+        
         setRecruiterData({
-          id: recruiterId,
           email: localStorage.getItem('email'),
           name: localStorage.getItem('name')
         });
@@ -130,16 +135,18 @@ const RecruiterOnboarding = () => {
   if (kycStatus === 'pending' || kycStatus === 'rejected') {
     return (
       <RecruiterVerificationPending 
-        recruiterId={recruiterData?.id}
         onVerified={handleVerificationComplete}
       />
     );
   }
 
   if (kycStatus === 'verified') {
-    window.location.href = "/recruiter/dashboard"
+    console.log("🟡 RecruiterOnboarding - RENDER: kycStatus is 'verified', redirecting to dashboard");
+    window.location.href = '/recruiter/viewjobs';
+    return null;
   }
 
+  console.log("📄 RecruiterOnboarding - RENDER: kycStatus =", kycStatus);
   return null;
 };
 

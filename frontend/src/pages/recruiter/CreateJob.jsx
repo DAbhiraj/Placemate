@@ -1,8 +1,6 @@
 import { Briefcase, DollarSign, MapPin, Calendar, Users, FileText, X, IndianRupee } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:4000/api';
+import axiosClient from '../../api/axiosClient';
 
 const DEPARTMENTS = [
   'Computer Science and Engineering',
@@ -55,7 +53,9 @@ export default function CreateJob({ isModal = false, jobId = null, initialData =
     minimumCgpa: '',
     eligibleBranches: '',
     onlineAssessmentDate: '',
-    interviewDates: ['']
+    interviewDates: [''],
+    backlogEligible: false,
+    customQuestions: [""]
   });
   
   const [loading, setLoading] = useState(false);
@@ -71,10 +71,10 @@ export default function CreateJob({ isModal = false, jobId = null, initialData =
   }, [isEditing, initialData]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -112,6 +112,23 @@ export default function CreateJob({ isModal = false, jobId = null, initialData =
     }));
   };
 
+  const handleCustomQuestionChange = (index, value) => {
+    const updated = [...formData.customQuestions];
+    updated[index] = value;
+    setFormData(prev => ({ ...prev, customQuestions: updated }));
+  };
+
+  const addCustomQuestion = () => {
+    setFormData(prev => ({ ...prev, customQuestions: [...prev.customQuestions, ""] }));
+  };
+
+  const removeCustomQuestion = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      customQuestions: prev.customQuestions.filter((_, i) => i !== index)
+    }));
+  };
+
   const removeInterviewDate = (index) => {
     setFormData(prev => ({
       ...prev,
@@ -138,18 +155,19 @@ export default function CreateJob({ isModal = false, jobId = null, initialData =
         package_range: formData.salary,
         location: formData.location,
         job_type: formData.jobType,
-        job_status: formData.jobStatus
+        job_status: formData.jobStatus,
+        backlog_eligible: formData.backlogEligible,
+        custom_questions: formData.customQuestions.filter(q => q && q.trim() !== "")
       };
 
       const url = isEditing 
-        ? `${API_BASE_URL}/recruiter/jobs/${jobId}`
-        : `${API_BASE_URL}/recruiter/jobs`;
+        ? `/recruiter/jobs/${jobId}`
+        : `/recruiter/jobs`;
 
-      const response = await axios({
+      const response = await axiosClient({
         method: isEditing ? 'PUT' : 'POST',
         url: url,
-        data: jobPayload,
-        withCredentials: true
+        data: jobPayload
       });
 
       if (response.status === 200 || response.status === 201) {
@@ -176,7 +194,9 @@ export default function CreateJob({ isModal = false, jobId = null, initialData =
           minimumCgpa: '',
           eligibleBranches: '',
           onlineAssessmentDate: '',
-          interviewDates: ['']
+          interviewDates: [''],
+          backlogEligible: false,
+          customQuestions: [""]
         });
 
         setTimeout(() => {
@@ -331,24 +351,6 @@ export default function CreateJob({ isModal = false, jobId = null, initialData =
                 <option>Internship</option>
               </select>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Job Status *
-              </label>
-              <select 
-                name="jobStatus"
-                value={formData.jobStatus}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-              >
-                {JOB_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-5">
@@ -422,6 +424,42 @@ export default function CreateJob({ isModal = false, jobId = null, initialData =
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
+              Custom Questions (optional)
+            </label>
+            <p className="text-xs text-gray-500 mb-3">These will be shown in the application form along with name, roll number, branch and resume upload.</p>
+            <div className="space-y-3">
+              {formData.customQuestions?.length > 0 && formData.customQuestions.map((q, index) => (
+                <div key={index} className="flex gap-3">
+                  <input
+                    type="text"
+                    value={q}
+                    onChange={(e) => handleCustomQuestionChange(index, e.target.value)}
+                    placeholder={`Question ${index + 1}`}
+                    className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  />
+                  {formData.customQuestions.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeCustomQuestion(index)}
+                      className="px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addCustomQuestion}
+                className="w-full px-4 py-2.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors font-medium"
+              >
+                + Add Question
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               <span className="flex items-center gap-2">
                 <FileText className="w-4 h-4" />
                 Job Description 
@@ -468,6 +506,18 @@ export default function CreateJob({ isModal = false, jobId = null, initialData =
               />
             </div>
 
+            <div className="flex items-center gap-3 pt-6">
+              <input
+                type="checkbox"
+                name="backlogEligible"
+                checked={formData.backlogEligible}
+                onChange={handleChange}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+              />
+              <label className="text-sm font-medium text-gray-700">
+                Backlog Students Eligible
+              </label>
+            </div>
           </div>
 
           <div className="flex gap-3 pt-4">

@@ -10,18 +10,20 @@ import OnboardingComponent from '../components/Auth/OnboardingModal';
 import { setUser } from '../store/slices/userSlice';
 import { useAuth } from '../context/AuthContext';
 import GoogleModal from '../components/Auth/GoogleModal';
+import OnboardingModal from '../components/Auth/OnboardingModal';
 
 const defaultRouteForRole = (role) => {
   switch ((role || '').toLowerCase()) {
     case 'admin':
-      return '/admin';
+      return '/admin/company-verification';
     case 'recruiter':
       return '/recruiter/viewjobs';
     case 'spoc':
       return '/spoc/assignedjobs';
     case 'student':
-    default:
       return '/student/dashboard';
+    default:
+      return "/";
   }
 };
 
@@ -59,12 +61,20 @@ const Login = () => {
 
   // If already logged in, redirect to role default
   useEffect(() => {
-    if (loading) return;
+    console.log("🔵 Login useEffect - checking auth state", { loading, user, hasUser: !!user });
+    if (loading) {
+      console.log("🔵 Login - Still loading, waiting...");
+      return;
+    }
     if (user) {
       const role = localStorage.getItem('role') || user.role || 'student';
-      navigate(defaultRouteForRole(role), { replace: true });
+      const redirectPath = defaultRouteForRole(role);
+      console.log("🔵 Login - User logged in, redirecting to:", { role, redirectPath });
+      window.location.href = redirectPath;
+    } else {
+      console.log("🔵 Login - No user, showing login page");
     }
-  }, [user, loading, navigate]);
+  }, [user, loading]);
 
   const handleGoogleSignIn = (user) => {
 
@@ -84,21 +94,26 @@ const Login = () => {
           setShowProfileSetupLoader(false);
         }, 900);
       }  else{
-      window.location.href = defaultRouteForRole('student');
+        console.log("🟢 Student login - Redirecting to student dashboard");
+        window.location.href = defaultRouteForRole('student');
       }
       
     }else if(role==='recruiter'){
-
+      console.log("🟢 Recruiter login - is_verified:", user.is_verified);
       if(user.is_verified){
         localStorage.setItem("company",user.company);
+        console.log("🟢 Recruiter verified - Redirecting to viewjobs");
         window.location.href = defaultRouteForRole('recruiter');
       }else{
+        console.log("🟢 Recruiter NOT verified - Redirecting to verification");
         window.location.href = "/recruiter/verification";
       }
     }
     else if(role==='spoc'){
+      console.log("🟢 SPOC login - Redirecting to assigned jobs");
       window.location.href = defaultRouteForRole('spoc');
     }else if(role==='admin'){
+      console.log("🟢 Admin login - Redirecting to admin panel");
       window.location.href = defaultRouteForRole('admin');
     }
   };
@@ -106,7 +121,7 @@ const Login = () => {
   // ✅ GOOGLE SIGN-IN HANDLERS (student)
   const handleGoogleSuccess = (user) => {
     try {
-      const role = localStorage.getItem("role") || user.role || "Student";
+      const role = localStorage.getItem("role") || user.role;
       
       const userData = {
         u_id: user.id,
@@ -129,7 +144,6 @@ const Login = () => {
       localStorage.setItem("branch", userData.branch);
       localStorage.setItem("cgpa", userData.cgpa);
 
-      alert(`Welcome back, ${userData.name}!`);
       handleGoogleSignIn(user);
      
     } catch (err) {
@@ -161,6 +175,7 @@ const Login = () => {
 
       // Also store in localStorage as fallback
       localStorage.setItem("role", userData.role);
+      localStorage.setItem("id", userData.id);
       localStorage.setItem("email", userData.email);
       localStorage.setItem("name", userData.name);
 
@@ -227,7 +242,7 @@ const Login = () => {
 
     try {
       await register(staffUsername, staffEmail, staffPassword, staffFirstName, staffLastName);
-      navigate("/dashboard", { replace: true });
+      navigate("/admin/dashboard", { replace: true });
     } catch (err) {
       setStaffError(err?.response?.data?.message || "Registration failed");
     } finally {
@@ -242,16 +257,15 @@ const Login = () => {
 
     try {
       await login(staffUsername, staffPassword);
-      navigate("/dashboard", { replace: true });
+      alert("success")
+      localStorage.setItem("role","admin");
+      navigate("/admin/company-verification", { replace: true });
     } catch (err) {
+      alert("fail")
       setStaffError(err?.response?.data?.message || "Invalid credentials");
     } finally {
       setStaffLoading(false);
     }
-  };
-
-  const handleAdminLogin = () => {
-    window.location.href = "/adminlogin";
   };
 
   const openStaffAuthModal = () => {
@@ -510,11 +524,11 @@ const Login = () => {
         {showProfileSetupLoader && <ProfileSetupLoader />}
 
         {showProfileSetup && localStorage.getItem("role")==="Student" && (
-          <ProfileSetupModal
+          <OnboardingModal
             isOpen={showProfileSetup}
             onClose={() => setShowProfileSetup(false)}
-            onParsed={() => {
-              window.location.href = "/profile";
+            onComplete={() => {
+              window.location.href = "student/profile";
             }}
           />
         )}

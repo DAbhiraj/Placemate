@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { CheckCircle, Clock, LogOut } from "lucide-react";
-import axios from "axios";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import axiosClient from "../../api/axiosClient";
 
 const RecruiterVerificationPending = ({ recruiterId, onVerified }) => {
   const [kycStatus, setKycStatus] = useState(null);
@@ -21,8 +19,8 @@ const RecruiterVerificationPending = ({ recruiterId, onVerified }) => {
 
   const checkKycStatus = async () => {
     try {
-      const response = await axios.get(
-        `${API_URL}/recruiter/kyc`
+      const response = await axiosClient.get(
+        '/recruiter/kyc'
       );
       setKycStatus(response.data);
       setLoading(false);
@@ -80,10 +78,17 @@ const RecruiterVerificationPending = ({ recruiterId, onVerified }) => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    window.location.href = "/";
-  };
+const handleLogout = async () => {
+    try {
+      await axiosClient.post('/auth/logout', {})
+    } catch (err) {
+      console.error("Logout failed", err?.response?.data || err.message)
+    } finally {
+      sessionStorage.clear()
+      localStorage.clear()
+      window.location.href = "/" // redirect to login page
+    }
+  }
 
   if (loading) {
     return (

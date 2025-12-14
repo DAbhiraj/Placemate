@@ -19,9 +19,16 @@ import SpocJobNegotiation from './pages/spoc/SpocJobNegotiation';
 import SpocAssignedJobs from './pages/spoc/SpocAssignedJobs';
 import SpocStudentGroups from './pages/spoc/SpocStudentGroups';
 import LinkedInCallback from './pages/LinkedInCallback';
-import RecruiterDashboard from './pages/recruiter/RecruiterDashboard';
 import RecruiterProfile from './pages/recruiter/RecruiterProfile';
 import Login from './pages/Login';
+import AdminDashboard from './pages/admin/Dashboard';
+import CompanyVerification from './pages/admin/CompanyVerification';
+import ManageStudents from './pages/admin/ManageStudents';
+import SendNotifications from './pages/admin/SendNotificationPage';
+import ViewAllJobs from './pages/admin/ViewJobs';
+import SpocManagement from './pages/admin/SpocManagement';
+import NotificationPage from './pages/NotifcationPage';
+
 
 
 function App() {
@@ -36,28 +43,35 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
             {/* Student routes */}
-            <Route path="/recruiter/dashboard" element={<RecruiterDashboard />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/applications" element={<Applications />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/alumni" element={<Alumni />} />
-            <Route path="/jobs" element={<JobOpportunities />} />
-            <Route path="/upcoming" element={<UpcomingDeadlines />} />
+            <Route path="student/dashboard" element={<Dashboard />} />
+            <Route path="student/profile" element={<Profile />} />
+            <Route path="student/jobs" element={<JobOpportunities />} />
+            <Route path="student/upcoming" element={<UpcomingDeadlines />} />
+            <Route path="student/notifications" element={<NotificationPage />} />
             
             {/* Admin routes */}
-            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/company-verification" element={<CompanyVerification />} />
+            <Route path="/admin/students" element={<ManageStudents />} />
+            <Route path="/admin/notifications" element={<SendNotifications/>} />
+            <Route path="/admin/viewjobs" element={<ViewAllJobs/>} />
+            <Route path="/admin/spocmanagement" element={<SpocManagement/>} />
+            <Route path="/admin/allnotifications" element={<NotificationPage />} />
 
             {/* Recruiter routes */}
+            <Route path="/recruiter/profile" element={<RecruiterProfile />} />
             <Route path="/recruiter/viewjobs" element={<ViewJobs />} />
             <Route path="/recruiter/profile" element={<RecruiterProfile />} />
             <Route path="/recruiter/spocmsgs" element={<SpocMessages />} />
             <Route path="/recruiter/candidates" element={<Candidates />} />
+            <Route path="/recruiter/verification" element={<RecruiterOnboarding />} />
+            <Route path="/recruiter/notifications" element={<NotificationPage />} />
 
             {/* Spoc routes */}
             <Route path="/spoc/assignedjobs" element={<SpocAssignedJobs />} />
             <Route path="/spoc/recruitermsgs" element={<SpocJobNegotiation />} />
             <Route path="/spoc/studentgrp" element={<SpocStudentGroups />} />
-            <Route path="/recruiter/verification" element={<RecruiterOnboarding />} />
+            <Route path="/spoc/notifications" element={<NotificationPage />} />
           </Route>
         </Route>
       </Routes>

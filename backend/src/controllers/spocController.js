@@ -116,4 +116,6 @@ export const spocController = {
             res.status(500).json({ message: "Failed to auto-update job statuses" });
         }
     }
+
+    
 };

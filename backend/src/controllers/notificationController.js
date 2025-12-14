@@ -5,8 +5,8 @@ export const notificationController = {
     // Get notifications for a user
     async getUserNotifications(req, res) {
         try {
-            const { userId } = req.params;
-            //console.log(userId+" in notification controller");
+            const  userId  = req.user.id;
+            console.log(userId+" in notification controller");
             const notifications = await notificationService.getUserNotifications(userId);
             res.json(notifications);
         } catch (err) {
@@ -18,7 +18,7 @@ export const notificationController = {
     // Get notifications count for a user
     async getUnreadCount(req, res) {
         try {
-            const { userId } = req.params;
+            const  userId  = req.user.id;
             const count = await notificationRepository.getUnreadCount(userId);
             res.json({ count });
         } catch (err) {
@@ -32,8 +32,11 @@ export const notificationController = {
         try {
             console.log("in mark notification controller");
             const { notificationId } = req.params;
-            console.log(notificationId);
-            await notificationService.markRead(notificationId);
+            const  userId  = req.user.id;
+            if (!userId) {
+                return res.status(400).json({ message: "userId is required" });
+            }
+            await notificationService.markRead(notificationId, userId);
             res.json({ message: "Notification marked as read" });
         } catch (err) {
             console.error("Error marking notification as read:", err);
@@ -81,6 +84,24 @@ export const notificationController = {
         } catch (err) {
             console.error("Error fetching all notifications:", err);
             res.status(500).json({ message: "Failed to fetch all notifications" });
+        }
+    },
+
+    // Delete notification for a user
+    async deleteNotification(req, res) {
+        try {
+            const { notificationId } = req.params;
+            const userId = req.user.id;
+            
+            if (!userId) {
+                return res.status(400).json({ message: "userId is required" });
+            }
+            
+            await notificationService.deleteNotification(notificationId, userId);
+            res.json({ message: "Notification deleted successfully" });
+        } catch (err) {
+            console.error("Error deleting notification:", err);
+            res.status(500).json({ message: "Failed to delete notification" });
         }
     }
 };

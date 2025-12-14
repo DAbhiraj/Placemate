@@ -17,13 +17,14 @@ CREATE TABLE Users (
     skills TEXT,
     resume_filename TEXT,
     resume_upload_date TIMESTAMP,
-    resume_url TEXT
+    resume_url TEXT,
     is_verified BOOLEAN DEFAULT false
 );
 
 
 CREATE TABLE jobs (
     job_id SERIAL PRIMARY KEY,
+    recruiter_id VARCHAR(255) REFERENCES users(user_id) ON DELETE SET NULL,
     job_type TEXT,
     company_name TEXT,
     role TEXT,
@@ -56,13 +57,37 @@ CREATE TABLE applications (
 
 CREATE TABLE notifications (
     notification_id SERIAL PRIMARY KEY,
-    id VARCHAR(255) REFERENCES users(user_id) ON DELETE CASCADE, -- User ID
+    sender_id VARCHAR(255) REFERENCES users(user_id) ON DELETE CASCADE, -- User ID
+    title TEXT,
     message TEXT,
     type TEXT,
-    is_read BOOLEAN DEFAULT false,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    title TEXT
+    target_role VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE user_notification_status (
+    user_id VARCHAR(255) NOT NULL,
+    notification_id INTEGER NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE NOT NULL,
+    read_at TIMESTAMP WITH TIME ZONE NULL,
+    
+    PRIMARY KEY (user_id, notification_id),
+
+    CONSTRAINT fk_user
+        FOREIGN KEY (user_id)
+        REFERENCES Users (user_id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_notification
+        FOREIGN KEY (notification_id)
+        REFERENCES notifications (notification_id)
+        ON DELETE CASCADE
+);
+
+-- Recommended Index for fast retrieval of unread count
+    CREATE INDEX idx_user_unread_status 
+    ON user_notification_status (user_id, is_read) 
+WHERE is_read = FALSE;
 
 CREATE TABLE alumni_stories (
     id SERIAL PRIMARY KEY,

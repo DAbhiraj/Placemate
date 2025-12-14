@@ -24,6 +24,7 @@ import NotificationForm from "../../components/UI/NotificationForm"
 import RoleBasedNotificationForm from "../../components/UI/RoleBasedNotificationForm"
 import axios from "axios"
 import Stats from "./Stats"
+import axiosClient from "../../api/axiosClient"
 
 // Use Vite env var for backend API base URL, fallback to localhost for dev
 const API_URL = "http://localhost:4000/api";
@@ -91,10 +92,10 @@ const Admin = () => {
   const fetchBackendData = async () => {
     try {
       const [statsRes, companiesRes, jobsRes, studentsRes] = await Promise.all([
-        axios.get(`${API_URL}/admin/dashboard/stats`),
-        axios.get(`${API_URL}/admin/companies`),
-        axios.get(`${API_URL}/admin/jobs`),
-        axios.get(`${API_URL}/admin/students`)
+        axiosClient.get(`/admin/dashboard/stats`),
+        axiosClient.get(`/admin/companies`),
+        axiosClient.get(`/admin/jobs`),
+        axiosClient.get(`/admin/students`)
       ])
 
       console.log(studentsRes.data);

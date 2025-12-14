@@ -82,6 +82,7 @@ export const applicationRepository = {
         j.interview_dates,
         j.description,
         j.min_cgpa,
+        j.custom_questions,
         j.eligible_branches,
         a.status
       FROM jobs j

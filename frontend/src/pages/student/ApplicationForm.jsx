@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react"
 import { X, Upload, Send, ArrowLeft } from "lucide-react"
-import axios from "axios"
-
-const API_URL = import.meta.env.VITE_API_URL ;
+import axiosClient from "../../api/axiosClient"
 
 export default function ApplicationForm({ job, isApplied = false, onClose }) {
   const [formData, setFormData] = useState({
@@ -39,8 +37,8 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
       try {
         console.log(job);
         // FIX 1: Use job.id (mapped from job_id in Upcoming.jsx)
-        const { data } = await axios.get(
-          `${API_URL}/applications/${job.id}`
+        const { data } = await axiosClient.get(
+          `/applications/${job.id}`
         )
         const profile = data?.profile || {}
         const existing = data?.existingApp || null
@@ -73,16 +71,11 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
       const token = localStorage.getItem("token")
       // FIX 2: Use job.id for submission
       console.debug("Submitting application", { jobId: job.id, studentId, payload: { answers: formData.answers, resumeUrl: formData.resumeUrl } })
-      const res = await axios.post(
-        `${API_URL}/applications/${job.id}/apply/${studentId}`,
+      const res = await axiosClient.post(
+        `/applications/${job.id}/apply/${studentId}`,
         {
           answers: formData.answers,
           resumeUrl: formData.resumeUrl,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         }
       )
 
@@ -262,6 +255,31 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
               />
             </div>
           </div>
+
+          {/* Custom Questions (if any) */}
+          {Array.isArray(job.custom_questions) && job.custom_questions.length > 0 && (
+            <div>
+              <p className="text-sm font-semibold text-slate-700 mb-2">
+                Additional Questions
+              </p>
+              <div className="space-y-4">
+                {job.custom_questions.map((q, idx) => (
+                  <div key={idx}>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      {q}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.answers?.[q] || ""}
+                      onChange={(e) => handleAnswerChange(q, e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white"
+                      placeholder="Your answer"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">

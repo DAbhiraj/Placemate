@@ -18,8 +18,13 @@ export const notificationService = {
     return await notificationRepository.findByUserId(userId);
   },
 
-  markRead: async (notifId) => {
-    await notificationRepository.markAsRead(notifId);
+  markRead: async (notifId, userId) => {
+    await notificationRepository.markAsRead(notifId, userId);
+  },
+
+  // Delete notification for a user
+  deleteNotification: async (notifId, userId) => {
+    await notificationRepository.deleteForUser(notifId, userId);
   },
 
   // Bulk notifications for assessment/interview updates

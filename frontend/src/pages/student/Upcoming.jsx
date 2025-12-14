@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Search, Filter, Calendar, Eye, RefreshCw } from "lucide-react";
-import axios from "axios";
+import axiosClient from "../../api/axiosClient";
 import { formatDateTime } from "../../utils/helpers"; 
 import ApplicationForm from "./ApplicationForm";
 import Loader from "../../components/UI/Loader";
@@ -90,11 +90,10 @@ const UpcomingDashboard = () => {
     setError(null);
     try {
       // Correct API endpoint (should be working if server is restarted)
-      const userId = localStorage.getItem("id"); // Adjust based on how user ID is stored
-      const response = await axios.get(`${API_URL}/applications/dashboard`, {
-        params: { userId }
-      });
-
+     
+      const response = await axiosClient.get(`/applications/dashboard`);
+     console.log(response.data);
+      
       setJobsData(response.data);
     } catch (err) {
       // console.error now includes error message on the client side
@@ -261,7 +260,7 @@ const UpcomingDashboard = () => {
     const handleApply = async ({ jobId, answers, resumeUrl }) => {
       try {
         const studentId = localStorage.getItem("id");
-        await axios.post(`${API_URL}/applications/create`, { studentId, jobId, answers, resumeUrl });
+        await axiosClient.post(`/applications/create`, { studentId, jobId, answers, resumeUrl });
         setSelectedJob(null);
         window.dispatchEvent(new Event("application:submitted"));
       } catch (err) {

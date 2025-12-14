@@ -6,9 +6,10 @@ export const recruiterController = {
     // Get recruiter profile
     async getRecruiter(req, res) {
         try {
-            const { recruiterId } = req.params;
+            const recruiterId = req.user.id;
+            console.log("recruiter id " + recruiterId);
             const result = await pool.query(
-                "SELECT user_id as id, name, email, is_verified FROM users WHERE user_id = $1 AND role = 'recruiter'",
+                "SELECT  u.name, u.email, r.company_website,r.company_address,r.pan_number, r.hr_contact_number, r.years_of_experience,r.company_name,u.is_verified FROM recruiter_kyc r JOIN users u ON r.recruiter_id = u.user_id WHERE r.recruiter_id = $1 AND u.role = 'recruiter'",
                 [recruiterId]
             );
             
@@ -27,8 +28,8 @@ export const recruiterController = {
     async createJob(req, res) {
         try {
             console.log("inside controller");
-
-            const job = await recruiterService.createJob(req.body);
+            const recruiter_id = req.user.id;
+            const job = await recruiterService.createJob(req.body,req.user.id);
             res.status(201).json(job);
         } catch (err) {
             console.error(err);

@@ -27,5 +27,13 @@ export const recruiterKycService = {
 
     async getPendingKyc() {
         return await recruiterKycRepository.getAllPendingKyc();
+    },
+
+    async getAllVerifiedKyc() {
+        return await recruiterKycRepository.getAllApprovedKyc();
+    },
+
+    async getAllRejectedKyc() {
+        return await recruiterKycRepository.getAllRejectedKyc();
     }
 };

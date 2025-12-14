@@ -1,4 +1,5 @@
 import { adminRepository } from "../repo/adminRepo.js";
+import { spocRepository } from "../repo/spocRepo.js";
 import { notificationService } from "./notificationService.js";
 //import { statsService } from "./statsService.js";
 
@@ -89,6 +90,22 @@ export const adminService = {
     // Student Management
     async getAllStudents() {
         return await adminRepository.getAllStudents();
+    },
+
+    async getAllSpocs() {
+        return await adminRepository.getAllSpocs();
+    },
+
+    async searchUsers(query) {
+        return await adminRepository.searchUsers(query);
+    },
+
+    async addSpoc(userId) {
+        return await adminRepository.addSpoc(userId);
+    },
+
+    async getSpocAssignedJobs(spocId) {
+        return await spocRepository.getAssignedJobsBySpocId(spocId);
     },
 
     async updateStudentStatus(studentId, status) {

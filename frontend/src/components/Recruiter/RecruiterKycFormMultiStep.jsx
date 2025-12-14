@@ -58,13 +58,10 @@ const RecruiterKycFormMultiStep = ({ recruiterData, onSuccess }) => {
 
   // Security: Verify recruiter data
   useEffect(() => {
-    const recruiterId = localStorage.getItem('id');
     const email = localStorage.getItem('email');
     
-    if (!recruiterId || !email) {
-      // Force logout and redirect
-      localStorage.clear();
-      sessionStorage.clear();
+    if (!email) {
+      // Redirect to login without clearing localStorage (let auth handle it)
       window.location.href = '/';
     }
   }, []);
@@ -173,11 +170,6 @@ const RecruiterKycFormMultiStep = ({ recruiterData, onSuccess }) => {
 
     setLoading(true);
     try {
-      const recruiterId = localStorage.getItem('id');
-      if (!recruiterId) {
-        throw new Error('Session expired. Please login again.');
-      }
-
       const response = await axios.post(`${API_URL}/recruiter/kyc`, {
         company_name: formData.company_name,
         company_website: formData.company_website || null,

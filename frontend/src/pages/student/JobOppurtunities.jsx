@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosClient from "../../api/axiosClient";
 import {
   Search,
   Filter,
@@ -40,7 +40,7 @@ const JobOpportunities = () => {
     try {
       setLoading(true);
       setError("");
-      const response = await axios.get(`${API_URL}/jobs`);
+      const response = await axiosClient.get(`/jobs`);
       const raw = response?.data;
       const list = Array.isArray(raw)
         ? raw
@@ -81,8 +81,8 @@ const JobOpportunities = () => {
       const userId = localStorage.getItem("id"); // Assumes user ID is in localStorage
       if (!userId || jobs.length === 0) return;
 
-      const response = await axios.get(
-        `${API_URL}/applications/userId/${userId}`
+      const response = await axiosClient.get(
+        `/applications`
       );
       const applications = response.data || [];
 

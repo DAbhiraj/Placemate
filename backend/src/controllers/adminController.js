@@ -110,6 +110,61 @@ export const adminController = {
         }
     },
 
+    async searchUsers(req, res) {
+        try {
+            const { query } = req.query;
+            if (!query || query.trim().length < 2) {
+                return res.json({ data: [] });
+            }
+            const users = await adminService.searchUsers(query);
+            res.json({ data: users });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ message: "Failed to search users" });
+        }
+    },
+
+    async addSpoc(req, res) {
+        try {
+            const { userId } = req.body;
+            if (!userId) {
+                return res.status(400).json({ message: "User ID is required" });
+            }
+            const Spoc = await adminService.addSpoc(userId);
+            res.json({ message: "SPOC added successfully", data: Spoc });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ message: "Failed to add Spoc" });
+        }
+    },
+       
+
+    async getAllSpocs(req, res) {
+        try {
+            const Spocs = await adminService.getAllSpocs();
+            res.json(Spocs);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ message: "Failed to fetch students" });
+        }
+    },
+
+    async getSpocAssignedJobs(req, res) {
+        try {
+            const { spocId } = req.body;
+            
+            if (!spocId) {
+                return res.status(400).json({ message: "SPOC ID is required" });
+            }
+
+            const jobs = await adminService.getSpocAssignedJobs(spocId);
+            res.json({ data: jobs });
+        } catch (err) {
+            console.error("Error fetching SPOC assigned jobs:", err);
+            res.status(500).json({ message: "Failed to fetch SPOC assigned jobs" });
+        }
+    },
+
     async updateStudentStatus(req, res) {
         try {
             const { studentId } = req.params;

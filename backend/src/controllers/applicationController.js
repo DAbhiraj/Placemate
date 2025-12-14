@@ -43,8 +43,8 @@ const applicationController = {
   // 👇 NEW FUNCTION: Handles the /applications/dashboard route
   async getDashboardData(req, res) {
     try {
-      // Assuming user ID is set by authentication middleware (req.user = { id: 1 } in routes.js)
-      const studentId = req.query.userId; 
+      // Use req.user.id from auth middleware, fallback to req.query.userId
+      const studentId = req.user?.id || req.query.userId; 
       
       if (!studentId) {
         return res.status(401).json({ message: "Authentication required (User ID missing)." });

@@ -33,12 +33,8 @@ export const recruiterKycController = {
     async getKyc(req, res) {
         try {
             // Extract recruiterId from auth cookie (Keycloak ID is used as user_id in database)
-            const accessToken = req.cookies[ACCESS_TOKEN_COOKIE];
-            if (!accessToken) {
-                return res.status(401).json({ message: "Not authenticated" });
-            }
-
-            const recruiterId = keycloakService.decodeUserId(accessToken);
+            const recruiterId =req.user.id;
+            
             if (!recruiterId) {
                 return res.status(401).json({ message: "Invalid authentication token" });
             }
@@ -58,6 +54,26 @@ export const recruiterKycController = {
         } catch (error) {
             console.error("Error fetching pending KYC:", error);
             res.status(500).json({ message: "Failed to fetch pending KYC" });
+        }
+    },
+
+    async getAllVerifiedKyc(req, res) {
+        try {
+            const data = await recruiterKycService.getAllVerifiedKyc();
+            res.status(200).json(data);
+        } catch (error) {
+            console.error("Error fetching verified KYC:", error);
+            res.status(500).json({ message: "Failed to fetch verified KYC" });
+        }
+    },
+
+    async getAllRejectedKyc(req, res) {
+        try {
+            const data = await recruiterKycService.getAllRejectedKyc();
+            res.status(200).json(data);
+        } catch (error) {
+            console.error("Error fetching rejected KYC:", error);
+            res.status(500).json({ message: "Failed to fetch rejected KYC" });
         }
     },
 

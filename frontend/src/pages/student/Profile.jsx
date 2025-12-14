@@ -17,11 +17,10 @@ import {
   Trash2,
   Loader2
 } from "lucide-react"
-import axios from "axios";
+import axiosClient from "../../api/axiosClient"
 
 const Profile = () => {
   const dispatch = useDispatch()
-  const reduxUser = useSelector((state) => state.user.user)
   
   const [currentUser, setCurrentUser] = useState({})
   const [editingUser, setEditingUser] = useState({})
@@ -48,8 +47,7 @@ const Profile = () => {
   const fetchProfile = async () => {
     try {
       setLoading(true)
-      const token = getAuthToken()
-      const response = await axios.get(`${API_BASE}/profile?userId=${localStorage.getItem("id")}`);
+      const response = await axiosClient.get(`/profile`);
       console.log("response");
       console.log(response);
         const data = response.data;
@@ -111,8 +109,7 @@ const Profile = () => {
   // Update profile
   const updateProfile = async (updateData) => {
     try {
-      const token = getAuthToken()
-      const response = await axios.put(`${API_BASE}/profile/${localStorage.getItem("id")}`, {
+      const response = await axiosClient.put(`/profile`, {
         updateData
       })
       
@@ -199,8 +196,7 @@ const Profile = () => {
   // Update skills
   const updateSkills = async () => {
     try {
-      const token = getAuthToken()
-      const response = await axios.put(`${API_BASE}/profile/skills/${localStorage.getItem("id")}`, 
+      const response = await axiosClient.put(`/profile/skills`, 
         {skills}
       )
       console.log("response is ok na");
@@ -225,17 +221,13 @@ const Profile = () => {
       formData.append("resume", selectedFile)
       const userId = localStorage.getItem("id");
 
-      const response = await axios.post(`${API_BASE}/profile/resume?userId=${userId}`, formData, {
-        withCredentials: true,
+      const response = await axiosClient.post(`/profile/resume`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        // setAtsScore(data.data.ats_score)
-        // setAtsFeedback(data.data.feedback)
+      if (response.status === 200) {
         setSelectedFile(null)
         // Refresh profile data
         await fetchProfile()
@@ -254,8 +246,7 @@ const Profile = () => {
   // Download resume
   const downloadResume = async () => {
     try {
-      const response = await axios.get(`${API_BASE}/profile/resume`, {
-        withCredentials: true,
+      const response = await axiosClient.get(`/profile/resume`, {
         responseType: 'blob'
       })
 
@@ -283,13 +274,9 @@ const Profile = () => {
     if (!confirm("Are you sure you want to delete your resume?")) return
 
     try {
-      const response = await axios.delete(`${API_BASE}/profile/resume`, {
-        withCredentials: true
-      })
+      const response = await axiosClient.delete(`/profile/resume`)
 
-      if (response.ok) {
-        // setAtsScore(null)
-        // setAtsFeedback("")
+      if (response.status === 200) {
         await fetchProfile()
         alert("Resume deleted successfully")
       } else {
@@ -465,9 +452,8 @@ const Profile = () => {
                   type="number"
                   step="0.01"
                   value={isEditing ? (editingUser?.cgpa || "") : (currentUser?.cgpa || "")}
-                  onChange={(e) => handleFieldChange('cgpa', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                  disabled={!isEditing}
+                  disabled
                 />
               </div>
 

@@ -25,15 +25,6 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-
-
-router.get("/notifications/:userId",notificationController.getUserNotifications);
-router.get("/notifications/:userId/unread",notificationController.getUnreadCount);
-router.put("/notifications/:notificationId/read",notificationController.markNotificationAsRead);
-router.get("/notifications/role/:role",notificationController.getNotificationsByRole);
-router.post("/notifications/send-by-role",notificationController.sendNotificationByRole);
-router.get("/notifications/all",notificationController.getAllNotifications);
-
 router.post("/auth/register", keycloakAuthController.register);
 router.post("/auth/login", keycloakAuthController.login);
 router.post("/auth/refresh", keycloakAuthController.refresh);
@@ -44,11 +35,19 @@ router.post("/auth/linkedin", linkedinLogin);
 
 router.use(requireAuth);
 
+router.get("/notifications",notificationController.getUserNotifications);
+router.get("/notifications/unread",notificationController.getUnreadCount);
+router.put("/notifications/:notificationId/read",notificationController.markNotificationAsRead);
+router.delete("/notifications/:notificationId",notificationController.deleteNotification);
+router.get("/notifications/role/:role",notificationController.getNotificationsByRole);
+router.post("/notifications/send-by-role",notificationController.sendNotificationByRole);
+router.get("/notifications/all",notificationController.getAllNotifications);
+
 // applications
 router.get("/applications/dashboard", applicationController.getDashboardData);
 router.get('/exports', applicationController.downloadCompanyReport);
-router.get("/upcoming-deadlines/:userId",applicationController.getUpcomingDeadline);
-router.get("/applications/userId/:userId", applicationController.getApplicationByUser);
+// router.get("/upcoming-deadlines",applicationController.getUpcomingDeadline);
+router.get("/applications", applicationController.getApplicationByUser);
 router.get("/applications/:jobId", applicationController.getFormData);
 router.post("/applications/:jobId/apply/:studentId", applicationController.submitForm);
 
@@ -68,8 +67,8 @@ router.post("/alumni", AlumniController.create);
 
 // --- Profile Routes ---
 router.get("/profile", ProfileController.getProfile);
-router.put("/profile/:profileId",  ProfileController.updateProfile);
-router.put("/profile/skills/:userId",  ProfileController.updateSkills);
+router.put("/profile/",  ProfileController.updateProfile);
+router.put("/profile/skills/",  ProfileController.updateSkills);
 router.post("/profile/resume",  uploadMiddleware, ProfileController.uploadResume);
 router.get("/profile/resume",  ProfileController.getResume);
 router.delete("/profile/resume",  ProfileController.deleteResume);
@@ -102,6 +101,10 @@ router.get("/admin/dashboard/stats", adminController.getDashboardStats);
 
 // Student Management
 router.get("/admin/students", adminController.getAllStudents);
+router.get("/admin/spocs", adminController.getAllSpocs);
+router.get("/admin/search-users", adminController.searchUsers);
+router.post("/admin/spoc/add", adminController.addSpoc);
+router.post("/admin/spocs/assigned-jobs", adminController.getSpocAssignedJobs);
 router.put("/admin/students/:studentId/status", adminController.updateStudentStatus);
 
 // Protect all routes below
@@ -124,6 +127,8 @@ router.post("/system/auto-update-job-statuses", spocController.autoUpdateJobStat
 router.post("/recruiter/kyc", recruiterKycController.submitKyc);
 router.get("/recruiter/kyc", recruiterKycController.getKyc);
 router.get("/admin/recruiter-kyc/pending", recruiterKycController.getPendingKyc);
+router.get("/admin/recruiter-kyc/verified", recruiterKycController.getAllVerifiedKyc);
+router.get("/admin/recruiter-kyc/rejected", recruiterKycController.getAllRejectedKyc);
 router.put("/admin/recruiter-kyc/:kycId/approve", recruiterKycController.approveKyc);
 router.put("/admin/recruiter-kyc/:kycId/reject", recruiterKycController.rejectKyc);
 

@@ -67,7 +67,7 @@ export class ProfileRepo {
    */
   static async updateProfile(userId, updateData) {
     try {
-      const { branch, cgpa, email, name, application_type } = updateData.updateData;
+      const { branch, cgpa, email, name, application_type } = updateData;
       
   
       // Build dynamic SQL for only the provided fields

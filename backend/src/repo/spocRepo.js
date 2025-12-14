@@ -66,30 +66,69 @@ export const spocRepository = {
             // Send notification to recruiter
             if (recruiterInfo.rows.length > 0) {
                 await client.query(
-                    `INSERT INTO notifications (user_id, title, message, type, is_read)
-                     VALUES ($1, $2, $3, $4, false)`,
+                    `WITH new_notification AS (
+                        INSERT INTO notifications (sender_id, title, message, type, target_role)
+                        VALUES ($1, $2, $3, $4, NULL)
+                        RETURNING notification_id
+                    )
+                    INSERT INTO user_notification_status (user_id, notification_id)
+                    SELECT $5, notification_id FROM new_notification
+                    ON CONFLICT (user_id, notification_id) DO NOTHING;`,
                     [
-                        recruiterInfo.rows[0].recruiter_id,
+                        spocId,
                         'SPOC Assigned to Job',
                         `A SPOC has been assigned to your job posting: ${jobInfo.rows[0].role}. Status updated to 'In Review'.`,
-                        'job_update'
+                        'job_update',
+                        recruiterInfo.rows[0].recruiter_id
                     ]
                 );
             }
             
             // Send notification to SPOC
             await client.query(
-                `INSERT INTO notifications (user_id, title, message, type, is_read)
-                 VALUES ($1, $2, $3, $4, false)`,
+                `WITH new_notification AS (
+                    INSERT INTO notifications (sender_id, title, message, type, target_role)
+                    VALUES ($1, $2, $3, $4, NULL)
+                    RETURNING notification_id
+                )
+                INSERT INTO user_notification_status (user_id, notification_id)
+                SELECT $5, notification_id FROM new_notification
+                ON CONFLICT (user_id, notification_id) DO NOTHING;`,
                 [
-                    spocId,
+                    recruiterInfo.rows?.[0]?.recruiter_id || null,
                     'New Job Assignment',
                     `You have been assigned to job: ${jobInfo.rows[0].role} at ${jobInfo.rows[0].company_name}.`,
-                    'job_assignment'
+                    'job_assignment',
+                    spocId
                 ]
             );
             
+            // Send notification to admin
+            const adminResult = await client.query(
+                `SELECT user_id FROM users WHERE role = 'admin' LIMIT 1`
+            );
+            if (adminResult.rows.length > 0) {
+                await client.query(
+                    `WITH new_notification AS (
+                        INSERT INTO notifications (sender_id, title, message, type, target_role)
+                        VALUES ($1, $2, $3, $4, NULL)
+                        RETURNING notification_id
+                    )
+                    INSERT INTO user_notification_status (user_id, notification_id)
+                    SELECT $5, notification_id FROM new_notification
+                    ON CONFLICT (user_id, notification_id) DO NOTHING;`,
+                    [
+                        spocId,
+                        'SPOC Assigned to Job',
+                        `SPOC has been assigned to job: ${jobInfo.rows[0].role} at ${jobInfo.rows[0].company_name}.`,
+                        'job_assignment',
+                        adminResult.rows[0].user_id
+                    ]
+                );
+            }
+            
             await client.query('COMMIT');
+            console.log('DNE')
             return assignmentResult.rows[0];
         } catch (error) {
             await client.query('ROLLBACK');
@@ -144,21 +183,83 @@ export const spocRepository = {
 
     // Update job status (SPOC can only update to 'in negotiation' or 'applications opened')
     async updateJobStatus(spocId, jobId, newStatus) {
-        const allowedStatuses = ['in negotiation', 'applications opened'];
-        if (!allowedStatuses.includes(newStatus)) {
-            throw new Error('SPOC can only update status to "in negotiation" or "applications opened"');
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            
+            const allowedStatuses = ['in negotiation', 'applications opened'];
+            if (!allowedStatuses.includes(newStatus)) {
+                throw new Error('SPOC can only update status to "in negotiation" or "applications opened"');
+            }
+            
+            const result = await client.query(
+                `UPDATE jobs SET job_status = $1, updated_at = CURRENT_TIMESTAMP 
+                 WHERE job_id = $2 AND EXISTS (
+                     SELECT 1 FROM spoc_job_assignments 
+                     WHERE spoc_id = $3 AND job_id = $2
+                 )
+                 RETURNING *`,
+                [newStatus, jobId, spocId]
+            );
+
+            const job = result.rows[0];
+            if (!job) {
+                throw new Error('Job not found or SPOC not assigned');
+            }
+
+            // Send notification to recruiter
+            if (job.recruiter_id) {
+                await client.query(
+                    `WITH new_notification AS (
+                        INSERT INTO notifications (sender_id, title, message, type, target_role)
+                        VALUES ($1, $2, $3, $4, NULL)
+                        RETURNING notification_id
+                    )
+                    INSERT INTO user_notification_status (user_id, notification_id)
+                    SELECT $5, notification_id FROM new_notification
+                    ON CONFLICT (user_id, notification_id) DO NOTHING;`,
+                    [
+                        spocId,
+                        'Job Status Updated by SPOC',
+                        `Job status for ${job.role} at ${job.company_name} has been updated to "${newStatus}"`,
+                        'job_status_changed',
+                        job.recruiter_id
+                    ]
+                );
+            }
+
+            // Send notification to admin
+            const adminResult = await client.query(
+                `SELECT user_id FROM users WHERE role = 'admin' LIMIT 1`
+            );
+            if (adminResult.rows.length > 0) {
+                await client.query(
+                    `WITH new_notification AS (
+                        INSERT INTO notifications (sender_id, title, message, type, target_role)
+                        VALUES ($1, $2, $3, $4, NULL)
+                        RETURNING notification_id
+                    )
+                    INSERT INTO user_notification_status (user_id, notification_id)
+                    SELECT $5, notification_id FROM new_notification
+                    ON CONFLICT (user_id, notification_id) DO NOTHING;`,
+                    [
+                        spocId,
+                        'Job Status Updated by SPOC',
+                        `SPOC updated job status for ${job.role} at ${job.company_name} to "${newStatus}"`,
+                        'job_status_changed',
+                        adminResult.rows[0].user_id
+                    ]
+                );
+            }
+
+            await client.query('COMMIT');
+            return job;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
         }
-        
-        const result = await pool.query(
-            `UPDATE jobs SET job_status = $1, updated_at = CURRENT_TIMESTAMP 
-             WHERE job_id = $2 AND EXISTS (
-                 SELECT 1 FROM spoc_job_assignments 
-                 WHERE spoc_id = $3 AND job_id = $2
-             )
-             RETURNING *`,
-            [newStatus, jobId, spocId]
-        );
-        return result.rows[0];
     },
 
     // Get jobs that need automatic status updates based on dates

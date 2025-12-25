@@ -22,12 +22,8 @@ import StatCard from "../../components/UI/StatCard"
 import StatusBadge from "../../components/UI/StatusBadge"
 import NotificationForm from "../../components/UI/NotificationForm"
 import RoleBasedNotificationForm from "../../components/UI/RoleBasedNotificationForm"
-import axios from "axios"
 import Stats from "./Stats"
 import axiosClient from "../../api/axiosClient"
-
-// Use Vite env var for backend API base URL, fallback to localhost for dev
-const API_URL = "http://localhost:4000/api";
 
 const Admin = () => {
   // const { students, companies, applications } = useApp()
@@ -66,8 +62,8 @@ const Admin = () => {
   const downloadReport = async (companyName) => {
     try {
       console.log(companyName);
-      const response = await axios.get(
-        `${API_URL}/exports?companyName=${encodeURIComponent(companyName)}`,
+      const response = await axiosClient.get(
+        `/exports?companyName=${encodeURIComponent(companyName)}`,
         { responseType: "blob" }
       );
 
@@ -113,7 +109,7 @@ const Admin = () => {
   const handleJobSubmit = async (e) => {
     e.preventDefault()
     try {
-      await axios.post(`${API_URL}/admin/jobs`, jobForm)
+      await axiosClient.post('/admin/jobs', jobForm)
       setShowJobForm(false)
       setJobForm({
         company_name: "",
@@ -146,7 +142,7 @@ const Admin = () => {
       formData.append('customMessage', notificationData.customMessage || '')
       formData.append('excelFile', notificationData.excelFile)
 
-      await axios.post(`${API_URL}/admin/send-notification`, formData, {
+      await axiosClient.post('/admin/send-notification', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -163,7 +159,7 @@ const Admin = () => {
   // Role-based notification handler
   const handleSendRoleBasedNotification = async (notificationData) => {
     try {
-      await axios.post(`${API_URL}/admin/send-notification-roles`, {
+      await axiosClient.post('/admin/send-notification-roles', {
         message: notificationData.message,
         title: notificationData.title,
         type: notificationData.type,

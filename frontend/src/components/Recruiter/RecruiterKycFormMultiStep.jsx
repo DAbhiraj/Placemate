@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, AlertCircle, CheckCircle, ChevronRight, Lock } from 'lucide-react';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL;
+import axiosClient from '../../api/axiosClient';
 
 const RecruiterKycFormMultiStep = ({ recruiterData, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -103,12 +101,9 @@ const RecruiterKycFormMultiStep = ({ recruiterData, onSuccess }) => {
     formDataObj.append('file', panFile);
 
     try {
-      const response = await axios.post(`${API_URL}/upload/document`, formDataObj, 
-        {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        withCredentials : true,
-      }
-    );
+      const response = await axiosClient.post('/upload/document', formDataObj, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       setFormData(prev => ({
         ...prev,
         pan_document_url: response.data.url || response.data.filename
@@ -170,7 +165,7 @@ const RecruiterKycFormMultiStep = ({ recruiterData, onSuccess }) => {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/recruiter/kyc`, {
+      const response = await axiosClient.post('/recruiter/kyc', {
         company_name: formData.company_name,
         company_website: formData.company_website || null,
         company_address: formData.company_address,
@@ -179,10 +174,7 @@ const RecruiterKycFormMultiStep = ({ recruiterData, onSuccess }) => {
         hr_contact_number: formData.hr_contact_number,
         linkedin_profile_url: formData.linkedin_profile_url || null,
         years_of_experience: parseInt(formData.years_of_experience)
-      },
-  {
-    withCredentials: true // ✅ put it here
-  });
+      });
 
       if (response.status === 201) {
         setIsFormDirty(false);

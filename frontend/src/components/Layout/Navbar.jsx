@@ -2,10 +2,7 @@ import React, { useState, useEffect } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { GraduationCap, Bell, User, ChevronDown, Menu, X } from "lucide-react"
 import { Briefcase, Users, MessageSquare } from "lucide-react"
-import axios from "axios"
 import axiosClient from "../../api/axiosClient"
-
-const API_URL = import.meta.env.VITE_API_URL
 
 
 
@@ -168,7 +165,7 @@ const Navbar = () => {
 
   const handleSignOut = async () => {
     try {
-      await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true })
+      await axiosClient.post('/auth/logout')
     } catch (err) {
       console.error("Logout failed", err)
     } finally {

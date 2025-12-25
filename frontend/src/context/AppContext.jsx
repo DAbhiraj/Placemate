@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react"
+import axiosClient from "../api/axiosClient"
 
 const AppContext = createContext(undefined)
 
@@ -128,26 +129,20 @@ export const AppProvider = ({ children }) => {
     const token = localStorage.getItem('token');
     if (token) {
       // Verify token and get user data
-      fetch('http://localhost:5000/api/profile', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setCurrentUser(data.data);
-          setIsAuthenticated(true);
-          setShowOnboarding(!data.data.profile_completed);
-          setShowProfileSetup(!data.data.branch || !data.data.cgpa);
-        } else {
+      axiosClient.get('/profile')
+        .then(res => {
+          if (res.data.success) {
+            setCurrentUser(res.data.data);
+            setIsAuthenticated(true);
+            setShowOnboarding(!res.data.data.profile_completed);
+            setShowProfileSetup(!res.data.data.branch || !res.data.data.cgpa);
+          } else {
+            localStorage.removeItem('token');
+          }
+        })
+        .catch(() => {
           localStorage.removeItem('token');
-        }
-      })
-      .catch(() => {
-        localStorage.removeItem('token');
-      });
+        });
     }
   }, []);
 

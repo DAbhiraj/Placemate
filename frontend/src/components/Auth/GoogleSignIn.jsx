@@ -1,5 +1,5 @@
 import React, { useState,useEffect, useRef } from 'react';
-import axios from 'axios';
+import axiosClient from '../../api/axiosClient';
 
 const GoogleSignIn = ({ onSuccess, onError, role, onBegin }) => {
   const [currentUser,setCurrentUser] = useState({});
@@ -35,10 +35,9 @@ const GoogleSignIn = ({ onSuccess, onError, role, onBegin }) => {
         // Notify parent immediately to show loading overlay
         onBegin?.();
         const userRole = role || localStorage.getItem("role") || "Student";
-        const res = await axios.post(
-          'http://localhost:4000/api/auth/google',
-          { idToken: response.credential, role: userRole },
-          { withCredentials: true }
+        const res = await axiosClient.post(
+          '/auth/google',
+          { idToken: response.credential, role: userRole }
         );
 
         // Axios automatically parses JSON response

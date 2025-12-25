@@ -10,10 +10,8 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosClient from "../../api/axiosClient";
 import CreateJob from "./CreateJob";
-
-const API_BASE_URL = "http://localhost:4000/api";
 
 const getJobStatusColor = (status) => {
   const statusColors = {
@@ -47,9 +45,7 @@ export default function ViewJobs() {
   const fetchJobs = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/recruiter/jobs/${company}`, {
-        withCredentials: true
-      });
+      const response = await axiosClient.get(`/recruiter/jobs/${company}`);
       const data = response.data;
       // Helper function to format dates
       const formatDate = (dateString) => {
@@ -125,9 +121,7 @@ export default function ViewJobs() {
     }
 
     try {
-      const response = await axios.delete(`${API_BASE_URL}/recruiter/jobs/${jobId}`, {
-        withCredentials: true
-      });
+      const response = await axiosClient.delete(`/recruiter/jobs/${jobId}`);
 
       setJobs(jobs.filter((job) => job.id !== jobId));
       alert("Job deleted successfully");

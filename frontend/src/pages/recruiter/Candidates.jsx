@@ -13,9 +13,7 @@ import {
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
-import axios from "axios";
-
-const API_BASE_URL = 'http://localhost:4000/api';
+import axiosClient from "../../api/axiosClient";
 
 export default function Candidates() {
   const [searchParams] = useSearchParams();
@@ -41,9 +39,7 @@ export default function Candidates() {
       
       if (jobId) {
         // Fetch applications for specific job
-        const applicationsResponse = await axios.get(`${API_BASE_URL}/jobs/${jobId}/applications`, {
-          withCredentials: true
-        });
+        const applicationsResponse = await axiosClient.get(`/jobs/${jobId}/applications`);
         const applications = applicationsResponse.data;
         
         if (Array.isArray(applications)) {
@@ -51,16 +47,12 @@ export default function Candidates() {
         }
       } else {
         // Fetch all jobs first to get job IDs
-        const response = await axios.get(`${API_BASE_URL}/recruiter/jobs/${company_name}`, {
-          withCredentials: true
-        });
+        const response = await axiosClient.get(`/recruiter/jobs/${company_name}`);
         const jobs = response.data;
-        
+
         // Fetch applications for each job
         for (const job of (Array.isArray(jobs) ? jobs : jobs.jobs || [])) {
-          const applicationsResponse = await axios.get(`${API_BASE_URL}/jobs/${job.job_id}/applications`, {
-            withCredentials: true
-          });
+          const applicationsResponse = await axiosClient.get(`/jobs/${job.job_id}/applications`);
           const applications = applicationsResponse.data;
           
           if (Array.isArray(applications)) {
@@ -116,11 +108,9 @@ export default function Candidates() {
   const downloadReport = async (companyName) => {
     try {
       console.log(companyName);
-      const response = await axios.get(
-        `${API_BASE_URL}/exports?companyName=${encodeURIComponent(companyName)}`,
-        { responseType: "blob",
-          withCredentials:true
-         }
+      const response = await axiosClient.get(
+        `/exports?companyName=${encodeURIComponent(companyName)}`,
+        { responseType: "blob" }
       );
 
       const url = window.URL.createObjectURL(new Blob([response.data]));

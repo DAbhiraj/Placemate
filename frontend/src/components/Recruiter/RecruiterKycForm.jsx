@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { Upload, AlertCircle, CheckCircle } from 'lucide-react';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL;
+import axiosClient from '../../api/axiosClient';
 
 const RecruiterKycForm = ({ recruiterData, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -58,7 +56,7 @@ const RecruiterKycForm = ({ recruiterData, onSuccess }) => {
     formDataObj.append('file', panFile);
 
     try {
-      const response = await axios.post(`${API_URL}/upload/document`, formDataObj, {
+      const response = await axiosClient.post('/upload/document', formDataObj, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setFormData(prev => ({
@@ -102,7 +100,7 @@ const RecruiterKycForm = ({ recruiterData, onSuccess }) => {
 
     setLoading(true);
     try {
-      const response = await axiosClient.post(`/recruiter/kyc`, {
+      const response = await axiosClient.post('/recruiter/kyc', {
         company_name: formData.company_name,
         company_website: formData.company_website || null,
         company_address: formData.company_address,

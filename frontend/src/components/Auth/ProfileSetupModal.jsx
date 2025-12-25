@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { X, Loader2 } from "lucide-react";
-import axios from "axios";
+import axiosClient from "../../api/axiosClient";
 import { useDispatch } from "react-redux";
 import { setUser } from "../../store/slices/userSlice";
 
@@ -27,13 +27,11 @@ const ProfileSetupModal = ({ isOpen, onClose, onParsed }) => {
 
     setLoading(true);
     try {
-      const response = await axios.post(
-        "http://localhost:4000/api/parse-resume",
-        
+      const response = await axiosClient.post(
+        "/parse-resume",
         formData,
         {
-          headers: { "Content-Type": "multipart/form-data" },
-          withCredentials : true,
+          headers: { "Content-Type": "multipart/form-data" }
         }
       );
 

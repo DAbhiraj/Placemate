@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Linkedin } from 'lucide-react';
-import axios from 'axios';
+import axiosClient from '../../api/axiosClient';
 
 const LinkedInSignIn = ({ onSuccess, onError, onBegin }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -65,8 +65,8 @@ const LinkedInSignIn = ({ onSuccess, onError, onBegin }) => {
 
     try {
       // Send code to backend
-      const res = await axios.post(
-        'http://localhost:4000/api/auth/linkedin',
+      const res = await axiosClient.post(
+        '/auth/linkedin',
         { code }
       );
 

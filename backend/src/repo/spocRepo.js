@@ -6,7 +6,7 @@ export const spocRepository = {
         const result = await pool.query(
             `SELECT 
                 j.job_id as id,
-                j.roles as title,
+                j.role as title,
                 j.company_name as company,
                 j.location,
                 j.package as salary,
@@ -230,7 +230,7 @@ export const spocRepository = {
 
             // Send notification to admin
             const adminResult = await client.query(
-                `SELECT user_id FROM users WHERE role = 'admin' LIMIT 1`
+                `SELECT user_id FROM users WHERE roles = ARRAY['Admin'] LIMIT 1`
             );
             if (adminResult.rows.length > 0) {
                 await client.query(

@@ -128,7 +128,7 @@ export const adminRepository = {
     // Student Management
     async getAllStudents() {
         const result = await pool.query(
-            "SELECT user_id as id, name,roll_no, email, branch,is_placed, cgpa, role FROM users WHERE role = 'Student' ORDER BY name"
+            "SELECT user_id as id, name,roll_no, email, branch,is_placed, cgpa, roles FROM users  WHERE 'student' = ANY(roles) ORDER BY name"
         );
         return result.rows;
     },

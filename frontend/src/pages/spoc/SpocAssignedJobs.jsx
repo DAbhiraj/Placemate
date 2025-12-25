@@ -203,7 +203,7 @@ export default function SpocAssignedJobs() {
                 <div className="flex items-start gap-2">
                   <IndianRupee className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-gray-500">Salary</p>
+                    <p className="text-gray-500">{job.job_type === "internship" ? "Stipend" : "Salary"}</p>
                     <p className="text-gray-900 font-medium">{job.salary}</p>
                   </div>
                 </div>

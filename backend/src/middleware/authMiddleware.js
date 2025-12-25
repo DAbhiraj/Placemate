@@ -1,4 +1,4 @@
-import { keycloakService } from "../services/keycloakService.js";
+import { tokenService } from "../services/tokenService.js";
 
 const ACCESS_TOKEN_COOKIE = "pm_access_token";
 
@@ -10,20 +10,18 @@ export const requireAuth = async (req, res, next) => {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
-    const introspection = await keycloakService.introspect(accessToken);
-    if (!introspection?.active) {
-      console.log("Token inactive, introspection result:", introspection);
-      return res.status(401).json({ message: "Token inactive" });
-    }
+    // Verify and decode the access token
+    const decoded = tokenService.verifyAccessToken(accessToken);
 
     req.user = {
-      id: introspection.sub,
-      username: introspection.username || introspection.preferred_username,
-      exp: introspection.exp,
+      id: decoded.sub,
+      email: decoded.email,
+      roles: decoded.roles,
+      exp: decoded.exp,
     };
     next();
   } catch (err) {
-    console.error("Auth middleware error", err?.response?.data || err.message);
+    console.error("Auth middleware error:", err.message);
     return res.status(401).json({ message: "Authentication failed" });
   }
 };

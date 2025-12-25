@@ -23,7 +23,8 @@ const getJobStatusColor = (status) => {
     interview: "bg-red-100 text-red-700",
     "completed the drive": "bg-emerald-100 text-emerald-700",
   };
-  return statusColors[status] || "bg-gray-100 text-gray-700";
+  const key = (status || "").toLowerCase();
+  return statusColors[key] || "bg-gray-100 text-gray-700";
 };
 
 export default function ViewJobs() {
@@ -50,60 +51,90 @@ export default function ViewJobs() {
       // Helper function to format dates
       const formatDate = (dateString) => {
         if (!dateString) return null;
-        
+
         // If already formatted in DD/MM/YYYY, HH:MM format (24-hour from backend)
         if (/^\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}$/.test(dateString)) {
-          const [datePart, timePart] = dateString.split(', ');
-          const [hours24, minutes] = timePart.split(':');
+          const [datePart, timePart] = dateString.split(", ");
+          const [hours24, minutes] = timePart.split(":");
           const hour = parseInt(hours24);
-          const period = hour >= 12 ? 'PM' : 'AM';
+          const period = hour >= 12 ? "PM" : "AM";
           const hours12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
           return `${datePart}, ${hours12}:${minutes} ${period}`;
         }
-        
+
         // If already formatted in DD/MM/YYYY format (without time)
         if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
           return dateString;
         }
-        
+
         // If already formatted (YYYY-MM-DD), return as is
         if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-          const [year, month, day] = dateString.split('-');
+          const [year, month, day] = dateString.split("-");
           return `${day}/${month}/${year}`;
         }
-        
+
         // Otherwise format the date
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return null;
         const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
         return `${day}/${month}/${year}`;
       };
 
       const formattedJobs = (Array.isArray(data) ? data : data.jobs || []).map(
-        (job) => ({
-          id: job.job_id,
-          title: job.role || "Not Specified",
-          type: job.job_type || "Full Time",
-          location: job.location || "Not Provided",
-          salary: job.package || "N/A",
-          deadline: formatDate(job.application_deadline),
-          otDeadline: formatDate(job.online_assessment_date),
-          applications: job.applied_count || 0,
-          postedDate: formatDate(job.created_at),
-          company: job.company_name,
-          minCgpa: job.min_cgpa ? `${job.min_cgpa}+` : "N/A",
-          eligibleBranches: job.eligible_branches || "All",
-          description: job.description || "",
-          applicationDeadline: formatDate(job.application_deadline),
-          onlineAssessmentDate: formatDate(job.online_assessment_date),
-          interviewDates: Array.isArray(job.interview_dates) 
-            ? job.interview_dates.map(d => formatDate(d)).filter(Boolean)
-            : [],
-          jobStatus: job.job_status || "in initial stage",
-        })
-      );  
+        (job) => {
+          const normalizedType = (job.job_type || job.type || "Full Time")
+            .toString()
+            .trim();
+          const typeLower = normalizedType.toLowerCase();
+          const typeLabel =
+            typeLower === "internship"
+              ? "Internship"
+              : typeLower === "full time"
+              ? "Full Time"
+              : normalizedType;
+
+          const rawStatus = (
+            job.job_status ||
+            job.jobStatus ||
+            "in initial stage"
+          )
+            .toString()
+            .trim();
+          const statusLower = rawStatus.toLowerCase();
+          const toTitle = (str) =>
+            str
+              .split(" ")
+              .map((s) => (s ? s[0].toUpperCase() + s.slice(1) : ""))
+              .join(" ");
+          const statusLabel = toTitle(statusLower);
+
+          return {
+            id: job.job_id,
+            title: job.role || "Not Specified",
+            type: typeLabel,
+            typeRaw: typeLower,
+            location: job.location || "Not Provided",
+            salary: job.package || "N/A",
+            deadline: formatDate(job.application_deadline),
+            otDeadline: formatDate(job.online_assessment_date),
+            applications: job.applied_count || 0,
+            postedDate: formatDate(job.created_at),
+            company: job.company_name,
+            minCgpa: job.min_cgpa ? `${job.min_cgpa}+` : "N/A",
+            eligibleBranches: job.eligible_branches || "All",
+            description: job.description || "",
+            applicationDeadline: formatDate(job.application_deadline),
+            onlineAssessmentDate: formatDate(job.online_assessment_date),
+            interviewDates: Array.isArray(job.interview_dates)
+              ? job.interview_dates.map((d) => formatDate(d)).filter(Boolean)
+              : [],
+            jobStatus: statusLabel,
+            jobStatusRaw: statusLower,
+          };
+        }
+      );
       setJobs(formattedJobs);
       setError("");
       console.log(data);
@@ -145,54 +176,55 @@ export default function ViewJobs() {
       // Helper to format date for input field (datetime-local format: YYYY-MM-DDTHH:MM)
       const formatDateForInput = (dateString) => {
         if (!dateString) return "";
-        
+
         // If in DD/MM/YYYY, HH:MM AM/PM format
         if (/^\d{2}\/\d{2}\/\d{4}, \d{1,2}:\d{2} (AM|PM)$/.test(dateString)) {
-          const [datePart, timePart] = dateString.split(', ');
-          const [day, month, year] = datePart.split('/');
-          const [time, period] = timePart.split(' ');
-          const [hours, minutes] = time.split(':');
-          
+          const [datePart, timePart] = dateString.split(", ");
+          const [day, month, year] = datePart.split("/");
+          const [time, period] = timePart.split(" ");
+          const [hours, minutes] = time.split(":");
+
           // Convert to 24-hour format
           let hours24 = parseInt(hours);
-          if (period === 'PM' && hours24 !== 12) {
+          if (period === "PM" && hours24 !== 12) {
             hours24 += 12;
-          } else if (period === 'AM' && hours24 === 12) {
+          } else if (period === "AM" && hours24 === 12) {
             hours24 = 0;
           }
-          
-          const hoursStr = String(hours24).padStart(2, '0');
+
+          const hoursStr = String(hours24).padStart(2, "0");
           return `${year}-${month}-${day}T${hoursStr}:${minutes}`;
         }
-        
+
         // If in DD/MM/YYYY format (without time)
         if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
-          const [day, month, year] = dateString.split('/');
+          const [day, month, year] = dateString.split("/");
           return `${year}-${month}-${day}T00:00`;
         }
-        
+
         // If already in YYYY-MM-DDTHH:MM format, return as is
-        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dateString)) return dateString;
-        
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dateString))
+          return dateString;
+
         // If in DD-MM-YYYY format
         if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
-          const [day, month, year] = dateString.split('-');
+          const [day, month, year] = dateString.split("-");
           return `${year}-${month}-${day}T00:00`;
         }
-        
+
         // If already in YYYY-MM-DD format
         if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
           return `${dateString}T00:00`;
         }
-        
+
         // Otherwise parse and format
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return "";
         const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
         return `${year}-${month}-${day}T${hours}:${minutes}`;
       };
 
@@ -202,7 +234,9 @@ export default function ViewJobs() {
         jobRole: job.title || "",
         department: Array.isArray(job.eligibleBranches)
           ? job.eligibleBranches
-          : job.eligibleBranches ? job.eligibleBranches.split(", ") : [],
+          : job.eligibleBranches
+          ? job.eligibleBranches.split(", ")
+          : [],
         location: job.location ? job.location.split(", ").filter((l) => l) : [],
         salary: job.salary || "",
         deadline: formatDateForInput(job.applicationDeadline),
@@ -210,7 +244,7 @@ export default function ViewJobs() {
         jobStatus: job.jobStatus || "in initial stage",
         description: job.description || "",
         skills: "",
-        minimumCgpa: job.minCgpa ? job.minCgpa.replace('+', '') : "",
+        minimumCgpa: job.minCgpa ? job.minCgpa.replace("+", "") : "",
         eligibleBranches: "",
         onlineAssessmentDate: formatDateForInput(job.onlineAssessmentDate),
         interviewDates:
@@ -229,8 +263,11 @@ export default function ViewJobs() {
 
   const filteredJobs = jobs.filter((job) => {
     const statusMatch =
-      statusFilter === "All Status" || job.jobStatus === statusFilter;
-    const typeMatch = typeFilter === "All Types" || job.type === typeFilter;
+      statusFilter === "All Status" ||
+      (job.jobStatusRaw || "") === statusFilter.toLowerCase();
+    const typeMatch =
+      typeFilter === "All Types" ||
+      (job.typeRaw || "") === typeFilter.toLowerCase();
     return statusMatch && typeMatch;
   });
 
@@ -247,6 +284,36 @@ export default function ViewJobs() {
             </h2>
             <p className="text-sm text-gray-500">
               {jobs.length} total jobs posted
+            </p>
+            <p className="text-xs mt-1 flex flex-wrap items-center gap-2">
+              <span className="text-gray-400">Stage flow:</span>
+              <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">
+                In Initial Stage
+              </span>
+              →
+              <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
+                In Review
+              </span>
+              →
+              <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
+                In Negotiation
+              </span>
+              →
+              <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                Applications Opened
+              </span>
+              →
+              <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                OT Conducted
+              </span>
+              →
+              <span className="px-2 py-0.5 rounded-full bg-pink-100 text-pink-700">
+                Interview
+              </span>
+              →
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                Completed the Drive
+              </span>
             </p>
           </div>
         </div>
@@ -265,13 +332,13 @@ export default function ViewJobs() {
             className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           >
             <option>All Status</option>
-            <option>In Initial Stage</option>
-            <option>In Review</option>
-            <option>In Negotiation</option>
-            <option>Applications opened</option>
-            <option>Ot conducted</option>
-            <option>Interview Conducted</option>
-            <option>Completed</option>
+            <option value="in initial stage">In Initial Stage</option>
+            <option value="in review">In Review</option>
+            <option value="in negotiation">In Negotiation</option>
+            <option value="applications opened">Applications Opened</option>
+            <option value="ot conducted">OT Conducted</option>
+            <option value="interview">Interview</option>
+            <option value="completed the drive">Completed the Drive</option>
           </select>
           <select
             value={typeFilter}
@@ -279,8 +346,8 @@ export default function ViewJobs() {
             className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           >
             <option>All Types</option>
-            <option>Full Time</option>
-            <option>Internship</option>
+            <option value="full time">Full Time</option>
+            <option value="internship">Internship</option>
           </select>
         </div>
       </div>
@@ -381,10 +448,10 @@ export default function ViewJobs() {
                 <div className="flex items-start gap-2">
                   <IndianRupee className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-gray-500">Salary</p>
-                    <p className="text-gray-900 font-medium">
-                      {job.salary}
+                    <p className="text-gray-500">
+                      {job.type === "INTERNSHIP" ? "Stipend" : "Salary"}
                     </p>
+                    <p className="text-gray-900 font-medium">{job.salary}</p>
                   </div>
                 </div>
 

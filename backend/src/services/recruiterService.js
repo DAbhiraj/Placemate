@@ -119,14 +119,12 @@ export const recruiterService = {
                     branches = branches.replace(/[{}]/g, "").split(",").join(", ");
                 }
                 
-                // Handle interview_dates as array
+                // Preserve interview_dates as received (avoid over-formatting that was dropping values)
                 let interviewDates = job.interview_dates;
-                if (Array.isArray(interviewDates)) {
-                    interviewDates = interviewDates.map(d => formatDate(d));
-                } else if (typeof interviewDates === "string" && interviewDates.startsWith("{")) {
-                    interviewDates = interviewDates.replace(/[{}]/g, "").split(",").map(d => formatDate(d));
-                } else {
-                    interviewDates = [];
+                if (typeof interviewDates === "string" && interviewDates.startsWith("{")) {
+                    interviewDates = interviewDates.replace(/[{}]/g, "").split(",");
+                } else if (!Array.isArray(interviewDates)) {
+                    interviewDates = interviewDates ? [interviewDates] : [];
                 }
                 
                 return {
@@ -161,7 +159,7 @@ export const recruiterService = {
         // Send notification to admin
         try {
             const adminResult = await pool.query(
-                `SELECT user_id FROM users WHERE role = 'Admin' LIMIT 1`
+                `SELECT user_id FROM users WHERE roles = ARRAY['Admin'] LIMIT 1`
             );
             if (adminResult.rows.length > 0) {
                 await notificationService.notifyUser(

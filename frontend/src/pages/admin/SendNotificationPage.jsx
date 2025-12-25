@@ -218,60 +218,6 @@ export default function SendNotifications() {
             </div>
           </div>
         </div>
-
-        <div>
-          <div className="bg-white border border-slate-200 rounded-lg p-6">
-            <h4 className="text-lg font-semibold text-slate-900 mb-3">
-              Recent Notifications
-            </h4>
-
-            <div className="space-y-4">
-              {recentNotifications.length > 0 ? (
-                recentNotifications.map(notification => (
-                  <div
-                    key={notification.id}
-                    className="p-3 bg-slate-50 rounded-lg border border-slate-200"
-                  >
-                    <h5 className="font-medium text-slate-900 text-sm">
-                      {notification.title}
-                    </h5>
-                    <p className="text-xs text-slate-600 mt-1">
-                      To: {notification.recipients}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {notification.sentAt}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-slate-500">No recent notifications</p>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-white border border-slate-200 rounded-lg p-6 mt-6">
-            <h4 className="text-lg font-semibold text-slate-900 mb-3">
-              Quick Stats
-            </h4>
-
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-600">Sent Today</span>
-                <span className="font-semibold text-slate-900">12</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-600">Sent This Week</span>
-                <span className="font-semibold text-slate-900">45</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-600">
-                  Total Recipients
-                </span>
-                <span className="font-semibold text-slate-900">540</span>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )

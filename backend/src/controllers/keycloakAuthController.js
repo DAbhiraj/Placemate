@@ -1,5 +1,6 @@
-import { keycloakService } from "../services/keycloakService.js";
+import { tokenService } from "../services/tokenService.js";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import { OAuth2Client } from "google-auth-library";
 import { query } from "../db/db.js";
 
@@ -11,8 +12,8 @@ const ACCESS_TOKEN_COOKIE = "pm_access_token";
 const REFRESH_TOKEN_COOKIE = "pm_refresh_token";
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production", // Only secure in production
-  sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", // Lax for development
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
   path: "/",
 };
 
@@ -22,7 +23,6 @@ const setAuthCookies = (res, tokens) => {
 
   res.cookie(ACCESS_TOKEN_COOKIE, access_token, { ...cookieOptions, maxAge: maxAgeMs });
   if (refresh_token) {
-    // Keycloak default refresh ~30d; set long maxAge
     res.cookie(REFRESH_TOKEN_COOKIE, refresh_token, { ...cookieOptions, maxAge: 30 * 24 * 60 * 60 * 1000 });
   }
 };
@@ -34,14 +34,32 @@ export const keycloakAuthController = {
       if (!username || !password) {
         return res.status(400).json({ message: "Username and password are required" });
       }
+      
+      // Find user by email or username
+      const result = await query(
+        "SELECT user_id as id, email, password, roles FROM users WHERE email = $1 OR user_id = $1",
+        [username]
+      );
+      
+      const user = result.rows[0];
+      if (!user || !user.password) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      console.log("in login by staff");
+      // Verify password
+      const isValid = await bcrypt.compare(password, user.password);
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
 
-      const tokens = await keycloakService.loginWithPassword(username, password);
+      // Generate tokens
+      const tokens = await tokenService.generateTokenPair(user.id, user.email, user.roles);
       setAuthCookies(res, tokens);
-
-      const userId = keycloakService.decodeUserId(tokens.access_token);
-      return res.json({ user: { id: userId, username } });
+      console.log("user done");
+      return res.json({ user: { id: user.id, email: user.email } });
     } catch (err) {
-      console.error("Keycloak login error", err?.response?.data || err.message);
+      console.error("Login error:", err.message);
       return res.status(401).json({ message: "Invalid credentials" });
     }
   },
@@ -55,13 +73,33 @@ export const keycloakAuthController = {
       if (!refreshToken) {
         return res.status(401).json({ message: "Missing refresh token" });
       }
-      const tokens = await keycloakService.refreshToken(refreshToken);
+
+      // Verify refresh token
+      const decoded = tokenService.verifyRefreshToken(refreshToken);
+      const userId = decoded.sub;
+
+      // Verify token exists in database
+      await tokenService.verifyStoredRefreshToken(userId, refreshToken);
+
+      // Get user data
+      const result = await query(
+        "SELECT user_id as id, email, roles FROM users WHERE user_id = $1",
+        [userId]
+      );
+      
+      const user = result.rows[0];
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      // Generate new tokens
+      const tokens = await tokenService.generateTokenPair(user.id, user.email, user.roles);
       setAuthCookies(res, tokens);
-      const userId = keycloakService.decodeUserId(tokens.access_token);
+
       console.log("Refresh successful for user:", userId);
-      return res.json({ user: { id: userId } });
+      return res.json({ user: { id: user.id } });
     } catch (err) {
-      console.error("Keycloak refresh error", err?.response?.data || err.message);
+      console.error("Refresh error:", err.message);
       return res.status(401).json({ message: "Refresh failed" });
     }
   },
@@ -70,13 +108,20 @@ export const keycloakAuthController = {
     try {
       const refreshToken = req.cookies[REFRESH_TOKEN_COOKIE];
       if (refreshToken) {
-        await keycloakService.logout(refreshToken);
+        try {
+          const decoded = tokenService.decodeToken(refreshToken);
+          if (decoded?.sub) {
+            await tokenService.deleteRefreshToken(decoded.sub);
+          }
+        } catch (err) {
+          console.error("Error deleting refresh token:", err.message);
+        }
       }
       res.clearCookie(ACCESS_TOKEN_COOKIE, cookieOptions);
       res.clearCookie(REFRESH_TOKEN_COOKIE, cookieOptions);
       return res.json({ message: "Logged out" });
     } catch (err) {
-      console.error("Keycloak logout error", err?.response?.data || err.message);
+      console.error("Logout error:", err.message);
       return res.status(500).json({ message: "Logout failed" });
     }
   },
@@ -87,19 +132,19 @@ export const keycloakAuthController = {
       if (!accessToken) {
         return res.status(401).json({ message: "Not authenticated" });
       }
-      const introspection = await keycloakService.introspect(accessToken);
-      if (!introspection?.active) {
-        return res.status(401).json({ message: "Token inactive" });
-      }
+      
+      const decoded = tokenService.verifyAccessToken(accessToken);
+      
       return res.json({
         user: {
-          id: introspection.sub,
-          username: introspection.username || introspection.preferred_username,
-          exp: introspection.exp,
+          id: decoded.sub,
+          email: decoded.email,
+          roles: decoded.roles,
+          exp: decoded.exp,
         },
       });
     } catch (err) {
-      console.error("Keycloak me error", err?.response?.data || err.message);
+      console.error("Me error:", err.message);
       return res.status(401).json({ message: "Not authenticated" });
     }
   },
@@ -111,34 +156,47 @@ export const keycloakAuthController = {
         return res.status(400).json({ message: "Username, email, and password are required" });
       }
 
-      const tokens = await keycloakService.createUser(username, email, password, firstName, lastName);
-      setAuthCookies(res, tokens);
-
-      // Use Keycloak ID as database user_id
-      const userId = keycloakService.decodeUserId(tokens.access_token);
-      
-      // Create user in database with Keycloak ID as user_id
-      await query(
-        `INSERT INTO users (user_id, email, role, first_name, last_name, profile_completed)
-         VALUES ($1, $2, $3, $4, $5, false)
-         ON CONFLICT(email) DO NOTHING`,
-        [userId, email, "Staff", firstName || "", lastName || ""]
+      // Check if user already exists
+      const existingUser = await query(
+        "SELECT user_id FROM users WHERE email = $1",
+        [email]
       );
+
+      if (existingUser.rows.length > 0) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Generate unique user ID
+      const userId = crypto.randomUUID();
+      
+      // Create user in database
+      const result = await query(
+        `INSERT INTO users (user_id, email, password, roles, first_name, last_name, name, profile_completed)
+         VALUES ($1, $2, $3, ARRAY['Staff']::TEXT[], $4, $5, $6, false)
+         RETURNING user_id as id, email, roles`,
+        [userId, email, hashedPassword, firstName || "", lastName || "", `${firstName || ""} ${lastName || ""}`.trim()]
+      );
+
+      const user = result.rows[0];
+
+      // Generate tokens
+      const tokens = await tokenService.generateTokenPair(user.id, user.email, user.roles);
+      setAuthCookies(res, tokens);
 
       return res.json({
         user: {
-          id: userId,
-          username,
-          email,
+          id: user.id,
+          email: user.email,
           firstName,
           lastName,
         },
       });
     } catch (err) {
-      console.error("Keycloak registration error", err?.response?.data || err.message);
-      const status = err?.response?.status || 400;
-      const message = err?.response?.data?.errorMessage || "Registration failed";
-      return res.status(status).json({ message });
+      console.error("Registration error:", err.message);
+      return res.status(400).json({ message: "Registration failed" });
     }
   },
   async googleLogin(req, res) {
@@ -160,7 +218,7 @@ export const keycloakAuthController = {
       const firstName = payload.given_name || null;
       const lastName = payload.family_name || null;
       const fullName = payload.name || `${firstName || ""} ${lastName || ""}`.trim();
-      const userRole = role || "Student"; // Use role from frontend or default to Student
+      const userRole = role || "Student";
 
       // Check if user exists in database
       const result = await query(
@@ -170,23 +228,11 @@ export const keycloakAuthController = {
       let user = result.rows[0];
 
       let tokens = null;
-      const googleOAuthPassword = process.env.KEYCLOAK_GOOGLE_OAUTH_PASSWORD || "GoogleOAuth123!";
 
       if (!user) {
-        // New user: create in both Keycloak and database
-        const username = email.split("@")[0] + "_" + Date.now();
-        
-        try {
-          tokens = await keycloakService.createUser(username, email, googleOAuthPassword, firstName || "", lastName || "");
-        } catch (keycloakErr) {
-          console.error("❌ Keycloak user creation failed:", keycloakErr?.response?.data || keycloakErr.message);
-          return res.status(500).json({ message: "Failed to create user in Keycloak" });
-        }
+        // New user: create in database
+        const userId = crypto.randomUUID();
 
-        // Extract keycloak ID and use it as database user_id
-        const userId = keycloakService.decodeUserId(tokens.access_token);
-
-        // Create user in database with Keycloak ID as user_id
         const insert = await query(
         `INSERT INTO users (
             user_id, email, roles, google_id, first_name, last_name, name, profile_completed
@@ -198,48 +244,25 @@ export const keycloakAuthController = {
 
         user = insert.rows[0];
       } else {
-        // Existing user: check if they exist in Keycloak and update role if needed
-        try {
-          const keycloakUser = await keycloakService.findUserByEmail(email);
-          
-          if (keycloakUser) {
-            // User exists in Keycloak, reset password to known value and login
-            await keycloakService.resetUserPassword(keycloakUser.id, googleOAuthPassword);
-            tokens = await keycloakService.loginWithPassword(keycloakUser.username, googleOAuthPassword);
-          } else {
-            // User doesn't exist in Keycloak, create them and update database user_id
-            const username = email.split("@")[0] + "_" + user.id;
-            tokens = await keycloakService.createUser(username, email, googleOAuthPassword, user.first_name || "", user.last_name || "");
-            const keycloakId = keycloakService.decodeUserId(tokens.access_token);
-            
-            // Update database user_id to Keycloak ID
-            await query("UPDATE users SET user_id = $1 WHERE email = $2", [keycloakId, email]);
-            user.id = keycloakId;
-          }
-          
-          // Validate that user can login with the requested role
-          const userRoles = user.roles || (user.role ? [user.role] : []);
-          const canLoginWithRole = userRoles.includes(userRole.toLowerCase()) ||
-                                   (userRole.toLowerCase() === 'student' && userRoles.includes('Student'));
+        // Existing user: validate role access
+        const userRoles = user.roles || [];
+        const canLoginWithRole = userRoles.includes(userRole) ||
+                                 (userRole.toLowerCase() === 'student' && userRoles.some(r => r.toLowerCase() === 'student'));
 
-          if (!canLoginWithRole) {
-            // User doesn't have this role, return error
-            return res.status(403).json({
-              message: `You do not have permission to login as ${userRole}. Please contact admin if you believe this is an error.`
-            });
-          }
-        } catch (keycloakErr) {
-          console.error("❌ Keycloak authentication failed:", keycloakErr?.response?.data || keycloakErr.message);
-          return res.status(500).json({ message: "Failed to authenticate with Keycloak" });
+        if (!canLoginWithRole) {
+          return res.status(403).json({
+            message: `You do not have permission to login as ${userRole}. Please contact admin if you believe this is an error.`
+          });
         }
       }
 
-      // Set Keycloak tokens in HttpOnly cookies
+      // Generate JWT tokens
+      tokens = await tokenService.generateTokenPair(user.id, user.email, user.roles);
       setAuthCookies(res, tokens);
 
-      // If user is verified, fetch company data from KYC
+      // If user is verified recruiter, fetch company data from KYC
       let company = null;
-      const userRolesArray = user.roles || (user.role ? [user.role] : []);
+      const userRolesArray = user.roles || [];
       const isRecruiter = userRolesArray.some(r => r.toLowerCase() === 'recruiter');
       if (user.is_verified && isRecruiter) {
         const kycResult = await query(
@@ -251,7 +274,6 @@ export const keycloakAuthController = {
         }
       }
 
-     
       res.status(200).json({
         user: {
           id: user.id,
@@ -260,7 +282,7 @@ export const keycloakAuthController = {
           last_name: user.last_name,
           email: user.email,
           role: userRole,
-          roles: user.roles || (user.role ? [user.role] : []),
+          roles: user.roles || [],
           profile_completed: user.profile_completed,
           branch: user.branch,
           cgpa: user.cgpa,

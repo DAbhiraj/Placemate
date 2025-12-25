@@ -46,6 +46,16 @@ export const notificationRepository = {
 
   // Create notifications for all users with a specific role
   createForRole: async (role, title, message, type, senderId = null) => {
+    // Map frontend role names to backend role names
+    const roleMapping = {
+      'placement-coordinators': 'spoc',
+      'students': 'Student',
+      'recruiters': 'recruiter',
+      'admin': 'admin'
+    };
+
+    const actualRole = roleMapping[role.toLowerCase()] || role;
+
     const res = await pool.query(
       `WITH notification_row AS (
           INSERT INTO notifications (sender_id, title, message, type, target_role)
@@ -56,12 +66,15 @@ export const notificationRepository = {
           INSERT INTO user_notification_status (user_id, notification_id)
           SELECT u.user_id, nr.notification_id
           FROM notification_row nr
-          JOIN users u ON LOWER(u.role) = LOWER($6)
+          JOIN users u ON (
+            LOWER(u.role) = LOWER($6) OR
+            ($6 = ANY(u.roles))
+          )
           ON CONFLICT (user_id, notification_id) DO NOTHING
           RETURNING user_id, notification_id
         )
       SELECT * FROM inserted`,
-      [senderId, title, message, type, role, role]
+      [senderId, title, message, type, actualRole, actualRole]
     );
 
     return res.rows;

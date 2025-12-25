@@ -20,7 +20,10 @@ export const recruiterService = {
                 package_range,
                 location,
                 job_status,
-                custom_questions
+                custom_questions,
+                job_description_url,
+                job_description_public_id,
+                job_description_filename
             } = jobData;
     
             const job = await recruiterRepo.createJob(
@@ -37,13 +40,16 @@ export const recruiterService = {
                 job_type,
                 job_status,
                 custom_questions,
-                recruiter_id
+                recruiter_id,
+                job_description_url,
+                job_description_public_id,
+                job_description_filename
             );
 
             // Send notification to admin
             try {
                 const adminResult = await pool.query(
-                    `SELECT user_id FROM users WHERE role = 'Admin' LIMIT 1`
+                    `SELECT user_id FROM users WHERE roles = ARRAY['Admin'] LIMIT 1`
                 );
                 if (adminResult.rows.length > 0) {
                     await notificationService.notifyUser(
@@ -82,7 +88,8 @@ export const recruiterService = {
 
         async getJobsByCompany(companyName) {
             const jobs = await recruiterRepo.getJobsByCompany(companyName);
-            
+            console.log('in controller')
+            console.log(jobs)
             // Format dates - preserve local timezone
             const formatDate = (date) => {
                 if (!date) return null;
@@ -128,13 +135,16 @@ export const recruiterService = {
         company_name: job.company_name,
         location: location,
         package: job.package,
-        application_deadline: formatDate(job.application_deadline),
-        online_assessment_date: formatDate(job.online_assessment_date),
+        application_deadline: job.application_deadline,
+        online_assessment_date: job.online_assessment_date,
         interview_dates: interviewDates,
         min_cgpa: job.min_cgpa,
         job_type: job.job_type,
         eligible_branches: branches,
         description: job.description,
+        job_description_url: job.job_description_url,
+        job_description_public_id: job.job_description_public_id,
+        job_description_filename: job.job_description_filename,
         job_status: job.job_status || 'in initial stage',
         created_at: formatDate(job.created_at),
         applied_count: job.applied_count || 0,

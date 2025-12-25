@@ -101,7 +101,17 @@ export const adminService = {
     },
 
     async addSpoc(userId) {
-        return await adminRepository.addSpoc(userId);
+        const spoc = await adminRepository.addSpoc(userId);
+
+        // Send notification to the newly assigned SPOC
+        await notificationService.notifyUser(
+            userId,
+            'You have been assigned as a Placement Coordinator (SPOC). You can now access the SPOC portal and manage job assignments.',
+            'SPOC_ASSIGNED',
+            'You are now a Placement Coordinator'
+        );
+
+        return spoc;
     },
 
     async getSpocAssignedJobs(spocId) {

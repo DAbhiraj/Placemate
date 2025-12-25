@@ -62,13 +62,13 @@ async create(company) {
       job_type,
       description,
       requirements = [],
-      role = "Software Developer"
+      roles = ["Software Developer"]
     } = company;
 
     const result = await query(
       `INSERT INTO jobs
-        (company_name, company_logo, package, location, eligible_branches, min_cgpa, application_deadline, job_type, description, requirements, role)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        (company_name, company_logo, package, location, eligible_branches, min_cgpa, application_deadline, job_type, description, requirements, roles)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::text[])
        RETURNING job_id as id, company_name as name, company_logo as logo, package, location, eligible_branches, min_cgpa, application_deadline as deadline, job_type, description, requirements`,
       [
         name,
@@ -81,7 +81,7 @@ async create(company) {
         job_type,
         description,
         requirements,
-        role
+        Array.isArray(roles) ? roles : [roles]
       ]
     );
 

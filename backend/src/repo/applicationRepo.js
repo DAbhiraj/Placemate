@@ -13,7 +13,7 @@ export const applicationRepository = {
   // Return job row by id
   getJobById: async (jobId) => {
     const { rows } = await pool.query(
-      `SELECT job_id, company_name, role, application_deadline, online_assessment_date,
+      `SELECT job_id, company_name, roles, application_deadline, online_assessment_date,
               interview_dates, applied_count, min_cgpa, eligible_branches
        FROM jobs WHERE job_id = $1`,
       [jobId]
@@ -81,6 +81,8 @@ export const applicationRepository = {
         j.online_assessment_date,
         j.interview_dates,
         j.description,
+        j.job_description_url,
+        j.job_description_filename,
         j.min_cgpa,
         j.custom_questions,
         j.eligible_branches,

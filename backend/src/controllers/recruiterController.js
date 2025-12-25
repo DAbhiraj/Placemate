@@ -9,7 +9,7 @@ export const recruiterController = {
             const recruiterId = req.user.id;
             console.log("recruiter id " + recruiterId);
             const result = await pool.query(
-                "SELECT  u.name, u.email, r.company_website,r.company_address,r.pan_number, r.hr_contact_number, r.years_of_experience,r.company_name,u.is_verified FROM recruiter_kyc r JOIN users u ON r.recruiter_id = u.user_id WHERE r.recruiter_id = $1 AND u.role = 'recruiter'",
+                "SELECT  u.name, u.email, r.company_website,r.company_address,r.pan_number, r.hr_contact_number, r.years_of_experience,r.company_name,u.is_verified FROM recruiter_kyc r JOIN users u ON r.recruiter_id = u.user_id WHERE r.recruiter_id = $1 AND u.roles = ARRAY['recruiter']",
                 [recruiterId]
             );
             

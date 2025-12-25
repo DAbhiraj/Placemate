@@ -1,9 +1,7 @@
 import React, { useState,useEffect, useRef } from 'react';
-import { useApp } from '../../context/AppContext';
 import axios from 'axios';
 
-const GoogleSignIn = ({ onSuccess, onError, role }) => {
-  //const { setCurrentUser } = useApp();
+const GoogleSignIn = ({ onSuccess, onError, role, onBegin }) => {
   const [currentUser,setCurrentUser] = useState({});
   const googleButtonRef = useRef(null);
 
@@ -32,22 +30,23 @@ const GoogleSignIn = ({ onSuccess, onError, role }) => {
 
     const handleCredentialResponse = async (response) => {
       console.log("response in google sign in", response);
-      
+
       try {
+        // Notify parent immediately to show loading overlay
+        onBegin?.();
         const userRole = role || localStorage.getItem("role") || "Student";
         const res = await axios.post(
           'http://localhost:4000/api/auth/google',
-          { idToken: response.credential, role: userRole }, 
+          { idToken: response.credential, role: userRole },
           { withCredentials: true }
         );
-    
+
         // Axios automatically parses JSON response
         const data = res.data;
-
         setCurrentUser(data.user);
+        // Notify parent on success so it can handle role routing
         onSuccess?.(data.user);
-        
-    
+
       } catch (error) {
         console.error('Google Sign-In Error:', error);
         onError?.(
@@ -69,7 +68,7 @@ const GoogleSignIn = ({ onSuccess, onError, role }) => {
         }
       }, 100);
     }
-  }, [setCurrentUser, onSuccess, onError, role]);
+  }, [onSuccess, onError, role, onBegin]);
 
   return (
     <div className="flex flex-col items-center space-y-4">

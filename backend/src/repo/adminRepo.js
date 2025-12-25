@@ -33,10 +33,10 @@ export const adminRepository = {
     // Company Management
     async createCompany(name, logo, package_range, location, eligible_branches, min_cgpa, deadline, job_type, description, requirements) {
         const result = await pool.query(
-            `INSERT INTO jobs (company_name, company_logo, package, location, eligible_branches, min_cgpa, application_deadline, job_type, description, requirements, role)
+            `INSERT INTO jobs (company_name, company_logo, package, location, eligible_branches, min_cgpa, application_deadline, job_type, description, requirements, roles)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING job_id as id, company_name as name, company_logo as logo, package, location, eligible_branches, min_cgpa, application_deadline as deadline, job_type, description, requirements`,
-            [name, logo, package_range, location, eligible_branches, min_cgpa, deadline, job_type, description, requirements, "Software Developer"]
+            [name, logo, package_range, location, eligible_branches, min_cgpa, deadline, job_type, description, requirements, ["Software Developer"]]
         );
         return result.rows[0];
     },
@@ -135,7 +135,10 @@ export const adminRepository = {
 
     async getAllSpocs() {
         const result = await pool.query(
-            "SELECT user_id as id, name,roll_no, email, branch FROM users WHERE role = 'spoc' ORDER BY name"
+            `SELECT user_id as id, name, roll_no, email, branch,roles
+             FROM users
+             WHERE 'spoc' = ANY(roles)
+             ORDER BY name`
         );
         return result.rows;
     },
@@ -143,10 +146,10 @@ export const adminRepository = {
     async searchUsers(query) {
         const searchPattern = `%${query}%`;
         const result = await pool.query(
-            `SELECT user_id, name, email, roll_no, branch, phone, role 
-             FROM users 
-             WHERE (LOWER(email) LIKE LOWER($1) OR LOWER(roll_no) LIKE LOWER($1)) 
-             AND (role IS NULL OR role != 'spoc')
+            `SELECT user_id, name, email, roll_no, branch, phone,roles
+             FROM users
+             WHERE (LOWER(email) LIKE LOWER($1) OR LOWER(roll_no) LIKE LOWER($1))
+             AND (roles = ARRAY['student'] AND NOT ('spoc' = ANY(roles)))
              LIMIT 10`,
             [searchPattern]
         );
@@ -154,8 +157,16 @@ export const adminRepository = {
     },
 
     async addSpoc(spocId) {
+        // Add 'spoc' to roles array, keeping existing role (usually 'Student')
         const result = await pool.query(
-            "UPDATE users SET role = 'spoc' WHERE user_id = $1 RETURNING *",
+            `UPDATE users
+             SET roles = CASE
+                 WHEN roles IS NULL THEN ARRAY['spoc']::TEXT[]
+                 WHEN NOT ('spoc' = ANY(roles)) THEN array_append(roles, 'spoc')
+                 ELSE roles
+             END
+             WHERE user_id = $1
+             RETURNING *`,
             [spocId]
         );
 

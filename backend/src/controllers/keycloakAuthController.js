@@ -164,7 +164,7 @@ export const keycloakAuthController = {
 
       // Check if user exists in database
       const result = await query(
-        "SELECT user_id as id, name, email, role, google_id, first_name, last_name, profile_completed, branch, cgpa, is_verified FROM users WHERE google_id = $1 OR email = $2",
+        "SELECT user_id as id, name, email, roles, google_id, first_name, last_name, profile_completed, branch, cgpa, is_verified FROM users WHERE google_id = $1 OR email = $2",
         [googleId, email]
       );
       let user = result.rows[0];
@@ -189,10 +189,10 @@ export const keycloakAuthController = {
         // Create user in database with Keycloak ID as user_id
         const insert = await query(
         `INSERT INTO users (
-            user_id, email, role, google_id, first_name, last_name, name, profile_completed
+            user_id, email, roles, google_id, first_name, last_name, name, profile_completed
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, false)
-        RETURNING user_id as id, email, role, google_id, first_name, last_name, name, profile_completed, branch, cgpa, is_verified`,
+        VALUES ($1, $2, ARRAY[$3]::TEXT[], $4, $5, $6, $7, false)
+        RETURNING user_id as id, email, roles, google_id, first_name, last_name, name, profile_completed, branch, cgpa, is_verified`,
         [userId, email, userRole, googleId, firstName, lastName, fullName]
         );
 
@@ -217,10 +217,16 @@ export const keycloakAuthController = {
             user.id = keycloakId;
           }
           
-          // Update role if it changed
-          if (user.role !== userRole) {
-            await query("UPDATE users SET role = $1 WHERE user_id = $2", [userRole, user.id]);
-            user.role = userRole;
+          // Validate that user can login with the requested role
+          const userRoles = user.roles || (user.role ? [user.role] : []);
+          const canLoginWithRole = userRoles.includes(userRole.toLowerCase()) ||
+                                   (userRole.toLowerCase() === 'student' && userRoles.includes('Student'));
+
+          if (!canLoginWithRole) {
+            // User doesn't have this role, return error
+            return res.status(403).json({
+              message: `You do not have permission to login as ${userRole}. Please contact admin if you believe this is an error.`
+            });
           }
         } catch (keycloakErr) {
           console.error("❌ Keycloak authentication failed:", keycloakErr?.response?.data || keycloakErr.message);
@@ -233,7 +239,9 @@ export const keycloakAuthController = {
 
       // If user is verified, fetch company data from KYC
       let company = null;
-      if (user.is_verified && user.role === 'recruiter') {
+      const userRolesArray = user.roles || (user.role ? [user.role] : []);
+      const isRecruiter = userRolesArray.some(r => r.toLowerCase() === 'recruiter');
+      if (user.is_verified && isRecruiter) {
         const kycResult = await query(
           "SELECT company_name FROM recruiter_kyc WHERE recruiter_id = $1 ORDER BY created_at DESC LIMIT 1",
           [user.id]
@@ -251,7 +259,8 @@ export const keycloakAuthController = {
           first_name: user.first_name,
           last_name: user.last_name,
           email: user.email,
-          role: user.role,
+          role: userRole,
+          roles: user.roles || (user.role ? [user.role] : []),
           profile_completed: user.profile_completed,
           branch: user.branch,
           cgpa: user.cgpa,

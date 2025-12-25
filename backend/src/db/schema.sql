@@ -18,6 +18,7 @@ CREATE TABLE Users (
     resume_filename TEXT,
     resume_upload_date TIMESTAMP,
     resume_url TEXT,
+    resume_public_id TEXT,
     is_verified BOOLEAN DEFAULT false
 );
 
@@ -32,12 +33,15 @@ CREATE TABLE jobs (
     requirements TEXT[],
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     location TEXT[],
-    application_deadline DATE,
-    online_assessment_date DATE,
+    application_deadline TIMESTAMP,
+    online_assessment_date TIMESTAMP,
     interview_dates DATE[],
     min_cgpa NUMERIC(3, 2),
     eligible_branches TEXT[],
     package VARCHAR(255),
+    job_description_url TEXT,
+    job_description_public_id TEXT,
+    job_description_filename TEXT,
     applied_count INTEGER DEFAULT 0,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     company_logo VARCHAR(255),

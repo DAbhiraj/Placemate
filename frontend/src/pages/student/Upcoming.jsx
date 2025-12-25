@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Search, Filter, Calendar, Eye, RefreshCw } from "lucide-react";
+import { Search, Filter, RefreshCw } from "lucide-react";
 import axiosClient from "../../api/axiosClient";
 import { formatDateTime } from "../../utils/helpers"; 
-import ApplicationForm from "./ApplicationForm";
 import Loader from "../../components/UI/Loader";
-
-const API_URL = import.meta.env?.VITE_API_URL || "http://localhost:4000/api";
+import { useNavigate } from "react-router-dom";
 
 // --- Helper Component for Statistics Cards ---
 const StatCard = ({ label, count, textColor, isLoading }) => (
@@ -35,7 +33,7 @@ const StatusBadge = ({ status }) => {
     // Map backend statuses to colors
     const configs = {
       "not applied": { color: "indigo", label: "Need to Apply" },
-      // "ineligible": { color: "gray", label: "Ineligible" },
+      "ineligible": { color: "gray", label: "Ineligible" },
       "applied": { color: "blue", label: "Applied" },
       "shortlisted": { color: "yellow", label: "Shortlisted" },
       "interviewed": { color: "purple", label: "Interviewed" },
@@ -77,13 +75,22 @@ const StatusBadge = ({ status }) => {
 
 
 const UpcomingDashboard = () => { 
+  const navigate = useNavigate();
   const [jobsData, setJobsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedJob, setSelectedJob] = useState(null);
   const [activeTab, setActiveTab] = useState('applications'); 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [userCgpa, setUserCgpa] = useState(null);
+
+  useEffect(() => {
+    const storedCgpa = localStorage.getItem('cgpa');
+    const parsedCgpa = parseFloat(storedCgpa);
+    if (!Number.isNaN(parsedCgpa)) {
+      setUserCgpa(parsedCgpa);
+    }
+  }, []);
 
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
@@ -103,6 +110,19 @@ const UpcomingDashboard = () => {
       setLoading(false);
     }
   }, []);
+
+  const checkCgpaEligibility = useCallback((job) => {
+    const required = job?.min_cgpa ?? job?.minCgpa ?? job?.minCGPA;
+    const requiredNum = required !== undefined ? parseFloat(required) : NaN;
+
+    if (Number.isNaN(requiredNum) || userCgpa === null || Number.isNaN(userCgpa)) {
+      return { ineligible: false, reason: null, requiredCgpa: null };
+    }
+
+    const ineligible = userCgpa < requiredNum;
+    const reason = ineligible ? `Not eligible (requires CGPA ${requiredNum})` : null;
+    return { ineligible, reason, requiredCgpa: requiredNum };
+  }, [userCgpa]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -241,33 +261,17 @@ const UpcomingDashboard = () => {
 
   const handleViewJob = (jobId) => {
     const job = jobsData.find(j => j.job_id === jobId);
-    if (job) {
-      // 👇 NEW MAPPING: Ensure job.id, job.title, and job.company are available for ApplicationForm
-      setSelectedJob({
-        ...job,
-        id: job.job_id,           // Map job_id to the expected job.id
-        title: job.role,          // Map role to job.title
-        company: job.company_name // Map company_name to job.company
-      });
-    }
-  };
+    if (!job) return;
 
-  const handleCloseForm = () => {
-    setSelectedJob(null);
-    fetchDashboardData(); // Refresh data after applying/updating
-
-    // Handle applying inside ApplicationForm
-    const handleApply = async ({ jobId, answers, resumeUrl }) => {
-      try {
-        const studentId = localStorage.getItem("id");
-        await axiosClient.post(`/applications/create`, { studentId, jobId, answers, resumeUrl });
-        setSelectedJob(null);
-        window.dispatchEvent(new Event("application:submitted"));
-      } catch (err) {
-        console.error("Error submitting application:", err);
-        alert("Failed to submit application.");
-      }
+    // Pass mapped job data so the ApplicationForm route can render immediately
+    const mappedJob = {
+      ...job,
+      id: job.job_id,
+      title: job.role,
+      company: job.company_name,
     };
+
+    navigate(`/student/apply/${job.job_id}`, { state: { job: mappedJob } });
   };
 
 
@@ -386,62 +390,94 @@ const UpcomingDashboard = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {currentList.map((job) => (
-                <tr key={job.job_id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{job.company_name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{job.role}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {isDeadlinesTab 
-                      ? (job.upcoming_date ? `${formatDateTime(job.upcoming_date, 'date')} (${job.activity_type})` : 'N/A')
-                      : (job.application_deadline ? formatDateTime(job.application_deadline, 'date') : 'N/A')
-                    }
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <StatusBadge status={job.status} /> 
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    {(() => {
-                      // Check if deadline is missed
-                      let deadlineMissed = false;
-                      if (job.application_deadline) {
-                        const deadline = new Date(job.application_deadline).getTime();
-                        deadlineMissed = deadline < Date.now();
+              {currentList.map((job) => {
+                const { ineligible, reason, requiredCgpa } = checkCgpaEligibility(job);
+                const statusForBadge = ineligible ? "ineligible" : job.status;
+
+                return (
+                  <tr key={job.job_id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{job.company_name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{job.role}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {isDeadlinesTab 
+                        ? (job.upcoming_date ? `${formatDateTime(job.upcoming_date, 'date')} (${job.activity_type})` : 'N/A')
+                        : (job.application_deadline ? formatDateTime(job.application_deadline, 'date') : 'N/A')
                       }
-                      if (deadlineMissed) {
-                        return (
-                          <button
-                            onClick={() => window.location.href = `/jobs/${job.job_id}`}
-                            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <StatusBadge status={statusForBadge} />
+                      {ineligible && reason && (
+                        <div className="text-xs text-red-600 mt-1">
+                          {reason}
+                          {userCgpa !== null && !Number.isNaN(userCgpa) && !Number.isNaN(requiredCgpa) && (
+                            <span className="ml-1 text-gray-500">(Your CGPA: {userCgpa}, Required: {requiredCgpa})</span>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="flex flex-col items-end gap-1">
+                        {(() => {
+                          // Check if deadline is missed
+                          let deadlineMissed = false;
+                          if (job.application_deadline) {
+                            const deadline = new Date(job.application_deadline).getTime();
+                            deadlineMissed = deadline < Date.now();
+                          }
+
+                          if (ineligible) {
+                            return (
+                              <div className="text-sm text-red-600 font-medium">
+                                Not eligible (CGPA)
+                              </div>
+                            );
+                          }
+
+                          if (deadlineMissed) {
+                            return (
+                              <button
+                                onClick={() => handleViewJob(job.job_id)}
+                                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                              >
+                                View Details
+                              </button>
+                            );
+                          }
+
+                          return (
+                            (job.status || "").toLowerCase().trim() === "not applied" ? (
+                              <button
+                                onClick={() => handleViewJob(job.job_id)}
+                                className="text-sm text-green-600 hover:text-green-800 font-medium"
+                              >
+                                Apply
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleViewJob(job.job_id)}
+                                className="text-sm text-yellow-600 hover:text-yellow-800 font-medium"
+                              >
+                                Update Application
+                              </button>
+                            )
+                          );
+                        })()}
+
+                        {job.job_description_url && (
+                          <a
+                            href={job.job_description_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-blue-600 hover:text-blue-800"
                           >
-                            View Details
-                          </button>
-                        );
-                      } else {
-                        return (
-                          (job.status || "").toLowerCase().trim() === "not applied" ? (
-                            <button
-                              onClick={() => handleViewJob(job.job_id)}
-                              className="text-sm text-green-600 hover:text-green-800 font-medium"
-                            >
-                              Apply
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleViewJob(job.job_id)}
-                              className="text-sm text-yellow-600 hover:text-yellow-800 font-medium"
-                            >
-                              Update Application
-                            </button>
-                          )
-                        );
-                      }
-                    })()}
-                  </td>
-
-
-
-                </tr>
-              ))}
+                            Download JD (PDF)
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
               {/* Handle Empty State */}
               {currentList.length === 0 && (
                 <tr>
@@ -454,13 +490,6 @@ const UpcomingDashboard = () => {
           </table>
         </div>
 
-        {/* Application Form Modal */}
-        {selectedJob && (
-          <ApplicationForm 
-            job={selectedJob} 
-            onClose={handleCloseForm} 
-          />
-        )}
       </div>
     </div>
   );

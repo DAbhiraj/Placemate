@@ -1,9 +1,5 @@
 import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { uploadToCloudinary } from '../utils/cloudinary.js';
 
 export const uploadController = {
     async uploadDocument(req, res) {
@@ -13,30 +9,36 @@ export const uploadController = {
             }
 
             const file = req.file;
-            const uploadDir = path.join(__dirname, '../uploads');
             
-            // Ensure uploads directory exists
-            if (!fs.existsSync(uploadDir)) {
-                fs.mkdirSync(uploadDir, { recursive: true });
+            // Upload to Cloudinary
+            const cloudinaryResult = await uploadToCloudinary(file.path, {
+                folder: 'placemate/documents',
+                resource_type: 'auto',
+                public_id: `${Date.now()}-${file.originalname.replace(/\.[^/.]+$/, '')}` // Remove extension
+            });
+
+            // Delete temporary file
+            if (fs.existsSync(file.path)) {
+                fs.unlinkSync(file.path);
             }
-
-            // Generate unique filename
-            const uniqueFilename = `${Date.now()}-${file.originalname}`;
-            const filepath = path.join(uploadDir, uniqueFilename);
-
-            // Move file from temp to uploads
-            fs.renameSync(file.path, filepath);
 
             // Return file info
             res.status(200).json({
                 message: "File uploaded successfully",
-                filename: uniqueFilename,
-                url: `/uploads/${uniqueFilename}`,
+                filename: file.originalname,
+                url: cloudinaryResult.url,
+                public_id: cloudinaryResult.public_id,
                 mimetype: file.mimetype,
-                size: file.size
+                size: cloudinaryResult.bytes
             });
         } catch (error) {
             console.error("Upload error:", error);
+            
+            // Clean up temp file on error
+            if (req.file && fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+            }
+            
             res.status(500).json({ message: "Failed to upload file" });
         }
     }

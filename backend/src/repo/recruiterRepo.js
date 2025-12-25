@@ -16,7 +16,10 @@ export const recruiterRepo = {
     job_type,
     job_status,
     custom_questions,
-    recruiter_id
+    recruiter_id,
+    job_description_url,
+    job_description_public_id,
+    job_description_filename
   ) {
     console.log([
       job_type,
@@ -51,9 +54,12 @@ export const recruiterRepo = {
     package,
     location,
     job_status,
-    recruiter_id
+    recruiter_id,
+    job_description_url,
+    job_description_public_id,
+    job_description_filename
   ) VALUES (
-    $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14
+    $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17
   )
   RETURNING *`,
   [
@@ -70,7 +76,10 @@ export const recruiterRepo = {
     salary,
     location,
     job_status || 'in initial stage',
-    recruiter_id
+    recruiter_id,
+    job_description_url || null,
+    job_description_public_id || null,
+    job_description_filename || null
   ]
 );
 
@@ -101,6 +110,7 @@ export const recruiterRepo = {
        GROUP BY j.job_id, u.name, u.email
        ORDER BY j.created_at DESC`,
     );
+
     return result.rows;
   },
 
@@ -130,9 +140,28 @@ export const recruiterRepo = {
       [companyName]
     );
 
+    console.log("get jobs");
+    console.log(result.rows);
+
     const formatDate = (date) => {
       if (!date) return null;
-      return new Date(date).toLocaleDateString('en-IN');
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return null;
+      return d.toLocaleDateString('en-IN');
+    };
+
+    const formatDateTime = (date) => {
+      if (!date) return null;
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return null;
+      return d.toLocaleString('en-IN', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
     };
 
     return result.rows.map(job => {
@@ -141,6 +170,9 @@ export const recruiterRepo = {
       const interviewDates = Array.isArray(job.interview_dates) 
         ? job.interview_dates.map(formatDate) 
         : [];
+      
+      const application_deadline1 = formatDateTime(job.application_deadline);
+      console.log(application_deadline1);
 
       return {
         job_id: job.job_id,
@@ -148,13 +180,16 @@ export const recruiterRepo = {
         company_name: job.company_name,
         location: location,
         package: job.package,
-        application_deadline: formatDate(job.application_deadline),
-        online_assessment_date: formatDate(job.online_assessment_date),
+        application_deadline: formatDateTime(job.application_deadline),
+        online_assessment_date: formatDateTime(job.online_assessment_date),
         interview_dates: interviewDates,
         min_cgpa: job.min_cgpa,
         job_type: job.job_type,
         eligible_branches: branches,
         description: job.description,
+        job_description_url: job.job_description_url,
+        job_description_public_id: job.job_description_public_id,
+        job_description_filename: job.job_description_filename,
         job_status: job.job_status || 'in initial stage',
         created_at: formatDate(job.created_at),
         applied_count: job.applied_count || 0,

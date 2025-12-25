@@ -306,7 +306,15 @@ export class ProfileController {
       const userId = req.user.id;
       const resumeInfo = await ProfileService.getResumeFile(userId);
       
-      res.download(resumeInfo.filepath, resumeInfo.filename);
+      // Return Cloudinary URL instead of downloading local file
+      res.status(200).json({
+        success: true,
+        data: {
+          url: resumeInfo.url,
+          filename: resumeInfo.filename,
+          uploadDate: resumeInfo.uploadDate
+        }
+      });
     } catch (error) {
       console.error("Error in ProfileController.getResume:", error);
       res.status(404).json({

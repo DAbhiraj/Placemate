@@ -170,13 +170,8 @@ export default function SpocManagement() {
   }
 
   const handleRemoveSpoc = async (id) => {
-    try {
-      await axiosClient.delete(`/spoc/${id}`)
-      setSpocs(spocs.filter((s) => s.id !== id))
-      setSelectedSpoc(null)
-    } catch (error) {
-      console.error("Failed to remove SPOC:", error)
-    }
+    alert("Remove SPOC functionality is not yet implemented. Please contact the administrator.")
+    // TODO: Implement remove SPOC endpoint in backend if needed
   }
 
   const handleAssignJob = async () => {

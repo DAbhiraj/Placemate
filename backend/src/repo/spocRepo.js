@@ -6,7 +6,7 @@ export const spocRepository = {
         const result = await pool.query(
             `SELECT 
                 j.job_id as id,
-                j.role as title,
+                j.roles as title,
                 j.company_name as company,
                 j.location,
                 j.package as salary,
@@ -53,7 +53,7 @@ export const spocRepository = {
             
             // Get job and company details for notifications
             const jobInfo = await client.query(
-                `SELECT role, company_name FROM jobs WHERE job_id = $1`,
+                `SELECT roles, company_name FROM jobs WHERE job_id = $1`,
                 [jobId]
             );
             
@@ -77,7 +77,7 @@ export const spocRepository = {
                     [
                         spocId,
                         'SPOC Assigned to Job',
-                        `A SPOC has been assigned to your job posting: ${jobInfo.rows[0].role}. Status updated to 'In Review'.`,
+                        `A SPOC has been assigned to your job posting: ${Array.isArray(jobInfo.rows[0].roles) ? jobInfo.rows[0].roles.join(', ') : jobInfo.rows[0].roles}. Status updated to 'In Review'.`,
                         'job_update',
                         recruiterInfo.rows[0].recruiter_id
                     ]
@@ -97,7 +97,7 @@ export const spocRepository = {
                 [
                     recruiterInfo.rows?.[0]?.recruiter_id || null,
                     'New Job Assignment',
-                    `You have been assigned to job: ${jobInfo.rows[0].role} at ${jobInfo.rows[0].company_name}.`,
+                    `You have been assigned to job: ${Array.isArray(jobInfo.rows[0].roles) ? jobInfo.rows[0].roles.join(', ') : jobInfo.rows[0].roles} at ${jobInfo.rows[0].company_name}.`,
                     'job_assignment',
                     spocId
                 ]
@@ -120,7 +120,7 @@ export const spocRepository = {
                     [
                         spocId,
                         'SPOC Assigned to Job',
-                        `SPOC has been assigned to job: ${jobInfo.rows[0].role} at ${jobInfo.rows[0].company_name}.`,
+                        `SPOC has been assigned to job: ${Array.isArray(jobInfo.rows[0].roles) ? jobInfo.rows[0].roles.join(', ') : jobInfo.rows[0].roles} at ${jobInfo.rows[0].company_name}.`,
                         'job_assignment',
                         adminResult.rows[0].user_id
                     ]
@@ -221,7 +221,7 @@ export const spocRepository = {
                     [
                         spocId,
                         'Job Status Updated by SPOC',
-                        `Job status for ${job.role} at ${job.company_name} has been updated to "${newStatus}"`,
+                        `Job status for ${Array.isArray(job.roles) ? job.roles.join(', ') : job.roles} at ${job.company_name} has been updated to "${newStatus}"`,
                         'job_status_changed',
                         job.recruiter_id
                     ]
@@ -245,7 +245,7 @@ export const spocRepository = {
                     [
                         spocId,
                         'Job Status Updated by SPOC',
-                        `SPOC updated job status for ${job.role} at ${job.company_name} to "${newStatus}"`,
+                        `SPOC updated job status for ${Array.isArray(job.roles) ? job.roles.join(', ') : job.roles} at ${job.company_name} to "${newStatus}"`,
                         'job_status_changed',
                         adminResult.rows[0].user_id
                     ]

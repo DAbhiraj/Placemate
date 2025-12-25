@@ -48,6 +48,11 @@ const Login = () => {
   const [showRecruiterGoogleModal, setShowRecruiterGoogleModal] = useState(false);
   const [showStaffAuthModal, setShowStaffAuthModal] = useState(false);
 
+  // Loading states for Google sign-in
+  const [studentGoogleLoading, setStudentGoogleLoading] = useState(false);
+  const [spocGoogleLoading, setSpocGoogleLoading] = useState(false);
+  const [recruiterGoogleLoading, setRecruiterGoogleLoading] = useState(false);
+
   // Staff/Keycloak auth state
   const [isStaffRegister, setIsStaffRegister] = useState(false);
   const [staffLoading, setStaffLoading] = useState(false);
@@ -67,7 +72,7 @@ const Login = () => {
       return;
     }
     if (user) {
-      const role = localStorage.getItem('role') || user.role || 'student';
+      const role = (user?.role || localStorage.getItem('role') || 'student');
       const redirectPath = defaultRouteForRole(role);
       console.log("🔵 Login - User logged in, redirecting to:", { role, redirectPath });
       window.location.href = redirectPath;
@@ -76,12 +81,12 @@ const Login = () => {
     }
   }, [user, loading]);
 
-  const handleGoogleSignIn = (user) => {
+  const handleGoogleSignIn = (user, forcedRole) => {
 
     setIsAuthenticated(true);
    
-    const role = localStorage.getItem('role');
-    if(role==='Student'){
+    const role = (forcedRole || user?.role || localStorage.getItem('role') || '').toLowerCase();
+    if(role==='student'){
       const needOnboarding = !user.profile_completed;
       const needProfileSetup = !user.branch || !user.cgpa;
 
@@ -121,8 +126,9 @@ const Login = () => {
   // ✅ GOOGLE SIGN-IN HANDLERS (student)
   const handleGoogleSuccess = (user) => {
     try {
-      const role = localStorage.getItem("role") || user.role;
-      
+      setStudentGoogleLoading(true);
+      const role = 'student';
+
       const userData = {
         u_id: user.id,
         id: user.id,
@@ -144,24 +150,29 @@ const Login = () => {
       localStorage.setItem("branch", userData.branch);
       localStorage.setItem("cgpa", userData.cgpa);
 
-      handleGoogleSignIn(user);
-     
+      handleGoogleSignIn(user, 'student');
+
     } catch (err) {
       console.error("Google sign-in processing failed:", err);
+      setStudentGoogleLoading(false);
       alert("Failed to sign in with Google. Please try again.");
+    } finally {
+      setStudentGoogleLoading(false);
     }
   };
 
   const handleGoogleError = (message) => {
     console.error("Google Sign-In Error:", message);
+    setStudentGoogleLoading(false);
     alert(message || "Google sign-in failed");
   };
 
-    // ✅ GOOGLE SIGN-IN HANDLERS (student)
+    // ✅ GOOGLE SIGN-IN HANDLERS (spoc)
   const handleSpocGoogleSuccess = (user) => {
     try {
-      const role = localStorage.getItem("role") || user.role || "spoc";
-      
+      setSpocGoogleLoading(true);
+      const role = 'spoc';
+
       const userData = {
         u_id: user.id,
         id: user.id,
@@ -179,25 +190,29 @@ const Login = () => {
       localStorage.setItem("email", userData.email);
       localStorage.setItem("name", userData.name);
 
-      alert(`Welcome back Spoc!, ${userData.name}!`);
-      handleGoogleSignIn(user);
-     
+      handleGoogleSignIn(user, 'spoc');
+
     } catch (err) {
       console.error("Google sign-in processing failed:", err);
+      setSpocGoogleLoading(false);
       alert("Failed to sign in with Google. Please try again.");
+    } finally {
+      setSpocGoogleLoading(false);
     }
   };
 
   const handleSpocGoogleError = (message) => {
     console.error("Google Sign-In Error:", message);
+    setSpocGoogleLoading(false);
     alert(message || "Google sign-in failed");
   };
 
   // ✅ RECRUITER GOOGLE/LINKEDIN SUCCESS HANDLER
   const handleRecruiterSuccess = (user) => {
     try {
-      const role = localStorage.getItem("role") || user.role || "recruiter";
-      
+      setRecruiterGoogleLoading(true);
+      const role = 'recruiter';
+
       const userData = {
         u_id: user.id,
         id: user.id,
@@ -214,17 +229,20 @@ const Login = () => {
       localStorage.setItem("email", userData.email);
       localStorage.setItem("name", userData.name);
 
-      alert(`Welcome back Recruiter!, ${userData.name}!`);
-      handleGoogleSignIn(user);
-     
+      handleGoogleSignIn(user, 'recruiter');
+
     } catch (err) {
       console.error("Sign-in processing failed:", err);
+      setRecruiterGoogleLoading(false);
       alert("Failed to sign in. Please try again.");
+    } finally {
+      setRecruiterGoogleLoading(false);
     }
   };
 
   const handleRecruiterError = (message) => {
     console.error("Sign-In Error:", message);
+    setRecruiterGoogleLoading(false);
     alert(message || "Sign-in failed");
   };
 
@@ -309,7 +327,6 @@ const Login = () => {
             <div
               role="button"
               onClick={() => {
-                localStorage.setItem("role", "Student");
                 setShowStudentGoogleModal(true);
               }}
               className="cursor-pointer p-6 rounded-lg border border-gray-100 hover:shadow-lg transition-shadow bg-white"
@@ -326,7 +343,6 @@ const Login = () => {
             {/* Recruiter (placeholder) */}
             <div role="button"
               onClick={() => {
-                localStorage.setItem("role", "recruiter");
                 setShowRecruiterGoogleModal(true);
               }}
               className="cursor-pointer p-6 rounded-lg border border-gray-100 hover:shadow-lg transition-shadow bg-white">
@@ -342,7 +358,6 @@ const Login = () => {
             {/* Coordinator (placeholder) */}
             <div role="button"
               onClick={() => {
-                localStorage.setItem("role", "spoc");
                 setShowSpocGoogleModal(true);
               }}
               className="cursor-pointer p-6 rounded-lg border border-gray-100 hover:shadow-lg transition-shadow bg-white">
@@ -378,29 +393,55 @@ const Login = () => {
               setShowGoogleModal={setShowStudentGoogleModal}
               handleGoogleSuccess={handleGoogleSuccess}
               handleGoogleError={handleGoogleError}
+              loading={studentGoogleLoading}
+              onBegin={() => setStudentGoogleLoading(true)}
             />
           )}
 
-          {/* Spoc Google modal — rendered when user clicks Student */}
+          {/* Spoc Google modal — rendered when user clicks Coordinator */}
           {showSpocGoogleModal && (
             <GoogleModal
               role="spoc"
               setShowGoogleModal={setShowSpocGoogleModal}
               handleGoogleSuccess={handleSpocGoogleSuccess}
               handleGoogleError={handleSpocGoogleError}
+              loading={spocGoogleLoading}
+              onBegin={() => setSpocGoogleLoading(true)}
             />
           )}
 
           {showRecruiterGoogleModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-              <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+              <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative">
+                {/* Loading Overlay */}
+                {recruiterGoogleLoading && (
+                  <div className="absolute inset-0 bg-white/90 rounded-lg flex flex-col items-center justify-center z-10">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-3"></div>
+                    <p className="text-sm text-gray-600">Signing you in...</p>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold">Recruiter Sign in</h3>
-                  <button onClick={() => setShowRecruiterGoogleModal(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+                  <button
+                    onClick={() => setShowRecruiterGoogleModal(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                    disabled={recruiterGoogleLoading}
+                  >
+                    ✕
+                  </button>
                 </div>
                 <p className="text-sm text-gray-600 mb-4">Choose your preferred sign-in method</p>
                 <div className="flex flex-col gap-3">
-                  <GoogleSignIn role="recruiter" onSuccess={(user) => { setShowRecruiterGoogleModal(false); handleRecruiterSuccess(user); }} onError={handleRecruiterError} />
+                  <GoogleSignIn
+                    role="recruiter"
+                    onBegin={() => setRecruiterGoogleLoading(true)}
+                    onSuccess={(user) => {
+                      // Keep modal open to show overlay
+                      handleRecruiterSuccess(user);
+                    }}
+                    onError={handleRecruiterError}
+                  />
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
                       <div className="w-full border-t border-gray-300"></div>
@@ -409,7 +450,13 @@ const Login = () => {
                       <span className="px-2 bg-white text-gray-500">or</span>
                     </div>
                   </div>
-                  <LinkedInSignIn onSuccess={(user) => { setShowRecruiterGoogleModal(false); handleRecruiterSuccess(user); }} onError={handleRecruiterError} />
+                  <LinkedInSignIn
+                    onBegin={() => setRecruiterGoogleLoading(true)}
+                    onSuccess={(user) => {
+                      handleRecruiterSuccess(user);
+                    }}
+                    onError={handleRecruiterError}
+                  />
                 </div>
               </div>
             </div>
@@ -523,7 +570,7 @@ const Login = () => {
         {/* Modals */}
         {showProfileSetupLoader && <ProfileSetupLoader />}
 
-        {showProfileSetup && localStorage.getItem("role")==="Student" && (
+        {showProfileSetup && (localStorage.getItem("role")?.toLowerCase()==="student") && (
           <OnboardingModal
             isOpen={showProfileSetup}
             onClose={() => setShowProfileSetup(false)}

@@ -1,13 +1,13 @@
 import { pool } from "../db/db.js";
 
 export const jobRepository = {
-  async createJob(company_name, role, description, custom_questions) {
+  async createJob(company_name, roles, description, custom_questions) {
     const toPgArray = (arr) => (Array.isArray(arr) ? `{${arr.map(s => s.replace(/"/g, '\"')).join(',')}}` : null);
     const result = await pool.query(
-      `INSERT INTO jobs (company_name, role, description, custom_questions)
-       VALUES ($1, $2, $3, $4::text[])
+      `INSERT INTO jobs (company_name, roles, description, custom_questions)
+       VALUES ($1, $2::text[], $3, $4::text[])
        RETURNING *`,
-      [company_name, role, description, toPgArray(custom_questions) || '{}']
+      [company_name, Array.isArray(roles) ? roles : [roles], description, toPgArray(custom_questions) || '{}']
     );
     return result.rows[0];
   },

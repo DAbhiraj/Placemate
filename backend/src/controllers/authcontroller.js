@@ -77,7 +77,9 @@ export async function linkedinLogin(req, res) {
 
     // If user is verified, fetch company data from KYC
     let company = null;
-    if (user.is_verified && user.role === 'recruiter') {
+    const userRolesArray = user.roles || (user.role ? [user.role] : []);
+    const isRecruiter = userRolesArray.some(r => r.toLowerCase() === 'recruiter');
+    if (user.is_verified && isRecruiter) {
       const kycResult = await query(
         "SELECT company_name FROM recruiter_kyc WHERE recruiter_id = $1 ORDER BY created_at DESC LIMIT 1",
         [user.id]

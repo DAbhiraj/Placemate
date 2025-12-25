@@ -54,11 +54,28 @@ export default function ViewJobs() {
       // Helper function to format dates
       const formatDate = (dateString) => {
         if (!dateString) return null;
+        
+        // If already formatted in DD/MM/YYYY, HH:MM format (24-hour from backend)
+        if (/^\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}$/.test(dateString)) {
+          const [datePart, timePart] = dateString.split(', ');
+          const [hours24, minutes] = timePart.split(':');
+          const hour = parseInt(hours24);
+          const period = hour >= 12 ? 'PM' : 'AM';
+          const hours12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+          return `${datePart}, ${hours12}:${minutes} ${period}`;
+        }
+        
+        // If already formatted in DD/MM/YYYY format (without time)
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
+          return dateString;
+        }
+        
         // If already formatted (YYYY-MM-DD), return as is
         if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
           const [year, month, day] = dateString.split('-');
           return `${day}/${month}/${year}`;
         }
+        
         // Otherwise format the date
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return null;
@@ -131,18 +148,58 @@ export default function ViewJobs() {
 
       console.log(job);
 
-      // Helper to format date for input field
+      // Helper to format date for input field (datetime-local format: YYYY-MM-DDTHH:MM)
       const formatDateForInput = (dateString) => {
         if (!dateString) return "";
-        // If already in YYYY-MM-DD format, return as is
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+        
+        // If in DD/MM/YYYY, HH:MM AM/PM format
+        if (/^\d{2}\/\d{2}\/\d{4}, \d{1,2}:\d{2} (AM|PM)$/.test(dateString)) {
+          const [datePart, timePart] = dateString.split(', ');
+          const [day, month, year] = datePart.split('/');
+          const [time, period] = timePart.split(' ');
+          const [hours, minutes] = time.split(':');
+          
+          // Convert to 24-hour format
+          let hours24 = parseInt(hours);
+          if (period === 'PM' && hours24 !== 12) {
+            hours24 += 12;
+          } else if (period === 'AM' && hours24 === 12) {
+            hours24 = 0;
+          }
+          
+          const hoursStr = String(hours24).padStart(2, '0');
+          return `${year}-${month}-${day}T${hoursStr}:${minutes}`;
+        }
+        
+        // If in DD/MM/YYYY format (without time)
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
+          const [day, month, year] = dateString.split('/');
+          return `${year}-${month}-${day}T00:00`;
+        }
+        
+        // If already in YYYY-MM-DDTHH:MM format, return as is
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dateString)) return dateString;
+        
+        // If in DD-MM-YYYY format
+        if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+          const [day, month, year] = dateString.split('-');
+          return `${year}-${month}-${day}T00:00`;
+        }
+        
+        // If already in YYYY-MM-DD format
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+          return `${dateString}T00:00`;
+        }
+        
         // Otherwise parse and format
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return "";
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
-        return `${day}-${month}-${year}`;
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
       };
 
       // Transform the job data to match form structure
@@ -342,7 +399,7 @@ export default function ViewJobs() {
                   <div>
                     <p className="text-gray-500">Application Deadline</p>
                     <p className="text-gray-900 font-medium">
-                      {job.deadline || "N/A"}
+                      {job.applicationDeadline || job.deadline || "N/A"}
                     </p>
                   </div>
                 </div>

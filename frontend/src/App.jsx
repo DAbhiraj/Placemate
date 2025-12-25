@@ -28,7 +28,7 @@ import SendNotifications from './pages/admin/SendNotificationPage';
 import ViewAllJobs from './pages/admin/ViewJobs';
 import SpocManagement from './pages/admin/SpocManagement';
 import NotificationPage from './pages/NotifcationPage';
-
+import ApplicationForm from "./pages/student/ApplicationForm"
 
 
 function App() {
@@ -48,6 +48,7 @@ function App() {
             <Route path="student/jobs" element={<JobOpportunities />} />
             <Route path="student/upcoming" element={<UpcomingDeadlines />} />
             <Route path="student/notifications" element={<NotificationPage />} />
+             <Route path="student/apply/:jobId" element={<ApplicationForm />} />
             
             {/* Admin routes */}
             <Route path="/admin/dashboard" element={<AdminDashboard />} />

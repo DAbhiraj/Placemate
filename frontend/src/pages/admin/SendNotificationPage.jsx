@@ -15,13 +15,22 @@ export default function SendNotifications() {
     const fetchData = async () => {
       try {
         setLoading(true)
-        // Fetch available roles - if endpoint exists
+
+        // Fetch actual counts from backend
+        const [studentsRes, spocsRes, recruitersRes] = await Promise.all([
+          axiosClient.get("/admin/students").catch(() => ({ data: [] })),
+          axiosClient.get("/admin/spocs").catch(() => ({ data: [] })),
+          axiosClient.get("/admin/companies").catch(() => ({ data: [] }))
+        ])
+
+        const studentsCount = (studentsRes.data?.data || studentsRes.data || []).length
+        const spocsCount = (spocsRes.data?.data || spocsRes.data || []).length
+        const recruitersCount = (recruitersRes.data?.data || recruitersRes.data || []).length
+
         const rolesData = [
-          { id: "students", label: "Students", count: 450 },
-          { id: "placement-coordinators", label: "Placement Coordinators", count: 5 },
-          { id: "spocs", label: "SPOCs", count: 8 },
-          { id: "recruiters", label: "Recruiters", count: 45 },
-          { id: "companies", label: "Companies", count: 32 }
+          { id: "students", label: "Students", count: studentsCount },
+          { id: "placement-coordinators", label: "Placement Coordinators", count: spocsCount },
+          { id: "recruiters", label: "Recruiters", count: recruitersCount }
         ]
         setRoles(rolesData)
 

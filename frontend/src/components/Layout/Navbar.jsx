@@ -61,6 +61,21 @@ const Navbar = () => {
     }
   }, [])
 
+  // Refresh notifications periodically to ensure count is up-to-date
+  useEffect(() => {
+    if (!currentUser?.id) return
+
+    // Fetch notifications immediately
+    fetchNotifications(currentUser.id)
+
+    // Set up interval to refresh every 30 seconds
+    const interval = setInterval(() => {
+      fetchNotifications(currentUser.id)
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [currentUser?.id])
+
   const fetchNotifications = async() => {
     try {
       setLoadingNotifications(true)
@@ -244,7 +259,7 @@ const Navbar = () => {
                       to={
                         localStorage.getItem("role") === "recruiter"
                           ? "/recruiter/profile"
-                          : "/profile"
+                          : "/student/profile"
                       }
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       onClick={() => setShowUserMenu(false)}
@@ -405,7 +420,7 @@ const Navbar = () => {
                   to={
                     localStorage.getItem("role") === "recruiter"
                       ? "/recruiter/profile"
-                      : "/profile"
+                      : "/student/profile"
                   }
                   className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
                   onClick={() => setShowMobileMenu(false)}

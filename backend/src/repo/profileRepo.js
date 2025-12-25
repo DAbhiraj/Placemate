@@ -23,7 +23,7 @@ export class ProfileRepo {
   static async getProfile(userId) {
     try {
       const result = await query(
-        "SELECT user_id as id, name, branch, cgpa, email,phone,roll_no, role, skills, resume_url, resume_filename, resume_upload_date, application_type FROM users WHERE user_id = $1",
+        "SELECT user_id as id, name, branch, cgpa, email,phone,roll_no, roles, skills, resume_url, resume_filename, resume_upload_date, application_type FROM users WHERE user_id = $1",
         [userId]
       );
       const row = result.rows[0];

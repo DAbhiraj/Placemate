@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { InferenceClient } from "@huggingface/inference";
 import { createRequire } from 'module';
+import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js';
 
 // Standard Import
 const require = createRequire(import.meta.url);
@@ -154,33 +155,27 @@ Resume:
    */
   static async uploadResume(userId, file) {
     try {
-      // Create uploads directory if it doesn't exist
-      const uploadsDir = path.join(__dirname, "../../uploads");
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
+      // Upload to Cloudinary
+      const cloudinaryResult = await uploadToCloudinary(file.buffer, {
+        folder: 'placemate/resumes',
+        resource_type: 'auto',
+        public_id: `resume-${userId}-${Date.now()}`
+      });
 
-      // Generate unique filename
-      const timestamp = Date.now();
-      const filename = `${timestamp}-${file.originalname}`;
-      const filepath = path.join(uploadsDir, filename);
-
-      // Save file
-      fs.writeFileSync(filepath, file.buffer);
-     
-
-      // Update database
+      // Update database with Cloudinary URL
       const resumeData = {
-        resume_url: `/uploads/${filename}`,
+        resume_url: cloudinaryResult.url,
         resume_filename: file.originalname,
         resume_upload_date: new Date(),
+        resume_public_id: cloudinaryResult.public_id // Store for future deletion
       };
 
       await ProfileRepo.updateResume(userId, resumeData);
 
       return {
         success: true,
-        resume_url: resumeData.resume_url,
+        resume_url: cloudinaryResult.url,
+        public_id: cloudinaryResult.public_id
       };
     } catch (error) {
       console.error("Error in ProfileService.uploadResume:", error);
@@ -286,15 +281,12 @@ Resume:
         throw new Error("Resume not found");
       }
       
-      const filepath = path.join(__dirname, "../..", profile.resume_url);
-      if (!fs.existsSync(filepath)) {
-        throw new Error("Resume file not found on disk");
-      }
-      
+      // With Cloudinary, we just return the URL and metadata
       return {
-        filepath,
+        url: profile.resume_url,
         filename: profile.resume_filename,
-        uploadDate: profile.resume_upload_date
+        uploadDate: profile.resume_upload_date,
+        public_id: profile.resume_public_id
       };
     } catch (error) {
       console.error("Error in ProfileService.getResumeFile:", error);
@@ -308,17 +300,23 @@ Resume:
   static async deleteResume(userId) {
     try {
       const profile = await ProfileRepo.getProfile(userId);
-      if (profile && profile.resume_url) {
-        const filepath = path.join(__dirname, "../..", profile.resume_url);
-        if (fs.existsSync(filepath)) {
-          fs.unlinkSync(filepath);
+      
+      // Delete from Cloudinary if public_id exists
+      if (profile && profile.resume_public_id) {
+        try {
+          await deleteFromCloudinary(profile.resume_public_id);
+        } catch (cloudinaryError) {
+          console.error("Error deleting from Cloudinary:", cloudinaryError);
+          // Continue even if Cloudinary delete fails
         }
       }
 
+      // Update database to remove resume references
       await ProfileRepo.updateResume(userId, {
         resume_url: null,
         resume_filename: null,
-        resume_upload_date: null
+        resume_upload_date: null,
+        resume_public_id: null
       });
 
       // await ProfileRepo.updateATSScore(userId, {

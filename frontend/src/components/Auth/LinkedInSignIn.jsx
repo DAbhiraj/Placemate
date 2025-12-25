@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { Linkedin } from 'lucide-react';
 import axios from 'axios';
 
-const LinkedInSignIn = ({ onSuccess, onError }) => {
+const LinkedInSignIn = ({ onSuccess, onError, onBegin }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLinkedInLogin = () => {
     setIsLoading(true);
+    onBegin?.();
     
     const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID;
     const redirectUri = encodeURIComponent(import.meta.env.VITE_LINKEDIN_REDIRECT_URI || 'http://localhost:5173/auth/linkedin/callback');
@@ -79,6 +80,7 @@ const LinkedInSignIn = ({ onSuccess, onError }) => {
       );
     } finally {
       setIsLoading(false);
+      // Parent can clear its own overlay in its success/error handlers
       localStorage.removeItem('linkedin_oauth_state');
     }
   };

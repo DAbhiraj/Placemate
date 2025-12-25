@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Upload, FileText, Loader2 } from 'lucide-react';
+import axiosClient from '../../api/axiosClient';
 
 const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
   const [formData, setFormData] = useState({
@@ -108,17 +109,10 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
         formDataToSend.append('resume', selectedFile);
       }
 
-      const response = await fetch('http://localhost:4000/api/profile/onboarding', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formDataToSend
-      });
+      const response = await axiosClient.post('/profile/onboarding', formDataToSend);
+      const data = response.data;
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (response.status === 200) {
         onComplete?.(data.data);
         onClose();
       } else {
@@ -135,7 +129,7 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+     <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
@@ -228,7 +222,7 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Branch *
+                  Branch and backlogs*
                 </label>
                 <select
                   name="branch"
@@ -239,7 +233,7 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
                   }`}
                 >
                   <option value="">Select your branch</option>
-                  <option value="Computer Science">Computer Science</option>
+                  <option value="Computer Science and Engineering">Computer Science</option>
                   <option value="Electronics">Electronics</option>
                   <option value="Information Technology">Information Technology</option>
                   <option value="Mechanical">Mechanical</option>

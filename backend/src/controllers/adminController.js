@@ -57,64 +57,16 @@ export const adminController = {
         }
     },
 
-    // Job Management
-    async createJob(req, res) {
-        try {
-            console.log("inside controller");
-            console.log(req.body);
-            const job = await adminService.createJob(req.body);
-            res.status(201).json(job);
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ message: "Failed to create job" });
-        }
-    },
-
-    async getJobs(req, res) {
-        try {
-            const jobs = await adminService.getAllJobs();
-            res.json(jobs);
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ message: "Failed to fetch jobs" });
-        }
-    },
-
-    async updateJob(req, res) {
-        try {
-            const job = await adminService.updateJob(req.params.id, req.body);
-            res.json(job);
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ message: "Failed to update job" });
-        }
-    },
-
-    async deleteJob(req, res) {
-        try {
-            await adminService.deleteJob(req.params.id);
-            res.json({ message: "Job deleted successfully" });
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ message: "Failed to delete job" });
-        }
-    },
-
-    // Application Management
-    async getApplicationsForJob(req, res) {
-        try {
-            const applications = await adminService.getApplicationsForJob(req.params.jobId);
-            res.json(applications);
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ message: "Failed to fetch applications" });
-        }
-    },
+   
 
     async updateApplicationStatus(req, res) {
         try {
             const { applicationId } = req.params;
-            const { status } = req.body;
+            let { status } = req.body;
+            // If admin indicates this shortlist is specifically for interview, use shortlisted
+            if (status === 'shortlist' && req.body.interview === true) {
+                status = 'shortlisted';
+            }
             const result = await adminService.updateApplicationStatus(applicationId, status);
             res.json(result);
         } catch (err) {
@@ -158,6 +110,61 @@ export const adminController = {
         }
     },
 
+    async searchUsers(req, res) {
+        try {
+            const { query } = req.query;
+            if (!query || query.trim().length < 2) {
+                return res.json({ data: [] });
+            }
+            const users = await adminService.searchUsers(query);
+            res.json({ data: users });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ message: "Failed to search users" });
+        }
+    },
+
+    async addSpoc(req, res) {
+        try {
+            const { userId } = req.body;
+            if (!userId) {
+                return res.status(400).json({ message: "User ID is required" });
+            }
+            const Spoc = await adminService.addSpoc(userId);
+            res.json({ message: "SPOC added successfully", data: Spoc });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ message: "Failed to add Spoc" });
+        }
+    },
+       
+
+    async getAllSpocs(req, res) {
+        try {
+            const Spocs = await adminService.getAllSpocs();
+            res.json(Spocs);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ message: "Failed to fetch students" });
+        }
+    },
+
+    async getSpocAssignedJobs(req, res) {
+        try {
+            const { spocId } = req.body;
+            
+            if (!spocId) {
+                return res.status(400).json({ message: "SPOC ID is required" });
+            }
+
+            const jobs = await adminService.getSpocAssignedJobs(spocId);
+            res.json({ data: jobs });
+        } catch (err) {
+            console.error("Error fetching SPOC assigned jobs:", err);
+            res.status(500).json({ message: "Failed to fetch SPOC assigned jobs" });
+        }
+    },
+
     async updateStudentStatus(req, res) {
         try {
             const { studentId } = req.params;
@@ -173,12 +180,15 @@ export const adminController = {
     // Notification Management
     async sendNotification(req, res) {
         try {
+            console.log(" in ntificatin cntrler ")
             const { statusUpdate, companyName, customMessage } = req.body;
             const excelFile = req.file;
 
             if (!excelFile) {
                 return res.status(400).json({ message: "Excel file is required" });
             }
+
+            console.log(excelFile,statusUpdate,companyName,customMessage)
 
             // Parse Excel file to extract emails
             const fileBuffer = fs.readFileSync(excelFile.path);
@@ -270,8 +280,10 @@ function getUpdateTypeText(statusUpdate) {
     switch (statusUpdate) {
         case "shortlist":
             return "Shortlisted";
-        case "interview_shortlist":
+        case "shortlisted":
             return "Interview Shortlisted";
+        case "interviewed":
+            return "Interviewed";
         case "selected":
             return "Selected";
         case "rejected":
@@ -286,8 +298,10 @@ function getDefaultMessage(statusUpdate, companyName) {
     switch (statusUpdate) {
         case "shortlist":
             return `Congratulations! You have been shortlisted for ${companyName}. Please check your email for further details.`;
-        case "interview_shortlist":
+        case "shortlisted":
             return `Great news! You have been shortlisted for the interview round at ${companyName}. Please prepare well and check your email for interview details.`;
+        case "interviewed":
+            return `Thank you for attending the interview at ${companyName}. We will notify you of the results soon.`;
         case "selected":
             return `Congratulations! You have been selected for ${companyName}. Welcome to the team! Please check your email for next steps.`;
         case "rejected":
@@ -302,8 +316,10 @@ function getNotificationType(statusUpdate) {
     switch (statusUpdate) {
         case "shortlist":
             return "APPLICATION_STATUS_SHORTLISTED";
-        case "interview_shortlist":
+        case "shortlisted":
             return "INTERVIEW_SHORTLISTED";
+        case "interviewed":
+            return "APPLICATION_STATUS_INTERVIEWED";
         case "selected":
             return "APPLICATION_STATUS_SELECTED";
         case "rejected":

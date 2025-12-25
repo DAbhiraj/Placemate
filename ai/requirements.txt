@@ -1,0 +1,6 @@
+flask
+langchain-community
+huggingface-hub
+pypdf
+sentence-transformers
+python-dotenv

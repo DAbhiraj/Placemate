@@ -1,4 +1,5 @@
 import { adminRepository } from "../repo/adminRepo.js";
+import { spocRepository } from "../repo/spocRepo.js";
 import { notificationService } from "./notificationService.js";
 //import { statsService } from "./statsService.js";
 
@@ -41,53 +42,7 @@ export const adminService = {
     },
 
     // Job Management
-    async createJob(jobData) {
-        console.log(jobData);
-        const {
-            company_name,
-            role,
-            description,
-            custom_questions,
-            application_deadline,
-            online_assessment_date,
-            interview_dates,
-            min_cgpa,
-            eligible_branches,
-            package_range,
-            location
-        } = jobData;
-
-        return await adminRepository.createJob(
-            company_name,
-            role,
-            description,
-            custom_questions,
-            application_deadline,
-            online_assessment_date,
-            interview_dates,
-            min_cgpa,
-            eligible_branches,
-            package_range,
-            location
-        );
-    },
-
-    async getAllJobs() {
-        return await adminRepository.getAllJobs();
-    },
-
-    async updateJob(jobId, updateData) {
-        return await adminRepository.updateJob(jobId, updateData);
-    },
-
-    async deleteJob(jobId) {
-        return await adminRepository.deleteJob(jobId);
-    },
-
-    // Application Management
-    async getApplicationsForJob(jobId) {
-        return await adminRepository.getApplicationsForJob(jobId);
-    },
+    
 
     async updateApplicationStatus(applicationId, status) {
         const result = await adminRepository.updateApplicationStatus(applicationId, status);
@@ -135,6 +90,32 @@ export const adminService = {
     // Student Management
     async getAllStudents() {
         return await adminRepository.getAllStudents();
+    },
+
+    async getAllSpocs() {
+        return await adminRepository.getAllSpocs();
+    },
+
+    async searchUsers(query) {
+        return await adminRepository.searchUsers(query);
+    },
+
+    async addSpoc(userId) {
+        const spoc = await adminRepository.addSpoc(userId);
+
+        // Send notification to the newly assigned SPOC
+        await notificationService.notifyUser(
+            userId,
+            'You have been assigned as a Placement Coordinator (SPOC). You can now access the SPOC portal and manage job assignments.',
+            'SPOC_ASSIGNED',
+            'You are now a Placement Coordinator'
+        );
+
+        return spoc;
+    },
+
+    async getSpocAssignedJobs(spocId) {
+        return await spocRepository.getAssignedJobsBySpocId(spocId);
     },
 
     async updateStudentStatus(studentId, status) {

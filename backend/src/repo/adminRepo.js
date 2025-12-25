@@ -25,7 +25,7 @@ export const adminRepository = {
     async getAveragePackage() {
         const result = await pool.query(`
             SELECT AVG(CAST(REGEXP_REPLACE(package, '[^0-9.]', '', 'g') AS NUMERIC)) as avg_package 
-            FROM companies
+            FROM jobs
         `);
         const avgPackage = result.rows[0].avg_package || 0;
         return `₹${(avgPackage).toFixed(1)}L`;
@@ -33,10 +33,10 @@ export const adminRepository = {
     // Company Management
     async createCompany(name, logo, package_range, location, eligible_branches, min_cgpa, deadline, job_type, description, requirements) {
         const result = await pool.query(
-            `INSERT INTO companies (id, name, logo, package, location, eligible_branches, min_cgpa, deadline, job_type, description, requirements)
+            `INSERT INTO jobs (company_name, company_logo, package, location, eligible_branches, min_cgpa, application_deadline, job_type, description, requirements, roles)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       RETURNING *`,
-            [generateId(), name, logo, package_range, location, eligible_branches, min_cgpa, deadline, job_type, description, requirements]
+       RETURNING job_id as id, company_name as name, company_logo as logo, package, location, eligible_branches, min_cgpa, application_deadline as deadline, job_type, description, requirements`,
+            [name, logo, package_range, location, eligible_branches, min_cgpa, deadline, job_type, description, requirements, ["Software Developer"]]
         );
         return result.rows[0];
     },
@@ -75,71 +75,28 @@ export const adminRepository = {
         const setClause = fields.map((field, index) => `${field} = $${index + 2}`).join(', ');
 
         const result = await pool.query(
-            `UPDATE companies SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`,
+            `UPDATE jobs SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE job_id = $1 RETURNING *`,
             [companyId, ...values]
         );
         return result.rows[0];
     },
 
     async deleteCompany(companyId) {
-        await pool.query("DELETE FROM companies WHERE id = $1", [companyId]);
+        await pool.query("DELETE FROM jobs WHERE job_id = $1", [companyId]);
     },
 
-    // Job Management
-    async createJob(company_name, role, description, custom_questions, application_deadline, online_assessment_date, interview_dates, min_cgpa, eligible_branches, package_range, location) {
-        const result = await pool.query(
-            `INSERT INTO jobs (company_name, role, description, custom_questions, application_deadline, online_assessment_date, interview_dates, min_cgpa, eligible_branches, package_range, location)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       RETURNING *`,
-            [company_name, role, description, JSON.stringify(custom_questions), application_deadline, online_assessment_date, interview_dates, min_cgpa, eligible_branches, package_range, location]
-        );
-        return result.rows[0];
-    },
-
-    async getAllJobs() {
-        const result = await pool.query("SELECT * FROM jobs ORDER BY created_at DESC");
-        return result.rows;
-    },
-
-    async updateJob(jobId, updateData) {
-        const fields = Object.keys(updateData);
-        const values = Object.values(updateData);
-        const setClause = fields.map((field, index) => `${field} = $${index + 2}`).join(', ');
-
-        const result = await pool.query(
-            `UPDATE jobs SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`,
-            [jobId, ...values]
-        );
-        return result.rows[0];
-    },
-
-    async deleteJob(jobId) {
-        await pool.query("DELETE FROM jobs WHERE id = $1", [jobId]);
-    },
-
-    // Application Management
-    async getApplicationsForJob(jobId) {
-        const result = await pool.query(
-            `SELECT a.*, u.name as student_name, u.email, u.branch, u.cgpa
-       FROM applications a
-       JOIN users u ON a.user_id = u.id
-       WHERE a.job_id = $1
-       ORDER BY a.created_at DESC`,
-            [jobId]
-        );
-        return result.rows;
-    },
+    
 
     async updateApplicationStatus(applicationId, status) {
         const result = await pool.query(
-            `UPDATE applications SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
+            `UPDATE applications SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE appl_id = $2 RETURNING *`,
             [status, applicationId]
         );
         return result.rows[0];
     },
 
     async getApplicationById(applicationId) {
-        const result = await pool.query("SELECT * FROM applications WHERE id = $1", [applicationId]);
+        const result = await pool.query("SELECT * FROM applications WHERE appl_id = $1", [applicationId]);
         return result.rows[0];
     },
 
@@ -155,7 +112,7 @@ export const adminRepository = {
     async getDashboardStats() {
         const [studentsResult, companiesResult, applicationsResult, placementsResult] = await Promise.all([
             pool.query("SELECT COUNT(*) as total_students FROM users WHERE role = 'Student'"),
-            pool.query("SELECT COUNT(*) as total_companies FROM companies"),
+            pool.query("SELECT COUNT(DISTINCT company_name) as total_companies FROM jobs"),
             pool.query("SELECT COUNT(*) as total_applications FROM applications"),
             pool.query("SELECT COUNT(*) as total_placements FROM applications WHERE status = 'selected'")
         ]);
@@ -171,15 +128,55 @@ export const adminRepository = {
     // Student Management
     async getAllStudents() {
         const result = await pool.query(
-            "SELECT id, name, email, branch, cgpa, role FROM users WHERE role = 'Student' ORDER BY name"
+            "SELECT user_id as id, name,roll_no, email, branch,is_placed, cgpa, role FROM users WHERE role = 'Student' ORDER BY name"
         );
         return result.rows;
+    },
+
+    async getAllSpocs() {
+        const result = await pool.query(
+            `SELECT user_id as id, name, roll_no, email, branch,roles
+             FROM users
+             WHERE 'spoc' = ANY(roles)
+             ORDER BY name`
+        );
+        return result.rows;
+    },
+
+    async searchUsers(query) {
+        const searchPattern = `%${query}%`;
+        const result = await pool.query(
+            `SELECT user_id, name, email, roll_no, branch, phone,roles
+             FROM users
+             WHERE (LOWER(email) LIKE LOWER($1) OR LOWER(roll_no) LIKE LOWER($1))
+             AND (roles = ARRAY['student'] AND NOT ('spoc' = ANY(roles)))
+             LIMIT 10`,
+            [searchPattern]
+        );
+        return result.rows;
+    },
+
+    async addSpoc(spocId) {
+        // Add 'spoc' to roles array, keeping existing role (usually 'Student')
+        const result = await pool.query(
+            `UPDATE users
+             SET roles = CASE
+                 WHEN roles IS NULL THEN ARRAY['spoc']::TEXT[]
+                 WHEN NOT ('spoc' = ANY(roles)) THEN array_append(roles, 'spoc')
+                 ELSE roles
+             END
+             WHERE user_id = $1
+             RETURNING *`,
+            [spocId]
+        );
+
+        return result.rows[0];
     },
 
     async updateStudentStatus(studentId, status) {
         // This would typically update a status field in users table
         // For now, we'll just return the student
-        const result = await pool.query("SELECT * FROM users WHERE id = $1", [studentId]);
+        const result = await pool.query("SELECT * FROM users WHERE user_id = $1", [studentId]);
         return result.rows[0];
     },
 
@@ -187,7 +184,7 @@ export const adminRepository = {
     async getStudentIdsByEmails(emails) {
         const placeholders = emails.map((_, index) => `$${index + 1}`).join(',');
         const result = await pool.query(
-            `SELECT id FROM users WHERE email IN (${placeholders}) AND role = 'Student'`,
+            `SELECT user_id as id FROM users WHERE email IN (${placeholders}) AND role = 'Student'`,
             emails
         );
         return result.rows.map(row => row.id);
@@ -196,12 +193,13 @@ export const adminRepository = {
     async updateApplicationStatusesByCompany(companyName, status, studentIds) {
         // Update application statuses for students who applied to jobs from this company
         const placeholders = studentIds.map((_, index) => `$${index + 2}`).join(',');
+        // studentIds is expected to be an array of user ids
         const result = await pool.query(
             `UPDATE applications 
              SET status = $1, updated_at = CURRENT_TIMESTAMP 
-             WHERE id IN (${placeholders}) 
+             WHERE user_id IN (${placeholders}) 
              AND job_id IN (
-                 SELECT id FROM jobs WHERE company_name = $${studentIds.length + 2}
+                 SELECT job_id FROM jobs WHERE company_name = $${studentIds.length + 2}
              )
              RETURNING *`,
             [status, ...studentIds, companyName]

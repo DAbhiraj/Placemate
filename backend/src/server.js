@@ -13,7 +13,7 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 const app = express();
 
 app.use(cors({
-  origin: ["http://localhost:5173", "https://placemate-seven.vercel.app/"],
+  origin: ["http://localhost:5173", "https://placemate-seven.vercel.app"],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }));

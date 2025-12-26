@@ -10,10 +10,13 @@ const googleClient = process.env.GOOGLE_CLIENT_ID
 
 const ACCESS_TOKEN_COOKIE = "pm_access_token";
 const REFRESH_TOKEN_COOKIE = "pm_refresh_token";
+const isProdEnv = process.env.NODE_ENV === "production";
+const isRender = Boolean(process.env.RENDER || process.env.RENDER_INTERNAL_HOSTNAME);
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+  // Force Secure+SameSite=None on Render/production so cross-site cookies persist
+  secure: true,
+  sameSite:"none",
   path: "/",
 };
 

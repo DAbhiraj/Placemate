@@ -12,6 +12,9 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 const app = express();
 
+// Trust proxy so secure cookies and protocol are handled correctly behind reverse proxies
+app.set('trust proxy', 1);
+
 app.use(cors({
   origin: ["http://localhost:5173", "https://placemate-seven.vercel.app"],
   methods: ["GET", "POST", "PUT", "DELETE"],

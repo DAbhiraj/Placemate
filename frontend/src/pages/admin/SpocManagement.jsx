@@ -37,69 +37,80 @@ export default function SpocManagement() {
   const [selectedUser, setSelectedUser] = useState(null)
   const [searchLoading, setSearchLoading] = useState(false)
 
-  useEffect(() => {
-   
-   
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        
-        // Fetch all SPOCs
-        const spocresponse = await axiosClient.get("/admin/spocs")
-        const allSpocs = spocresponse.data.data || spocresponse.data
-        setAllSpocs(allSpocs)
-        
-        // Fetch assigned jobs for each SPOC and aggregate
-        const spocsWithJobs = await Promise.all(
-          allSpocs.map(async (spoc) => {
-            try {
-              const response = await axiosClient.post("/admin/spocs/assigned-jobs", {
-                spocId: spoc.id || spoc.user_id || spoc.spoc_id
-              })
-              const assignedJobs = response.data.data || []
-              console.log(assignedJobs)
-              console.log("down is the")
-              console.log(assignedJobs.filter(job => job.job_status !== 'completed the drive').length)
-              return {
-                ...spoc,
-                spoc_id: spoc.id || spoc.user_id || spoc.spoc_id,
-                assignedJobs: assignedJobs,
-                activeJobs: assignedJobs.filter(job => job.job_status !== 'completed the drive').length,
-                completedJobs: assignedJobs.filter(job => job.job_status === 'completed the drive').length
-              }
-            } catch {
-              return {
-                ...spoc,
-                spoc_id: spoc.id || spoc.user_id || spoc.spoc_id,
-                assignedJobs: [],
-                activeJobs: 0,
-                completedJobs: 0
-              }
+  const resolveSpocId = (spocOrId) => {
+    if (!spocOrId) return null
+    if (typeof spocOrId === "string") return spocOrId
+    return spocOrId.spoc_id || spocOrId.spocId || spocOrId.id || spocOrId.user_id || null
+  }
+
+  const fetchAssignedJobsForSpoc = async (spocId) => {
+    if (!spocId) return []
+    try {
+      const response = await axiosClient.post("/admin/spocs/assigned-jobs", { spocId })
+      return response.data.data || []
+    } catch (error) {
+      console.error("Failed to fetch assigned jobs:", error)
+      return []
+    }
+  }
+
+  const loadSpocData = async ({ showLoader = false } = {}) => {
+    if (showLoader) {
+      setLoading(true)
+    }
+
+    try {
+      const spocresponse = await axiosClient.get("/admin/spocs")
+      const allSpocs = spocresponse.data.data || spocresponse.data
+      setAllSpocs(allSpocs)
+
+      const spocsWithJobs = await Promise.all(
+        allSpocs.map(async (spoc) => {
+          const spocId = resolveSpocId(spoc)
+          if (!spocId) {
+            return {
+              ...spoc,
+              spoc_id: null,
+              assignedJobs: [],
+              activeJobs: 0,
+              completedJobs: 0,
             }
-          })
-        )
-        setSpocs(spocsWithJobs)
-        
-        // Fetch available jobs if endpoint exists
-        try {
-          const jobsResponse = await axiosClient.get("/recruiter/jobs")
-          const allJobs = jobsResponse.data.data || jobsResponse.data
-          console.log(allJobs)
-          setAvailableJobs(allJobs)
-        } catch {
-          setAvailableJobs([])
-        }
-        
-        setLoading(false)
-      } catch (error) {
-        console.error("Failed to fetch SPOC data:", error)
-        setSpocs([])
+          }
+
+          const assignedJobs = await fetchAssignedJobsForSpoc(spocId)
+          return {
+            ...spoc,
+            spoc_id: spocId,
+            assignedJobs,
+            activeJobs: assignedJobs.filter(job => job.job_status !== "completed the drive").length,
+            completedJobs: assignedJobs.filter(job => job.job_status === "completed the drive").length,
+          }
+        })
+      )
+      setSpocs(spocsWithJobs)
+
+      try {
+        const jobsResponse = await axiosClient.get("/recruiter/jobs")
+        const allJobs = jobsResponse.data.data || jobsResponse.data
+        setAvailableJobs(allJobs)
+      } catch {
         setAvailableJobs([])
+      }
+    } catch (error) {
+      console.error("Failed to fetch SPOC data:", error)
+      setSpocs([])
+      setAllSpocs([])
+      setAvailableJobs([])
+    } finally {
+      if (showLoader) {
         setLoading(false)
       }
     }
+  }
 
-    fetchData()
+  useEffect(() => {
+    loadSpocData({ showLoader: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Track which SPOCs already have assignments
@@ -110,6 +121,20 @@ export default function SpocManagement() {
   const unassignedSpocs = allspocs.filter(
     spoc => !assignedSpocIds.includes(spoc.spoc_id || spoc.spocId || spoc.id)
   )
+
+  const assignDropdownSpocs = (() => {
+    const base = [...unassignedSpocs]
+    if (assignSpocId) {
+      const alreadyIncluded = base.some((spoc) => resolveSpocId(spoc) === assignSpocId)
+      if (!alreadyIncluded) {
+        const highlighted = allspocs.find((spoc) => resolveSpocId(spoc) === assignSpocId)
+        if (highlighted) {
+          return [highlighted, ...base]
+        }
+      }
+    }
+    return base
+  })()
 
   // Merge spocs data with allspocs to ensure all SPOCs have activeJobs/completedJobs
   const spocsWithData = allspocs.map((spoc) => {
@@ -135,12 +160,7 @@ export default function SpocManagement() {
       }
       await axiosClient.post("/admin/spoc/add", { userId: selectedUser.user_id })
       alert(`Successfully added ${selectedUser.name} as SPOC`)
-      
-      // Refetch SPOCs list to show newly added SPOC
-      const spocresponse = await axiosClient.get("/admin/spocs")
-      const allSpocs = spocresponse.data.data || spocresponse.data
-      setAllSpocs(allSpocs)
-      
+      await loadSpocData()
       setShowAddSpoc(false)
       setUserSearchQuery("")
       setSearchResults([])
@@ -170,8 +190,45 @@ export default function SpocManagement() {
   }
 
   const handleRemoveSpoc = async (id) => {
-    alert("Remove SPOC functionality is not yet implemented. Please contact the administrator.")
-    // TODO: Implement remove SPOC endpoint in backend if needed
+    const spocId = resolveSpocId(id)
+    if (!spocId) return
+    if (!window.confirm("Remove this SPOC and all assignments?")) {
+      return
+    }
+
+    try {
+      await axiosClient.delete(`/admin/spocs/${spocId}`)
+      alert("SPOC removed")
+      setSelectedSpoc(null)
+      setAssignedJobsForEdit([])
+      await loadSpocData()
+    } catch (error) {
+      console.error("Failed to remove SPOC:", error)
+      alert("Failed to remove SPOC. Please try again.")
+    }
+  }
+
+  const handleRemoveAssignment = async (job) => {
+    if (!assignSpocId) return
+    const jobId = job.job_id || job.id
+    if (!jobId) return
+    if (!window.confirm("Remove this assignment?")) {
+      return
+    }
+
+    try {
+      await axiosClient.delete(`/admin/spocs/${assignSpocId}/jobs/${jobId}`)
+      alert("Assignment removed")
+      const updatedJobs = await fetchAssignedJobsForSpoc(assignSpocId)
+      setAssignedJobsForEdit(updatedJobs)
+      if (selectedSpoc && resolveSpocId(selectedSpoc) === assignSpocId) {
+        setSelectedSpoc((prev) => prev ? { ...prev, assignedJobs: updatedJobs } : prev)
+      }
+      await loadSpocData()
+    } catch (error) {
+      console.error("Failed to remove assignment:", error)
+      alert("Failed to remove assignment. Please try again.")
+    }
   }
 
   const handleAssignJob = async () => {
@@ -188,53 +245,12 @@ export default function SpocManagement() {
       })
       
       alert(`✓ Job assigned successfully`)
-      
-      // Refetch all data to sync with DB
-      const spocresponse = await axiosClient.get("/admin/spocs")
-      const allSpocs = spocresponse.data.data || spocresponse.data
-      setAllSpocs(allSpocs)
-      
-      // Fetch updated assigned jobs for all SPOCs
-      const spocsWithJobs = await Promise.all(
-        allSpocs.map(async (spoc) => {
-          try {
-            const response = await axiosClient.post("/admin/spocs/assigned-jobs", {
-              spocId: spoc.id || spoc.user_id || spoc.spoc_id
-            })
-            const assignedJobs = response.data.data || []
-            return {
-              ...spoc,
-              spoc_id: spoc.id || spoc.user_id || spoc.spoc_id,
-              assignedJobs: assignedJobs,
-              activeJobs: assignedJobs.filter(job => job.job_status !== 'completed the drive').length,
-              completedJobs: assignedJobs.filter(job => job.job_status === 'completed the drive').length
-            }
-          } catch {
-            return {
-              ...spoc,
-              spoc_id: spoc.id || spoc.user_id || spoc.spoc_id,
-              assignedJobs: [],
-              activeJobs: 0,
-              completedJobs: 0
-            }
-          }
-        })
-      )
-      setSpocs(spocsWithJobs)
-      
-      // Refetch available jobs to remove assigned job
-      try {
-        const jobsResponse = await axiosClient.get("/recruiter/jobs")
-        const allJobs = jobsResponse.data.data || jobsResponse.data
-        setAvailableJobs(allJobs)
-      } catch {
-        setAvailableJobs([])
-      }
-      
+      await loadSpocData()
       setShowAssignJob(false)
       setAssignSpocId(null)
       setAssignJobId(null)
       setEditMode(false)
+      setAssignedJobsForEdit([])
     } catch (error) {
       console.error("Failed to assign job:", error)
       alert("Failed to assign job. Please try again.")
@@ -481,7 +497,7 @@ export default function SpocManagement() {
 
               <button
                 type="button"
-                onClick={() => handleRemoveSpoc(selectedSpoc.id)}
+                onClick={() => handleRemoveSpoc(selectedSpoc)}
                 className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium flex items-center justify-center gap-2"
               >
                 <Trash2 className="h-4 w-4" /> Remove SPOC
@@ -622,7 +638,7 @@ export default function SpocManagement() {
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            onClick={handleAddSpoc}
+                            onClick={() => handleRemoveAssignment(job)}
                             className="px-3 py-1.5 text-sm border border-red-200 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1"
                           >
                             <X className="h-4 w-4" /> Delete
@@ -632,7 +648,7 @@ export default function SpocManagement() {
                             onClick={() => {
                               setAssignJobId(job.job_id || job.id)
                               setEditMode(false)
-                              setAssignSpocId(null)
+                              setAssignSpocId(assignSpocId)
                             }}
                             className="px-3 py-1.5 text-sm border border-blue-200 text-blue-600 hover:bg-blue-50 rounded-lg flex items-center gap-1"
                           >
@@ -656,7 +672,7 @@ export default function SpocManagement() {
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Choose SPOC</option>
-                    {unassignedSpocs.map((spoc) => (
+                    {assignDropdownSpocs.map((spoc) => (
                       <option
                         key={spoc.spoc_id || spoc.id || spoc.spocId}
                         value={spoc.spoc_id || spoc.id || spoc.spocId}

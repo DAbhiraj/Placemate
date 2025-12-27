@@ -1,0 +1,5 @@
+ALTER TABLE users
+  ADD COLUMN preferred_job_type TEXT;
+
+ALTER TABLE users
+  ADD COLUMN has_backlogs BOOLEAN NOT NULL DEFAULT FALSE;

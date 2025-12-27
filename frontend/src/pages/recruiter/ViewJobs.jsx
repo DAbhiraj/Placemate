@@ -132,6 +132,7 @@ export default function ViewJobs() {
               : [],
             jobStatus: statusLabel,
             jobStatusRaw: statusLower,
+            assignedSpocs: job.spocs || [],
           };
         }
       );
@@ -392,6 +393,11 @@ export default function ViewJobs() {
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">{job.company}</p>
+                  {job.assignedSpocs && job.assignedSpocs.length > 0 && (
+                    <p className="text-xs text-purple-600 mt-0.5">
+                      SPOC: {job.assignedSpocs[0].name}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex gap-1 ml-3 flex-shrink-0">
@@ -418,11 +424,14 @@ export default function ViewJobs() {
                     Applications
                   </button>
                   <button
+                    onClick={() =>
+                      navigate(`/recruiter/spocmsgs?jobId=${job.id}`)
+                    }
                     className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded text-xs font-medium hover:bg-purple-700 transition-colors"
-                    title="View Spoc"
+                    title={job.assignedSpocs?.[0]?.name ? `Message ${job.assignedSpocs[0].name}` : "View Spoc"}
                   >
                     <Users className="w-3.5 h-3.5" />
-                    Spoc
+                    {job.assignedSpocs?.[0]?.name ? `Message ${job.assignedSpocs[0].name}` : "View SPOC"}
                   </button>
                   <button
                     onClick={() => handleDelete(job.id)}

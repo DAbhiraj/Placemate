@@ -53,7 +53,7 @@ export const spocRepository = {
             
             // Get job and company details for notifications
             const jobInfo = await client.query(
-                `SELECT roles, company_name FROM jobs WHERE job_id = $1`,
+                `SELECT role, company_name FROM jobs WHERE job_id = $1`,
                 [jobId]
             );
             
@@ -105,7 +105,7 @@ export const spocRepository = {
             
             // Send notification to admin
             const adminResult = await client.query(
-                `SELECT user_id FROM users WHERE role = 'admin' LIMIT 1`
+                `SELECT user_id FROM users WHERE roles = ARRAY['Admin'] LIMIT 1`
             );
             if (adminResult.rows.length > 0) {
                 await client.query(
@@ -179,6 +179,23 @@ export const spocRepository = {
              WHERE spoc_id = $1 AND job_id = $2`,
             [spocId, jobId]
         );
+    },
+
+    async removeAssignmentsBySpocId(spocId) {
+        const result = await pool.query(
+            `DELETE FROM spoc_job_assignments 
+             WHERE spoc_id = $1`,
+            [spocId]
+        );
+        return { deleted: result.rowCount };
+    },
+
+    async getSpocAssignmentByJob(jobId) {
+        const result = await pool.query(
+            `SELECT spoc_id FROM spoc_job_assignments WHERE job_id = $1 ORDER BY assigned_at DESC LIMIT 1`,
+            [jobId]
+        );
+        return result.rows[0]?.spoc_id || null;
     },
 
     // Update job status (SPOC can only update to 'in negotiation' or 'applications opened')

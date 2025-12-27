@@ -19,14 +19,14 @@ const applicationController = {
   async submitForm(req, res) {
     try {
       const { jobId, studentId } = req.params;
-      const { answers, resumeUrl } = req.body;
+      const { answers, resumeUrl, resumeFilename } = req.body;
 
       // Basic validation
       if (!studentId || !jobId) {
         return res.status(400).json({ message: "Missing studentId or jobId" });
       }
 
-      const result = await applicationService.submitOrUpdateApplication(studentId, jobId, answers, resumeUrl);
+      const result = await applicationService.submitOrUpdateApplication(studentId, jobId, answers, resumeUrl, resumeFilename);
       return res.json({ success: true, data: result });
     } catch (err) {
       console.error("SubmitForm error:", err);

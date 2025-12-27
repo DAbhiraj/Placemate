@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Upload, FileText, Loader2 } from 'lucide-react';
+import { X, FileText, Loader2 } from 'lucide-react';
 import axiosClient from '../../api/axiosClient';
 
 const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
@@ -9,8 +9,11 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
     personal_email: '',
     college_email: '',
     branch: '',
+    roll_no: '',
     cgpa: '',
-    phone: ''
+    phone: '',
+    preferred_job_type: '',
+    has_backlogs: ''
   });
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -67,8 +70,11 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
     if (!formData.personal_email.trim()) newErrors.personal_email = 'Personal email is required';
     if (!formData.college_email.trim()) newErrors.college_email = 'College email is required';
     if (!formData.branch.trim()) newErrors.branch = 'Branch is required';
+    if (!formData.roll_no.trim()) newErrors.roll_no = 'Roll number is required';
     if (!formData.cgpa) newErrors.cgpa = 'CGPA is required';
     if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
+    if (!formData.preferred_job_type) newErrors.preferred_job_type = 'Please select a type';
+    if (formData.has_backlogs === '') newErrors.has_backlogs = 'Backlog status is required';
     if (!selectedFile) newErrors.resume = 'Resume is required';
 
     // Email validation
@@ -96,7 +102,7 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+
       const formDataToSend = new FormData();
       
       // Append form fields
@@ -222,7 +228,7 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Branch and backlogs*
+                  Branch *
                 </label>
                 <select
                   name="branch"
@@ -233,7 +239,7 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
                   }`}
                 >
                   <option value="">Select your branch</option>
-                  <option value="Computer Science and Engineering">Computer Science</option>
+                  <option value="Computer Science and Engineering">Computer Science and Engineering</option>
                   <option value="Electronics">Electronics</option>
                   <option value="Information Technology">Information Technology</option>
                   <option value="Mechanical">Mechanical</option>
@@ -245,6 +251,46 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
                 {errors.branch && (
                   <p className="text-red-500 text-sm mt-1">{errors.branch}</p>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Roll Number *
+                </label>
+                <input
+                  type="text"
+                  name="roll_no"
+                  value={formData.roll_no}
+                  onChange={handleInputChange}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    errors.roll_no ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="e.g. 23B06A0501"
+                />
+                {errors.roll_no && (
+                  <p className="text-red-500 text-sm mt-1">{errors.roll_no}</p>
+                )}
+              </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Application Type *
+                  </label>
+                  <select
+                    name="preferred_job_type"
+                    value={formData.preferred_job_type}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      errors.preferred_job_type ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  >
+                    <option value="">Select type</option>
+                    <option value="Internship">Internship</option>
+                    <option value="Full Time">Full Time</option>
+                  </select>
+                  {errors.preferred_job_type && (
+                    <p className="text-red-500 text-sm mt-1">{errors.preferred_job_type}</p>
+                  )}
               </div>
 
               <div>
@@ -287,6 +333,26 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
                   <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
                 )}
               </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-gray-700">Backlogs *</p>
+              <div className="flex gap-6">
+                {['yes', 'no'].map((value) => (
+                  <label key={value} className="flex items-center gap-2 text-sm text-gray-600">
+                    <input
+                      type="radio"
+                      name="has_backlogs"
+                      value={value}
+                      checked={formData.has_backlogs === value}
+                      onChange={handleInputChange}
+                      className="w-4 h-4"
+                    />
+                    <span className="capitalize">{value}</span>
+                  </label>
+                ))}
+              </div>
+              {errors.has_backlogs && <p className="text-red-500 text-sm">{errors.has_backlogs}</p>}
             </div>
 
             {/* Resume Upload */}

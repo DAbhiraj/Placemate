@@ -173,6 +173,21 @@ export const adminRepository = {
         return result.rows[0];
     },
 
+    async removeSpoc(spocId) {
+        const result = await pool.query(
+            `UPDATE users
+             SET roles = CASE
+                 WHEN roles IS NULL THEN NULL
+                 ELSE array_remove(roles, 'spoc')
+             END
+             WHERE user_id = $1
+             RETURNING *`,
+            [spocId]
+        );
+
+        return result.rows[0];
+    },
+
     async updateStudentStatus(studentId, status) {
         // This would typically update a status field in users table
         // For now, we'll just return the student

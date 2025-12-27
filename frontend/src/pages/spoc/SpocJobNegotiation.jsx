@@ -1,242 +1,268 @@
-import { useState } from "react"
-import { MessageSquare, Send, AlertCircle, ArrowLeft } from "lucide-react"
+import { MessageSquare, Send, Search, User } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import { listConversations, getMessages, sendMessage, ensureConversation } from '../../api/spocMessages';
+import { useAuth } from '../../context/AuthContext';
 
-function SpocJobNegotation() {
-  const [selectedChatId, setSelectedChatId] = useState(null)
+export default function SpocJobNegotiation() {
+  const { user } = useAuth();
+  const location = useLocation();
+  const [conversations, setConversations] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [thread, setThread] = useState([]);
+  const [loadingConvs, setLoadingConvs] = useState(true);
+  const [loadingThread, setLoadingThread] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [query, setQuery] = useState('');
+  const [input, setInput] = useState('');
+  const [loadError, setLoadError] = useState('');
 
-  const negotiationChats = [
-    {
-      id: 1,
-      jobTitle: "Software Engineer",
-      company: "ABC Company Inc.",
-      lastMessage: "We can adjust the minimum CGPA to 7.5. Is that acceptable?",
-      timestamp: "2 hours ago",
-      unread: 1
-    },
-    {
-      id: 2,
-      jobTitle: "Data Analyst Intern",
-      company: "XYZ Tech Solutions",
-      lastMessage: "Can you specify the required skills more clearly?",
-      timestamp: "5 hours ago",
-      unread: 0
-    },
-    {
-      id: 3,
-      jobTitle: "Frontend Developer",
-      company: "Tech Innovators Ltd",
-      lastMessage: "The stipend amount has been approved.",
-      timestamp: "1 day ago",
-      unread: 2
-    }
-  ]
+  const targetJobId = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('jobId');
+  }, [location.search]);
 
-  const currentChat = {
-    jobTitle: "Software Engineer",
-    company: "ABC Company Inc.",
-    messages: [
-      {
-        id: 1,
-        sender: "recruiter",
-        name: "ABC Company Inc.",
-        message:
-          "Hi! We are looking to post a Software Engineer position. We need candidates with 8.0+ CGPA.",
-        timestamp: "2024-12-01, 10:30 AM"
-      },
-      {
-        id: 2,
-        sender: "spoc",
-        message:
-          "That CGPA requirement might be too high. Most eligible students have 7.5-7.8. Can we adjust?",
-        timestamp: "2024-12-01, 11:00 AM"
-      },
-      {
-        id: 3,
-        sender: "recruiter",
-        message:
-          "Hmm, 7.5 is the minimum we can go. But we can be flexible with the skills requirement.",
-        timestamp: "2024-12-01, 11:30 AM"
-      },
-      {
-        id: 4,
-        sender: "spoc",
-        message:
-          "Great! Can you clarify which programming languages are essential vs. nice-to-have?",
-        timestamp: "2024-12-01, 2:00 PM"
-      },
-      {
-        id: 5,
-        sender: "recruiter",
-        message:
-          "We can adjust the minimum CGPA to 7.5. Essential: Java, Spring Boot. Nice-to-have: React, AWS.",
-        timestamp: "2 hours ago"
+  useEffect(() => {
+    const load = async () => {
+      setLoadingConvs(true);
+      setLoadError('');
+      try {
+        if (targetJobId) {
+          try {
+            await ensureConversation(Number(targetJobId));
+          } catch (err) {
+            const message = err.response?.data?.message || err.message || 'Unable to open conversation';
+            setLoadError(message);
+          }
+        }
+        const convs = await listConversations();
+        setConversations(convs);
+        if (convs.length > 0) {
+          const matched = targetJobId
+            ? convs.find((c) => String(c.job_id) === String(targetJobId))
+            : null;
+          const toSelect = matched || convs[0];
+          setSelected(toSelect);
+          await loadThread(toSelect);
+        } else {
+          setSelected(null);
+          setThread([]);
+        }
+      } catch (err) {
+        console.error('Failed to load conversations', err);
+        setLoadError('Failed to load conversations');
+      } finally {
+        setLoadingConvs(false);
       }
-    ]
-  }
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetJobId]);
 
-  const handleChatSelect = chatId => {
-    setSelectedChatId(chatId)
-  }
+  const loadThread = async (conv) => {
+    if (!conv) return;
+    setLoadingThread(true);
+    try {
+      const msgs = await getMessages(conv.conversation_id, { limit: 100 });
+      setThread(msgs);
+      setConversations((prev) => prev.map((c) =>
+        c.conversation_id === conv.conversation_id
+          ? { ...c, unread_count: 0 }
+          : c
+      ));
+    } catch (err) {
+      console.error('Failed to load messages', err);
+    } finally {
+      setLoadingThread(false);
+    }
+  };
 
-  const handleBackToList = () => {
-    setSelectedChatId(null)
-  }
+  const handleSelect = async (conv) => {
+    setSelected(conv);
+    await loadThread(conv);
+  };
+
+  const handleSend = async () => {
+    const content = input.trim();
+    if (!content || !selected) return;
+    setSending(true);
+    try {
+      const optimistic = {
+        message_id: Date.now(),
+        sender_id: user?.id,
+        recipient_id: null,
+        content,
+        is_read: true,
+        created_at: new Date().toISOString()
+      };
+      setThread((prev) => [...prev, optimistic]);
+      setInput('');
+      const sent = await sendMessage(selected.conversation_id, content);
+      setThread((prev) => prev.map((m) => (m.message_id === optimistic.message_id ? sent : m)));
+      setConversations((prev) => prev.map((c) =>
+        c.conversation_id === selected.conversation_id
+          ? { ...c, last_message: sent.content, last_message_at: sent.created_at }
+          : c
+      ));
+      setSelected((prev) => prev && prev.conversation_id === selected.conversation_id
+        ? { ...prev, last_message: sent.content, last_message_at: sent.created_at }
+        : prev
+      );
+    } catch (err) {
+      console.error('Failed to send message', err);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const filteredConversations = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return conversations;
+    return conversations.filter((c) =>
+      `${c.company_name || ''} ${c.job_role || ''}`.toLowerCase().includes(q)
+    );
+  }, [query, conversations]);
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-0 sm:p-4">
-      <div className="bg-white rounded-none sm:rounded-xl shadow-none sm:shadow-sm border-0 sm:border sm:border-gray-200 overflow-hidden h-screen sm:h-[700px] w-full sm:max-w-6xl flex flex-col">
-        <div className="p-4 sm:p-6 border-b border-gray-200 bg-white">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-100 p-2 rounded-lg">
-              <MessageSquare className="w-5 h-5 text-blue-600" />
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+      <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-100 p-3 rounded-2xl">
+                <MessageSquare className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Recruiter Messages</h1>
+                <p className="text-sm text-gray-500">Coordinate roles and approvals with recruiters</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
-                Job Negotiations
-              </h2>
-              <p className="text-xs sm:text-sm text-gray-500">
-                Discuss job requirements with recruiters
-              </p>
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="search"
+                aria-label="Search conversations"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search company or job"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              />
             </div>
           </div>
+          {loadError && (
+            <p className="mt-3 text-xs text-red-500">{loadError}</p>
+          )}
         </div>
 
-        <div className="flex-1 overflow-hidden flex">
-          <div
-            className={`w-full md:w-1/3 bg-gray-50 overflow-y-auto border-r border-gray-200 transition-transform duration-300 absolute md:relative inset-y-0 left-0 ${
-              selectedChatId
-                ? "-translate-x-full md:translate-x-0"
-                : "translate-x-0"
-            }`}
-          >
-            {negotiationChats.map(chat => (
-              <div
-                key={chat.id}
-                onClick={() => handleChatSelect(chat.id)}
-                className="p-4 border-b border-gray-200 hover:bg-white cursor-pointer transition-colors"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-sm">
-                      {chat.jobTitle}
-                    </h3>
-                    <p className="text-xs text-gray-500">{chat.company}</p>
-                  </div>
-                  {chat.unread > 0 && (
-                    <span className="bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {chat.unread}
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-gray-600 truncate mb-1">
-                  {chat.lastMessage}
-                </p>
-                <p className="text-xs text-gray-400">{chat.timestamp}</p>
-              </div>
-            ))}
-          </div>
-
-          <div
-            className={`w-full md:w-2/3 bg-white flex flex-col transition-transform duration-300 absolute md:relative inset-y-0 right-0 ${
-              selectedChatId
-                ? "translate-x-0"
-                : "translate-x-full md:translate-x-0"
-            }`}
-          >
-            {selectedChatId ? (
-              <>
-                <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1.8fr]">
+          <div className="border-r border-gray-200 bg-gray-50 max-h-[640px] overflow-y-auto">
+            {loadingConvs ? (
+              <div className="p-4 text-sm text-gray-500">Loading conversations…</div>
+            ) : filteredConversations.length === 0 ? (
+              <div className="p-4 text-sm text-gray-500">No conversations yet</div>
+            ) : (
+              filteredConversations.map((conv) => {
+                const isActive = selected?.conversation_id === conv.conversation_id;
+                return (
                   <button
-                    onClick={handleBackToList}
-                    className="md:hidden p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                    key={conv.conversation_id}
+                    onClick={() => handleSelect(conv)}
+                    className={`w-full text-left p-4 border-b border-gray-200 transition ${isActive ? 'bg-white shadow-sm' : 'bg-gray-50 hover:bg-white'}`}
                   >
-                    <ArrowLeft className="w-5 h-5 text-gray-700" />
-                  </button>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">
-                      {currentChat.jobTitle}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {currentChat.company}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex-1 p-4 sm:p-6 space-y-4 overflow-y-auto bg-white">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-blue-800">
-                      <p className="font-medium mb-1">Ongoing Discussion</p>
-                      <p>
-                        Discussing CGPA requirement and technical skills with
-                        the recruiter.
-                      </p>
-                    </div>
-                  </div>
-
-                  {currentChat.messages.map(msg => (
-                    <div
-                      key={msg.id}
-                      className={`flex gap-3 ${
-                        msg.sender === "spoc" ? "justify-end" : "justify-start"
-                      }`}
-                    >
-                      {msg.sender === "recruiter" && (
-                        <div className="bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-xs font-semibold text-gray-600">
-                          ABC
+                    <div className="flex items-start gap-3">
+                      <div className="bg-blue-600 rounded-full w-11 h-11 flex items-center justify-center">
+                        <User className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="font-semibold text-gray-900 text-sm truncate">{conv.company_name}</h3>
+                          {conv.unread_count > 0 && (
+                            <span className="text-xs font-semibold bg-blue-600 text-white rounded-full px-2 py-0.5">
+                              {conv.unread_count}
+                            </span>
+                          )}
                         </div>
-                      )}
-                      <div
-                        className={`max-w-xs sm:max-w-sm ${
-                          msg.sender === "spoc"
-                            ? "bg-blue-600 text-white rounded-lg rounded-tr-none"
-                            : "bg-gray-100 text-gray-900 rounded-lg rounded-tl-none"
-                        } p-3 shadow-sm`}
-                      >
-                        <p className="text-sm mb-1">{msg.message}</p>
-                        <p
-                          className={`text-xs ${
-                            msg.sender === "spoc"
-                              ? "text-blue-100"
-                              : "text-gray-500"
-                          }`}
-                        >
-                          {msg.timestamp}
-                        </p>
+                        <p className="text-xs text-gray-500 truncate">{conv.job_role}</p>
+                        <p className="text-sm text-gray-600 truncate mt-1">{conv.last_message || 'No messages yet'}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{conv.last_message_at ? new Date(conv.last_message_at).toLocaleString() : ''}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-
-                <div className="p-4 border-t border-gray-200 bg-white">
-                  <div className="flex gap-2 sm:gap-3">
-                    <input
-                      type="text"
-                      placeholder="Type your message..."
-                      className="flex-1 px-3 sm:px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
-                    />
-                    <button className="px-4 sm:px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-                      <Send className="w-4 h-4" />
-                      <span className="hidden sm:inline">Send</span>
-                    </button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="hidden md:flex flex-1 items-center justify-center text-gray-400">
-                <div className="text-center">
-                  <MessageSquare className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium">
-                    Select a chat to start messaging
-                  </p>
-                </div>
-              </div>
+                  </button>
+                );
+              })
             )}
+          </div>
+
+          <div className="flex flex-col">
+            <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center gap-3">
+              <div className="bg-blue-600 rounded-full w-11 h-11 flex items-center justify-center">
+                <User className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">{selected ? selected.company_name : 'Select a conversation'}</h2>
+                {selected && (
+                  <p className="text-xs text-gray-500">
+                    Chat with {selected.participant_name || 'the recruiter'} about {selected.job_role}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex-1 p-4 sm:p-6 bg-white overflow-y-auto" style={{ minHeight: '380px' }}>
+              {loadingThread && (
+                <p className="text-sm text-gray-500">Loading messages…</p>
+              )}
+              {!loadingThread && selected && thread.length === 0 && (
+                <p className="text-sm text-gray-500">No messages yet. Start the conversation.</p>
+              )}
+              {thread.map((msg) => {
+                const isMine = msg.sender_id === user?.id;
+                return (
+                  <div key={msg.message_id} className={`flex gap-3 mb-4 ${isMine ? 'justify-end' : ''}`}>
+                    {!isMine && (
+                      <div className="bg-blue-600 rounded-full w-8 h-8 flex items-center justify-center text-xs font-semibold text-white">
+                        R
+                      </div>
+                    )}
+                    <div className={`${isMine ? 'bg-blue-600 text-white rounded-br-none' : 'bg-gray-100 text-gray-900 rounded-bl-none'} rounded-2xl px-4 py-3 shadow-sm max-w-[20rem] sm:max-w-lg`}> 
+                      <p className={`text-sm ${isMine ? 'text-white' : 'text-gray-900'}`}>{msg.content}</p>
+                      <p className={`text-xs mt-2 ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>{new Date(msg.created_at).toLocaleString()}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="p-4 border-t border-gray-200 bg-white">
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                  placeholder="Type your message..."
+                  disabled={!selected}
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={!selected || sending || input.trim().length === 0}
+                  className="px-5 py-3 bg-blue-600 text-white rounded-2xl flex items-center gap-2 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <Send className="w-4 h-4" />
+                  {sending ? 'Sending…' : 'Send'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default SpocJobNegotation

@@ -13,6 +13,7 @@ import { adminController } from "./controllers/adminController.js";
 import { recruiterController } from "./controllers/recruiterController.js";
 import { spocController } from "./controllers/spocController.js";
 import { recruiterKycController } from "./controllers/recruiterKycController.js";
+import { messagesController } from "./controllers/messagesController.js";
 import { keycloakAuthController } from "./controllers/keycloakAuthController.js";
 import { requireAuth } from "./middleware/authMiddleware.js";
 import { uploadController } from "./controllers/uploadController.js";
@@ -105,6 +106,8 @@ router.get("/admin/spocs", adminController.getAllSpocs);
 router.get("/admin/search-users", adminController.searchUsers);
 router.post("/admin/spoc/add", adminController.addSpoc);
 router.post("/admin/spocs/assigned-jobs", adminController.getSpocAssignedJobs);
+router.delete("/admin/spocs/:spocId", adminController.removeSpoc);
+router.delete("/admin/spocs/:spocId/jobs/:jobId", adminController.removeSpocAssignment);
 router.put("/admin/students/:studentId/status", adminController.updateStudentStatus);
 
 // Protect all routes below
@@ -119,6 +122,12 @@ router.put("/spoc/jobs/:jobId/job-status", spocController.updateJobStatus);
 router.put("/spoc/jobs/:jobId/messages", spocController.updateMessageCount);
 router.put("/spoc/jobs/:jobId/changes", spocController.updateHasChanges);
 router.delete("/spoc/jobs/:jobId", spocController.removeAssignment);
+
+// SPOC Messaging Routes
+router.get("/spoc/conversations", messagesController.listConversations);
+router.post("/spoc/jobs/:jobId/conversation", messagesController.ensureConversation);
+router.get("/conversations/:conversationId/messages", messagesController.getMessages);
+router.post("/conversations/:conversationId/messages", messagesController.sendMessage);
 
 // System Job Status Auto-Update (cron job endpoint)
 router.post("/system/auto-update-job-statuses", spocController.autoUpdateJobStatuses);

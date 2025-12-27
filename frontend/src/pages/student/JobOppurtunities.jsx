@@ -1,45 +1,94 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import axiosClient from "../../api/axiosClient";
 import {
   Search,
-  Filter,
   MapPin,
   Calendar,
-  DollarSign,
   Briefcase,
   ArrowRight,
   Lock,
+  User,
 } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const knownCities = [
+  "hyderabad",
+  "bangalore",
+  "bengaluru",
+  "chennai",
+  "mumbai",
+  "delhi",
+  "pune",
+  "kolkata",
+  "noida",
+  "gurgaon",
+  "gurugram",
+  "ahmedabad",
+];
 
-// Helper function to parse salary strings (e.g., "$80,000 - $100,000")
 const parseSalary = (salaryStr) => {
   if (!salaryStr) return 0;
-  // Get the first number, remove commas and symbols
-  const numStr = salaryStr.split("-")[0].replace(/[^\d]/g, "");
+  const numStr = salaryStr
+    .split("-")[0]
+    .replace(/[^\d]/g, "")
+    .replace(/,/g, "");
   return parseInt(numStr, 10) || 0;
+};
+
+const formatLocation = (value) => {
+  if (!value) return "Remote";
+  if (Array.isArray(value)) return value.filter(Boolean).join(", ");
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (/[,;|]/.test(trimmed)) {
+      return trimmed.replace(/[;|]/g, ", ");
+    }
+    const lower = trimmed.toLowerCase();
+    const matches = knownCities.filter((city) => lower.includes(city));
+    if (matches.length > 0) {
+      return matches.join(", ");
+    }
+    return trimmed.replace(/([a-z])([A-Z])/g, "$1, $2");
+  }
+  return String(value);
+};
+
+const formatDate = (iso) => {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yyyy = date.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+};
+
+const formatDateTime = (iso) => {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yyyy = date.getFullYear();
+  const hh = String(date.getHours()).padStart(2, "0");
+  const min = String(date.getMinutes()).padStart(2, "0");
+  return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
 };
 
 const JobOpportunities = () => {
   const [jobs, setJobs] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
   const [appliedJobs, setAppliedJobs] = useState(new Set());
-
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLocation, setFilterLocation] = useState("");
   const [filterSalary, setFilterSalary] = useState("");
   const [sortBy, setSortBy] = useState("postedDate");
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [isStudentSelected, setIsStudentSelected] = useState(false);
 
-  // 1. Fetch Jobs (from JobsPage.jsx)
   const fetchJobs = async () => {
+    setLoading(true);
+    setError("");
     try {
-      setLoading(true);
-      setError("");
       const response = await axiosClient.get(`/jobs`);
       const raw = response?.data;
       const list = Array.isArray(raw)
@@ -47,25 +96,22 @@ const JobOpportunities = () => {
         : Array.isArray(raw?.jobs)
         ? raw.jobs
         : [];
-
-        console.log('list');
-        console.log(list);
-
       const normalized = list.map((j) => ({
         id: j.job_id,
         title: j.title ?? j.role ?? "",
         company: j.company ?? j.company_name ?? "",
-        location: j.location ?? "Remote",
-        salary: j.package ?? "Not Disclosed",
-        application_deadline: j.application_deadline ?? j.applicationDeadline ?? j.deadline ?? null,
+        location: j.location ?? j.location_name ?? j.locations ?? "Remote",
+        salary: j.package ?? j.package_range ?? j.salary ?? "Not Disclosed",
+        application_deadline:
+          j.application_deadline ?? j.applicationDeadline ?? j.deadline ?? null,
         postedDate:
-          j.postedDate ??
-          j.created_at ??
-          j.createdAt ??
-          new Date().toISOString(),
+          j.postedDate ?? j.created_at ?? j.createdAt ?? new Date().toISOString(),
         description: j.description ?? "No description available.",
-        company_logo: j.company_logo,
         job_type: j.job_type || j.jobType || j.type || null,
+        spoc_name:
+          j.spoc_name || j.spoc?.name || (j.spocs && j.spocs[0]?.name) || null,
+        spoc_email:
+          j.spoc_email || j.spoc?.email || (j.spocs && j.spocs[0]?.email) || null,
       }));
       setJobs(normalized);
     } catch (err) {
@@ -75,43 +121,24 @@ const JobOpportunities = () => {
     }
   };
 
-  // 2. Fetch User Applications (from JobsPage.jsx)
   const fetchUserApplications = async () => {
     try {
-      const userId = localStorage.getItem("id"); // Assumes user ID is in localStorage
-      if (!userId || jobs.length === 0) return;
-
-      const response = await axiosClient.get(
-        `/applications`
-      );
-      const applications = response.data || [];
-
-      // Check if user is selected
-      let hasSelection = false;
-      applications.forEach((app) => {
-        if (app.status) {
-          console.log("app.status is " + app.status);
-          if (app.status === "selected") {
-            hasSelection = true;
-          }
-        }
-      });
-
-      console.log("is the user selected " + hasSelection);
-      setIsStudentSelected(hasSelection);
-
-      // Create a set of applied job IDs based on company_name and role matching
+      const response = await axiosClient.get(`/applications`);
+      const applications = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response?.data?.applications)
+        ? response.data.applications
+        : [];
       const appliedJobIds = new Set();
       applications.forEach((app) => {
-        const matchingJob = jobs.find(
+        const match = jobs.find(
           (job) => job.company === app.company_name && job.title === app.role
         );
-        if (matchingJob) {
-          appliedJobIds.add(matchingJob.id);
+        if (match) {
+          appliedJobIds.add(match.id);
         }
       });
-
-      setAppliedJobs(appliedJobIds);
+      setAppliedJobs(new Set(appliedJobIds));
     } catch (err) {
       console.error("Failed to fetch user applications:", err);
     }
@@ -122,14 +149,38 @@ const JobOpportunities = () => {
   }, []);
 
   useEffect(() => {
-    // Fetch applied status once jobs are loaded
     if (jobs.length > 0) {
       fetchUserApplications();
     }
   }, [jobs]);
 
-  // 3. Modal/Form Handling (from JobsPage.jsx)
-  // For Jobs page: just show job details in a read-only modal (no ApplicationForm)
+  const filteredJobs = jobs
+    .filter((job) => {
+      const matchesSearch =
+        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.company.toLowerCase().includes(searchTerm.toLowerCase());
+      const normalizedLocation = formatLocation(job.location).toLowerCase();
+      const matchesLocation =
+        !filterLocation ||
+        normalizedLocation.includes(filterLocation.toLowerCase());
+      const salaryValue = parseSalary(job.salary);
+      const matchesSalary =
+        !filterSalary ||
+        (filterSalary === "high" && salaryValue >= 150000) ||
+        (filterSalary === "medium" && salaryValue >= 80000 && salaryValue < 150000) ||
+        (filterSalary === "entry" && salaryValue < 80000);
+      return matchesSearch && matchesLocation && matchesSalary;
+    })
+    .sort((a, b) => {
+      if (sortBy === "salary") {
+        return parseSalary(b.salary) - parseSalary(a.salary);
+      }
+      if (sortBy === "title") {
+        return a.title.localeCompare(b.title);
+      }
+      return new Date(b.postedDate).getTime() - new Date(a.postedDate).getTime();
+    });
+
   const handleViewDetailsClick = (job) => {
     setSelectedJob(job);
   };
@@ -138,312 +189,193 @@ const JobOpportunities = () => {
     setSelectedJob(null);
   };
 
-  // 4. Filter and Sort Logic (from Companies.jsx, adapted for Jobs)
-  const filteredJobs = jobs
-    .filter((job) => {
-      // Determine user's application type (prioritize stored value, fallback to roll_no heuristic)
-      const storedAppType = localStorage.getItem('application_type');
-      const roll = localStorage.getItem('roll_no') || '';
-      const userAppType = storedAppType || ((String(roll).slice(0,2) === '23') ? 'internship' : 'fte');
-
-      const matchesSearch =
-        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.company.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesLocation =
-        !filterLocation ||
-        job.location.toLowerCase().includes(filterLocation.toLowerCase());
-
-      const jobSalary = parseSalary(job.salary);
-      const matchesSalary =
-        !filterSalary ||
-        (filterSalary === "high" && jobSalary >= 150000) ||
-        (filterSalary === "medium" &&
-          jobSalary >= 80000 &&
-          jobSalary < 150000) ||
-        (filterSalary === "entry" && jobSalary < 80000);
-
-      // If job defines a job_type, only show jobs matching user's application type
-      if (job.job_type && userAppType) {
-        if (job.job_type !== userAppType) return false;
-      }
-
-      return matchesSearch && matchesLocation && matchesSalary;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "postedDate":
-          // Newest first
-          return (
-            new Date(b.postedDate).getTime() - new Date(a.postedDate).getTime()
-          );
-        case "salary":
-          // Highest first
-          return parseSalary(b.salary) - parseSalary(a.salary);
-        case "title":
-          return a.title.localeCompare(b.title);
-        default:
-          return 0;
-      }
-    });
-
-  // 5. Render job details in read-only modal (no apply button; user applies via Applications tab)
-  if (selectedJob) {
-    return (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden w-full max-w-3xl my-8">
-          <div className="bg-slate-900 px-8 py-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-white mb-2">
-                  {selectedJob.title}
-                </h1>
-                <p className="text-slate-300">
-                  {selectedJob.company} • {selectedJob.location}
-                </p>
-                {selectedJob.description && (
-                  <>
-                    <p className="mt-3 text-white text-sm leading-relaxed max-w-2xl font-bold">
-                      Description
-                    </p>
-                    <p className="mt-3 text-slate-400 text-sm leading-relaxed max-w-2xl">
-                      {selectedJob.description}
-                    </p>
-                  </>
-                )}
-              </div>
-              <button
-                onClick={handleCloseForm}
-                className="text-white hover:text-slate-300 transition"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-
-          <div className="p-8">
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-              {selectedJob.salary && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Package
-                  </label>
-                  <p className="text-lg font-semibold text-slate-900">{selectedJob.salary}</p>
-                </div>
-              )}
-              {selectedJob.application_deadline && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Application Deadline
-                  </label>
-                  <p className="text-lg font-semibold text-slate-900">
-                    {new Date(selectedJob.application_deadline).toLocaleDateString()}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg mb-6">
-              <p className="text-sm font-medium">
-                ℹ️ To apply for this job, please visit the <strong>Applications</strong> or <strong>Upcoming Deadlines</strong> tabs.
-              </p>
-            </div>
-
-            <div className="flex gap-4">
-              <button
-                onClick={handleCloseForm}
-                className="flex-1 px-6 py-3 border border-slate-300 text-slate-700 rounded-lg font-semibold hover:bg-slate-50 transition"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 6. Render Main List Page (UI from Companies.jsx)
   return (
-    <div className="space-y-6 p-4 md:p-8 bg-slate-50 min-h-screen">
-      {/* Header (from Companies.jsx) */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-sm border p-6">
-        <h1 className="text-2xl font-bold text-white mb-2">
-          Job Opportunities
-        </h1>
-        <p className="text-white">Browse and apply to available positions</p>
-      </div>
-
-      {/* Search and Filters (from Companies.jsx, adapted) */}
-      <div className="bg-white rounded-xl shadow-sm border p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="lg:col-span-2 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <input
-              type="text"
-              placeholder="Search jobs or companies..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <input
-              type="text"
-              placeholder="Location..."
-              value={filterLocation}
-              onChange={(e) => setFilterLocation(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-
-          <select
-            value={filterSalary}
-            onChange={(e) => setFilterSalary(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Salaries</option>
-            <option value="high">High ($150k+)</option>
-            <option value="medium">Medium ($80k - $150k)</option>
-            <option value="entry">Entry (Below $80k)</option>
-          </select>
-
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="postedDate">Sort by Posted Date</option>
-            <option value="salary">Sort by Salary</option>
-            <option value="title">Sort by Title</option>
-          </select>
+    <div className="min-h-screen bg-slate-900 p-4 sm:p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="rounded-2xl bg-slate-800 border border-slate-700 p-6 text-white shadow-lg">
+          <h1 className="text-3xl font-semibold">Job Opportunities</h1>
+          <p className="text-slate-300 mt-2">Browse curated roles and coordinate via SPOCs.</p>
         </div>
-      </div>
 
-      {/* Error Message (from JobsPage.jsx) */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      {/* Job Cards (Grid from Companies.jsx) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {loading ? (
-          <div className="lg:col-span-2 text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 mx-auto"></div>
-            <p className="mt-4 text-slate-600">Loading jobs...</p>
-          </div>
-        ) : filteredJobs.length === 0 ? (
-          <div className="lg:col-span-2 text-center py-12">
-            <Filter className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No jobs found
-            </h3>
-            <p className="text-gray-500">Try adjusting your search criteria</p>
-          </div>
-        ) : (
-          filteredJobs.map((job) => {
-            const isApplied = appliedJobs.has(job.id);
-
-            return (
-              // Card styling from Companies.jsx
-              <div
-                key={job.id}
-                className="bg-white rounded-xl shadow-sm border hover:shadow-md transition-all duration-200"
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr_1fr] gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search jobs or companies"
+                className="w-full pl-10 pr-4 py-2 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                value={filterLocation}
+                onChange={(e) => setFilterLocation(e.target.value)}
+                placeholder="Location"
+                className="w-full pl-10 pr-4 py-2 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex gap-2 flex-col sm:flex-row items-stretch">
+              <select
+                value={filterSalary}
+                onChange={(e) => setFilterSalary(e.target.value)}
+                className="flex-1 rounded-2xl border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      {/* Icon from JobsPage.jsx */}
-                      <div className="flex items-center space-x-3">
-                        <img
-                          src={job.logo_url || "/placeholder-logo.png"} // fallback
-                          alt="Company Logo"
-                          className="w-12 h-12 object-contain rounded-md bg-white border"
-                          loading="lazy"
-                        />
-                        <div>
-                          <h3 className="font-semibold">
-                            {job.company_name}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            {job.package_range}
-                          </p>
-                        </div>
-                      </div>
+                <option value="">All Salaries</option>
+                <option value="high">High (₹1,50,000+)</option>
+                <option value="medium">Medium (₹80,000 - ₹1,49,999)</option>
+                <option value="entry">Entry (&lt; ₹80,000)</option>
+              </select>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="flex-1 rounded-2xl border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="postedDate">Sort by Posted Date</option>
+                <option value="salary">Sort by Salary</option>
+                <option value="title">Sort by Title</option>
+              </select>
+            </div>
+          </div>
+        </div>
 
-                      <div>
-                        {/* Content from JobsPage.jsx */}
-                        <h3 className="text-xl font-semibold text-gray-900">
-                          {job.title}
-                        </h3>
-                        <p className="text-gray-600 font-medium">
-                          {job.company}
-                        </p>
-                      </div>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl">
+            {error}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {loading ? (
+            <div className="lg:col-span-2 text-center py-10 text-white space-y-3 bg-slate-800 rounded-3xl">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white mx-auto"></div>
+              <p>Loading jobs...</p>
+            </div>
+          ) : filteredJobs.length === 0 ? (
+            <div className="lg:col-span-2 text-center py-10 text-white bg-slate-800 rounded-3xl">
+              <p>No jobs matched your filters.</p>
+            </div>
+          ) : (
+            filteredJobs.map((job) => {
+              const applied = appliedJobs.has(job.id);
+              return (
+                <div
+                  key={job.id}
+                  className="bg-white rounded-3xl shadow-lg border border-gray-200 overflow-hidden flex flex-col"
+                >
+                  <div className="p-6 space-y-4 flex-1 flex flex-col">
+                    <div>
+                      <p className="text-sm uppercase tracking-wide text-slate-500">
+                        {job.company}
+                      </p>
+                      <h3 className="text-2xl font-semibold text-gray-900">
+                        {job.title}
+                      </h3>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      {/* Salary Tag (like Package from Companies.jsx) */}
-                      <span className="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
-                        ₹{job.salary} LPA
+                    <p className="text-gray-600 text-sm leading-relaxed line-clamp-3">
+                      {job.description}
+                    </p>
+                    <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-4 h-4" />
+                        {formatLocation(job.location)}
                       </span>
-                      {/* Applied Tag (new) */}
-                      {isApplied && (
-                        <div className="mt-2">
-                          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
-                            Applied
-                          </span>
-                        </div>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        Posted {formatDate(job.postedDate)}
+                      </span>
+                      {job.application_deadline && (
+                        <span className="flex items-center gap-1">
+                          <Lock className="w-4 h-4" />
+                          Deadline {formatDateTime(job.application_deadline)}
+                        </span>
+                      )}
+                      {job.job_type && (
+                        <span className="flex items-center gap-1">
+                          <Briefcase className="w-4 h-4" />
+                          {job.job_type}
+                        </span>
+                      )}
+                      {(job.spoc_name || job.spoc_email) && (
+                        <span className="flex items-center gap-1">
+                          <User className="w-4 h-4" />
+                          SPOC: {job.spoc_name || job.spoc_email}
+                        </span>
                       )}
                     </div>
                   </div>
-
-                  {/* Description (from Companies.jsx) */}
-                  <p className="text-gray-600 mb-4 line-clamp-2">
-                    {job.description}
-                  </p>
-
-                  <div className="space-y-3">
-                    {/* Info Section (Merged) */}
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center space-x-4">
-                        <span className="text-gray-500 flex items-center">
-                          <MapPin className="w-4 h-4 mr-1" />
-                          {job.location}
+                  <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs text-slate-500">Package</p>
+                      <p className="text-base font-semibold text-slate-900">{job.salary}</p>
+                      {applied && (
+                        <span className="text-xs inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 mt-2">
+                          Applied
                         </span>
-                        <span className="text-gray-500 flex items-center">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          Posted {new Date(job.postedDate).toLocaleDateString()}
-                        </span>
-                        {job.application_deadline && (
-                          <span className="text-gray-500 flex items-center ml-4">
-                            <Lock className="w-4 h-4 mr-1" />
-                            Deadline {new Date(job.application_deadline).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
+                      )}
                     </div>
-
-                    {/* Footer / Actions: View-only details button (apply via Applications tab) */}
-                    <div className="flex items-center justify-end pt-4 border-t border-gray-100">
-                      <button
-                        onClick={() => handleViewDetailsClick(job)}
-                        className="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 bg-gray-600 hover:bg-gray-700 text-white"
-                      >
-                        <span>View Details</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => handleViewDetailsClick(job)}
+                      className="px-4 py-2 rounded-2xl bg-slate-900 text-white text-sm font-semibold flex items-center gap-2 hover:bg-black transition"
+                    >
+                      <span>View Details</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-              </div>
-            );
-          })
-        )}
+              );
+            })
+          )}
+        </div>
       </div>
+
+      {selectedJob && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden">
+            <div className="bg-slate-900 text-white p-6 space-y-2">
+              <p className="text-sm text-slate-300 uppercase tracking-wider">{selectedJob.company}</p>
+              <h2 className="text-3xl font-semibold">{selectedJob.title}</h2>
+              <p className="text-sm text-slate-300">
+                {formatLocation(selectedJob.location)}
+                {selectedJob.job_type && ` • ${selectedJob.job_type}`}
+                {(selectedJob.spoc_name || selectedJob.spoc_email) && ` • SPOC: ${selectedJob.spoc_name || selectedJob.spoc_email}`}
+              </p>
+            </div>
+            <div className="p-6 space-y-6">
+              {selectedJob.description && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Description</h3>
+                  <p className="text-sm text-gray-600 mt-2 leading-relaxed">{selectedJob.description}</p>
+                </div>
+              )}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl border border-gray-200 p-4">
+                  <p className="text-xs text-gray-500">Package</p>
+                  <p className="text-lg font-semibold text-gray-900">{selectedJob.salary}</p>
+                </div>
+                {selectedJob.application_deadline && (
+                  <div className="rounded-2xl border border-gray-200 p-4">
+                    <p className="text-xs text-gray-500">Deadline</p>
+                    <p className="text-lg font-semibold text-gray-900">{formatDateTime(selectedJob.application_deadline)}</p>
+                  </div>
+                )}
+              </div>
+              <div className="text-right">
+                <button
+                  onClick={handleCloseForm}
+                  className="px-6 py-3 rounded-2xl bg-slate-900 text-white font-semibold hover:bg-black transition"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -9,6 +9,8 @@ CREATE TABLE Users (
     password VARCHAR(200),
     role VARCHAR(200),
     application_type TEXT,
+    preferred_job_type TEXT,
+    has_backlogs BOOLEAN DEFAULT FALSE,
     google_id TEXT,
     linkedin_id TEXT,
     first_name TEXT,
@@ -54,6 +56,7 @@ CREATE TABLE applications (
     job_id INTEGER REFERENCES jobs(job_id) ON DELETE CASCADE, -- Job ID
     answers JSONB DEFAULT '{}',
     resume_url TEXT,
+    resume_filename TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status TEXT

@@ -22,17 +22,23 @@ export const applicationRepository = {
   },
 
   // Create application inside transaction and increment applied_count
-  create: async (studentId, jobId, answers, resumeUrl) => {
+  create: async (studentId, jobId, answers, resumeUrl, resumeFilename) => {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
 
       const insertQ = `
-        INSERT INTO applications (user_id, job_id, answers, resume_url, status, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, 'applied', NOW(), NOW())
+        INSERT INTO applications (user_id, job_id, answers, resume_url, resume_filename, status, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, 'applied', NOW(), NOW())
         RETURNING *;
       `;
-      const insertRes = await client.query(insertQ, [studentId, jobId, answers || {}, resumeUrl || null]);
+      const insertRes = await client.query(insertQ, [
+        studentId,
+        jobId,
+        answers || {},
+        resumeUrl || null,
+        resumeFilename || null,
+      ]);
       // increment applied_count safely (avoid null)
       await client.query(
         `UPDATE jobs SET applied_count = COALESCE(applied_count,0) + 1, updated_at = NOW() WHERE job_id = $1`,
@@ -50,13 +56,13 @@ export const applicationRepository = {
   },
 
   // Update existing application (answers/resume_url/updated_at)
-  update: async (applicationId, answers, resumeUrl) => {
+  update: async (applicationId, answers, resumeUrl, resumeFilename) => {
     const result = await pool.query(
       `UPDATE applications
-       SET answers = $1, resume_url = $2, updated_at = NOW()
-       WHERE appl_id = $3
+       SET answers = $1, resume_url = $2, resume_filename = $3, updated_at = NOW()
+       WHERE appl_id = $4
        RETURNING *`,
-      [answers || {}, resumeUrl || null, applicationId]
+      [answers || {}, resumeUrl || null, resumeFilename || null, applicationId]
     );
     return result.rows[0];
   },
@@ -90,12 +96,17 @@ export const applicationRepository = {
       FROM jobs j
       LEFT JOIN applications a ON j.job_id = a.job_id AND a.user_id = $1
       WHERE
+    (
         (
-          ($2 = ANY(j.eligible_branches))
-          AND (j.min_cgpa <= $3)
+            $2 = ANY(j.eligible_branches)
+            AND j.min_cgpa <= $3
         )
         OR a.user_id IS NOT NULL
-      ORDER BY j.application_deadline DESC NULLS LAST, j.created_at DESC;
+    )
+    AND j.job_status NOT IN ('in review', 'in negotiation', 'in initial stage')
+ORDER BY 
+    j.application_deadline DESC NULLS LAST,
+    j.created_at DESC;
     `;
     const { rows } = await pool.query(query, [studentId, branch, cgpa]);
 

@@ -31,7 +31,7 @@ export const notificationRepository = {
       [userId]
     );
 
-    console.log(res.rows)
+   // console.log(res.rows)
     return res.rows;
   },
 

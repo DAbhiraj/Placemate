@@ -28,11 +28,36 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
     cgpa: "",
     answers: {},
     resumeUrl: "",
+    resumeFilename: "",
   })
   const [jobDetailsLoaded, setJobDetailsLoaded] = useState(Boolean(initialJob))
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState("")
+  const [showResumePreview, setShowResumePreview] = useState(false)
+  const resumeIsPdf = useMemo(() => {
+    const url = formData.resumeUrl || ""
+    return !!url.match(/\.pdf(\?.*)?$/i)
+  }, [formData.resumeUrl])
+
+  useEffect(() => {
+    if (!resumeIsPdf) {
+      setShowResumePreview(false)
+    }
+  }, [resumeIsPdf])
+
+  const resumeDisplayName = useMemo(() => {
+    if (formData.resumeFilename) return formData.resumeFilename
+    if (formData.resumeUrl) {
+      try {
+        const parsed = new URL(formData.resumeUrl)
+        return decodeURIComponent(parsed.pathname.split("/").pop() || "") || "Your resume"
+      } catch (err) {
+        return "Your resume"
+      }
+    }
+    return "Your resume"
+  }, [formData.resumeFilename, formData.resumeUrl])
   const [hasExistingApp, setHasExistingApp] = useState(!!isApplied)
   const effectiveJobId = jobData?.id || routeJobId
   const [isDeadlineMissed, setIsDeadlineMissed] = useState(false)
@@ -144,7 +169,8 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
           branch: profile.branch ?? prev.branch,
           cgpa: profile.cgpa ?? prev.cgpa,
           answers: existing?.answers ?? prev.answers,
-          resumeUrl: existing?.resume_url ?? prev.resumeUrl,
+          resumeUrl: existing?.resume_url ?? profile?.resume_url ?? prev.resumeUrl,
+          resumeFilename: existing?.resume_filename ?? profile?.resume_filename ?? prev.resumeFilename,
         }))
 
         if (existing) setHasExistingApp(true)
@@ -221,6 +247,7 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
         {
           answers: formData.answers,
           resumeUrl: formData.resumeUrl,
+          resumeFilename: formData.resumeFilename || resumeDisplayName,
         }
       )
 
@@ -448,11 +475,11 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
             </div>
           </div>
 
-          <div>
+          <div className="space-y-3">
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Resume URL
+              Resume
             </label>
-            <div className="relative">
+            {/* <div className="relative">
               <Upload className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
                 type="url"
@@ -465,7 +492,65 @@ export default function ApplicationForm({ job, isApplied = false, onClose }) {
                 required={!isReadOnly}
                 disabled={isReadOnly}
               />
-            </div>
+            </div> */}
+            {formData.resumeUrl && (
+              <div className="border border-slate-200 bg-slate-50 rounded-2xl p-4 space-y-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{resumeDisplayName}</p>
+                    <p className="text-xs text-slate-500">Auto-filled from your saved profile</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <a
+                      href={formData.resumeUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1 text-xs font-semibold text-slate-900 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-100"
+                    >
+                      View
+                    </a>
+                    {resumeIsPdf && (
+                      <button
+                        type="button"
+                        onClick={() => setShowResumePreview((prev) => !prev)}
+                        className="px-3 py-1 text-xs font-semibold text-slate-900 bg-slate-200 rounded-lg hover:bg-slate-300"
+                      >
+                        {showResumePreview ? "Hide preview" : "Preview"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {resumeIsPdf && showResumePreview && (
+                  <div className="border border-slate-200 rounded-2xl overflow-hidden h-56">
+                    <object
+                      data={formData.resumeUrl}
+                      type="application/pdf"
+                      className="w-full h-full"
+                    >
+                      <div className="h-full flex items-center justify-center text-center px-4">
+                        <p className="text-sm text-slate-600">
+                          Preview not supported in this browser. 
+                          <a
+                            href={formData.resumeUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-blue-600 underline"
+                          >
+                            Open in a new tab
+                          </a>
+                          .
+                        </p>
+                      </div>
+                    </object>
+                  </div>
+                )}
+                {!resumeIsPdf && (
+                  <p className="text-xs text-slate-500">
+                    Preview works for PDFs. Use “Open” to download or view other formats.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Custom Questions (if any) */}

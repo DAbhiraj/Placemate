@@ -114,8 +114,17 @@ export const adminService = {
         return spoc;
     },
 
+    async removeSpoc(spocId) {
+        await spocRepository.removeAssignmentsBySpocId(spocId);
+        return await adminRepository.removeSpoc(spocId);
+    },
+
     async getSpocAssignedJobs(spocId) {
         return await spocRepository.getAssignedJobsBySpocId(spocId);
+    },
+
+    async removeSpocAssignment(spocId, jobId) {
+        return await spocRepository.removeAssignment(spocId, jobId);
     },
 
     async updateStudentStatus(studentId, status) {

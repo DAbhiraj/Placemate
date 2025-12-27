@@ -37,21 +37,36 @@ export class ProfileController {
         personal_email,
         college_email,
         branch,
-        cgpa,
-        phone
-      } = req.body;
-
-      const updates = {
-        first_name,
-        last_name,
-        personal_email,
-        college_email,
-        branch,
+        roll_no,
         cgpa,
         phone,
-        name: `${first_name || ""} ${last_name || ""}`.trim(),
-        profile_completed: true
-      };
+        preferred_job_type,
+        has_backlogs
+      } = req.body;
+
+        const updates = {
+          first_name,
+          last_name,
+          personal_email,
+          college_email,
+          branch,
+          cgpa,
+          phone,
+          name: `${first_name || ""} ${last_name || ""}`.trim(),
+          profile_completed: true
+        };
+
+        if (preferred_job_type) {
+          updates.preferred_job_type = preferred_job_type;
+        }
+
+        if (typeof has_backlogs !== 'undefined') {
+          updates.has_backlogs = has_backlogs === 'no';
+        }
+
+        if (roll_no) {
+          updates.roll_no = roll_no;
+        }
 
       // Save resume if provided (multer single file)
       if (req.file) {
@@ -83,6 +98,7 @@ export class ProfileController {
       const userId = req.user.id;
       console.log("userId in getProfile is "+userId);
       const profile = await ProfileService.getProfile(userId);
+      console.log(profile);
       
       res.status(200).json({
         success: true,

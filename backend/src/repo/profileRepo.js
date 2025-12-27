@@ -23,7 +23,7 @@ export class ProfileRepo {
   static async getProfile(userId) {
     try {
       const result = await query(
-        "SELECT user_id as id, name, branch, cgpa, email,phone,roll_no, roles, skills, resume_url, resume_filename, resume_upload_date, application_type FROM users WHERE user_id = $1",
+        "SELECT user_id as id, name, branch, cgpa, email,phone,roll_no, roles, skills, resume_url, resume_filename, resume_upload_date, application_type, preferred_job_type, has_backlogs FROM users WHERE user_id = $1",
         [userId]
       );
       const row = result.rows[0];
@@ -67,7 +67,7 @@ export class ProfileRepo {
    */
   static async updateProfile(userId, updateData) {
     try {
-      const { branch, cgpa, email, name, application_type } = updateData;
+      const { branch, cgpa, email, name,phone, application_type, preferred_job_type, has_backlogs, roll_no } = updateData;
       
   
       // Build dynamic SQL for only the provided fields
@@ -77,6 +77,11 @@ export class ProfileRepo {
       if (branch !== undefined && branch !== '') {
         setClause.push(`branch = $${values.length + 1}`);
         values.push(branch);
+      }
+
+      if (phone !== undefined && phone !== '') {
+        setClause.push(`phone = $${values.length + 1}`);
+        values.push(phone);
       }
   
       if (cgpa !== undefined && cgpa !== '') {
@@ -97,6 +102,18 @@ export class ProfileRepo {
       if (application_type !== undefined && application_type !== '') {
         setClause.push(`application_type = $${values.length + 1}`);
         values.push(application_type);
+      }
+      if (preferred_job_type !== undefined && preferred_job_type !== '') {
+        setClause.push(`preferred_job_type = $${values.length + 1}`);
+        values.push(preferred_job_type);
+      }
+      if (has_backlogs !== undefined) {
+        setClause.push(`has_backlogs = $${values.length + 1}`);
+        values.push(has_backlogs);
+      }
+      if (roll_no !== undefined && roll_no !== '') {
+        setClause.push(`roll_no = $${values.length + 1}`);
+        values.push(roll_no);
       }
       if (setClause.length === 0) {
         console.log("No fields to update");

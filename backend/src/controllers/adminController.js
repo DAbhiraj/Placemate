@@ -137,6 +137,20 @@ export const adminController = {
             res.status(500).json({ message: "Failed to add Spoc" });
         }
     },
+
+    async removeSpoc(req, res) {
+        try {
+            const { spocId } = req.params;
+            if (!spocId) {
+                return res.status(400).json({ message: "SPOC ID is required" });
+            }
+            const removed = await adminService.removeSpoc(spocId);
+            res.json({ message: "SPOC removed", data: removed });
+        } catch (err) {
+            console.error("Error removing SPOC:", err);
+            res.status(500).json({ message: "Failed to remove SPOC" });
+        }
+    },
        
 
     async getAllSpocs(req, res) {
@@ -162,6 +176,20 @@ export const adminController = {
         } catch (err) {
             console.error("Error fetching SPOC assigned jobs:", err);
             res.status(500).json({ message: "Failed to fetch SPOC assigned jobs" });
+        }
+    },
+
+    async removeSpocAssignment(req, res) {
+        try {
+            const { spocId, jobId } = req.params;
+            if (!spocId || !jobId) {
+                return res.status(400).json({ message: "SPOC ID and Job ID are required" });
+            }
+            await adminService.removeSpocAssignment(spocId, jobId);
+            res.json({ message: "Assignment removed" });
+        } catch (err) {
+            console.error("Error removing assignment:", err);
+            res.status(500).json({ message: "Failed to remove assignment" });
         }
     },
 

@@ -32,17 +32,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
-  // const [atsScore, setAtsScore] = useState(null)
-  // const [atsFeedback, setAtsFeedback] = useState("")
-
-  // API Base URL
-  const API_BASE = "http://localhost:4000/api"
-
-  // Get auth token from localStorage
-  const getAuthToken = () => {
-    return localStorage.getItem("token")
-  }
-
+  
   // Fetch profile data
   const fetchProfile = async () => {
     try {
@@ -89,7 +79,7 @@ const Profile = () => {
           cgpa: data.data.cgpa,
           phone: data.data.phone,
           rollNumber: data.data.roll_no,
-          application_type : data.data.application_type
+          application_type : data.data.preferred_job_type
         }))
         // Store branch and cgpa in localStorage for Redux hydration (robust)
         if (data.data.branch) localStorage.setItem('branch', data.data.branch);

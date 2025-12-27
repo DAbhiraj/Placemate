@@ -11,7 +11,7 @@ export const applicationService = {
     return { profile, existingApp };
   },
 
-  submitOrUpdateApplication: async (studentId, jobId, answers, resumeUrl) => {
+  submitOrUpdateApplication: async (studentId, jobId, answers, resumeUrl, resumeFilename) => {
     // fetch job to check deadline, and student profile if needed
     const job = await applicationRepository.getJobById(jobId);
     if (!job) {
@@ -37,7 +37,7 @@ export const applicationService = {
 
     if (existing) {
       // Update allowed (we already validated deadline)
-      application = await applicationRepository.update(existing.appl_id, answers, resumeUrl);
+      application = await applicationRepository.update(existing.appl_id, answers, resumeUrl, resumeFilename);
 
       // Send notification (async)
       setImmediate(() => {
@@ -49,7 +49,7 @@ export const applicationService = {
       });
     } else {
       // Create application (transaction increments count)
-      application = await applicationRepository.create(studentId, jobId, answers, resumeUrl);
+      application = await applicationRepository.create(studentId, jobId, answers, resumeUrl, resumeFilename);
 
       setImmediate(() => {
         notificationService.notifyStudent(
